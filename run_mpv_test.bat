@@ -1,0 +1,6 @@
+@echo off
+echo Starting MPV...
+start "" "C:\Program Files\MPV\mpv.exe" --idle=yes --force-window=yes --input-ipc-server=\\.\pipe\mpvsocket
+echo Starting Bridge...
+powershell.exe -ExecutionPolicy Bypass -File .\mpv_websocket_bridge.ps1
+pause

@@ -1,0 +1,28 @@
+name: mvp_sound_engine
+description: "MVP Sound Engine - Real-time MPV DSP Control Surface"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  google_fonts: ^6.2.1
+  web_socket_channel: ^3.0.3
+  file_picker: ^11.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - mpv_websocket_bridge.py
+    - mpv_websocket_bridge.ps1
+
