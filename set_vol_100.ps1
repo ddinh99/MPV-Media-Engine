@@ -1,0 +1,1 @@
+$pipe = New-Object System.IO.Pipes.NamedPipeClientStream(".", "mpvsocket", [System.IO.Pipes.PipeDirection]::Out); $pipe.Connect(1000); $writer = New-Object System.IO.StreamWriter($pipe); $writer.WriteLine("{`"command`": [`"set_property`", `"mute`", false]}"); $writer.WriteLine("{`"command`": [`"set_property`", `"volume`", 100]}"); $writer.Flush(); $pipe.Close();

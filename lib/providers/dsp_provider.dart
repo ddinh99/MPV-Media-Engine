@@ -1,5 +1,6 @@
 // lib/providers/dsp_provider.dart
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -61,6 +62,13 @@ class DspProvider extends ChangeNotifier {
         await _ipc.disconnect();
       }
     }
+  }
+
+  /// Sends a raw JSON IPC command to MPV (for debugging/testing).
+  Future<bool> sendRawCommand(Map<String, dynamic> command) async {
+    final jsonStr = jsonEncode(command);
+    _addLog('Sending raw command: $jsonStr');
+    return await _ipc.sendCommand(jsonStr);
   }
 
   /// Save the mpv.exe path to preferences and copy the WebSocket bridge script to its directory.

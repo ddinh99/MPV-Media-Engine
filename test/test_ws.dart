@@ -20,17 +20,17 @@ void main() async {
       print('Connection closed.');
     });
 
-    // Send a test command to mute MPV
-    final muteCmd = '{"command": ["set_property", "mute", true]}';
-    print('Sending command to mute MPV: $muteCmd');
-    channel.sink.add(muteCmd);
+    // Send a test command to change volume to 20
+    final volLowCmd = '{"command": ["set_property", "volume", 20]}';
+    print('Sending command to set volume to 20: $volLowCmd');
+    channel.sink.add(volLowCmd);
 
     await Future.delayed(Duration(seconds: 2));
 
-    // Send a test command to unmute MPV
-    final unmuteCmd = '{"command": ["set_property", "mute", false]}';
-    print('Sending command to unmute MPV: $unmuteCmd');
-    channel.sink.add(unmuteCmd);
+    // Send a test command to change volume back to 100
+    final volHighCmd = '{"command": ["set_property", "volume", 100]}';
+    print('Sending command to set volume to 100: $volHighCmd');
+    channel.sink.add(volHighCmd);
 
     await Future.delayed(Duration(seconds: 1));
     await channel.sink.close();
