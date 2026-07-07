@@ -509,7 +509,7 @@ class DspProvider extends ChangeNotifier {
 
   // ── Clipboard / Export ─────────────────────────────────────────────────────
 
-  String exportConfigLine() => FilterBuilder.buildConfigLine(_state);
+  String exportConfigLine() => _filterPreview;
 
   @override
   void dispose() {
