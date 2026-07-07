@@ -13,10 +13,10 @@ $writer = $null
 $pipe = $null
 $tcpClient = $null
 
-Write-Host 'Attempting to connect to MPV Named Pipe (\\.\pipe\mpvsocket)...'
+Write-Host "Attempting to connect to MPV Named Pipe (\\.\pipe\$pipeName)..."
 try {
     $pipe = New-Object System.IO.Pipes.NamedPipeClientStream('.', $pipeName, [System.IO.Pipes.PipeDirection]::InOut)
-    $pipe.Connect(1000)
+    $pipe.Connect(5000)
     $writer = New-Object System.IO.StreamWriter($pipe)
     $writer.AutoFlush = $true
     Write-Host '✓ Connected to MPV via Named Pipe successfully!'
@@ -45,12 +45,12 @@ if (-not $connected) {
 
 # 2. Start WebSocket Listener
 $listener = New-Object System.Net.HttpListener
-$listener.Prefixes.Add('http://localhost:9002/')
-$listener.Prefixes.Add('http://127.0.0.1:9002/')
+$listener.Prefixes.Add('http://localhost:' + $wsPort + '/')
+$listener.Prefixes.Add('http://127.0.0.1:' + $wsPort + '/')
 
 try {
     $listener.Start()
-    Write-Host '✓ WebSocket bridge listening on ws://127.0.0.1:9002/'
+    Write-Host ('✓ WebSocket bridge listening on ws://127.0.0.1:' + $wsPort + '/')
     Write-Host 'Press Ctrl+C in this window to stop the bridge.'
 } catch {
     Write-Host '✗ Could not start WebSocket listener.'
@@ -87,6 +87,10 @@ try {
                     
                     if ($result.Count -gt 0) {
                         $msg = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $result.Count)
+                        if ($msg.Trim() -eq "__KILL_BRIDGE__") {
+                            Write-Host "Received kill command from app. Exiting bridge gracefully."
+                            exit 0
+                        }
                         if ($msg.Trim()) {
                             Write-Host "Forwarding: $msg"
                             try {

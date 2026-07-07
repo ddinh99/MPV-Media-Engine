@@ -101,6 +101,11 @@ def handle_web_client(client_socket, mpv_socket):
                 print("[Bridge] Client disconnected.")
                 break
                 
+            if msg.strip() == "__KILL_BRIDGE__":
+                print("[Bridge] Received kill command from app. Exiting bridge gracefully.")
+                import os
+                os._exit(0)
+                
             if msg.strip():
                 print(f"[Bridge] Forwarding: {msg.strip()}")
                 try:

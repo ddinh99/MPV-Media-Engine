@@ -2,9 +2,11 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
+import 'dart:math' as math;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/dsp_state.dart';
 import '../models/eq_band.dart';
 import '../models/preset.dart';
@@ -125,8 +127,13 @@ class DspProvider extends ChangeNotifier {
         await _ipc.disconnect();
       }
 
+      // Generate a unique session ID and port to guarantee zero collisions
+      final rng = math.Random();
+      final sessionPort = 9000 + rng.nextInt(10000);
+      final sessionPipe = 'mpvsocket_${rng.nextInt(999999)}';
+
       // ── Step 2: launch mpv.exe with Named Pipe IPC (standard for Windows) ──
-      const mpvPipePath = r'\\.\pipe\mpvsocket';
+      final mpvPipePath = r'\\.\pipe\' + sessionPipe;
       _addLog('▶ Launching MPV…');
       final mpvProcess = await io.Process.start(
         _mpvExePath!,
@@ -136,7 +143,7 @@ class DspProvider extends ChangeNotifier {
       _addLog('  MPV pid ${mpvProcess.pid}');
 
       // ── Step 3: wait for MPV to create the Named Pipe ─────────────────────
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 3000));
 
       // ── Step 4: unpack & launch the bridge (Python or PowerShell) ─────────
       String bridgePyPath = '';
@@ -146,7 +153,8 @@ class DspProvider extends ChangeNotifier {
 
       // 4a. Copy next to mpv.exe if permissions allow
       try {
-        final content = await rootBundle.loadString('mpv_websocket_bridge.py');
+        var content = await rootBundle.loadString('mpv_websocket_bridge.py');
+        content = content.replaceAll('WEBSOCKET_PORT = 9002', 'WEBSOCKET_PORT = $sessionPort');
         final mpvDir = io.File(_mpvExePath!).parent.path;
         final target = io.File('$mpvDir${sep}mpv_websocket_bridge.py');
         await target.writeAsString(content);
@@ -157,14 +165,17 @@ class DspProvider extends ChangeNotifier {
 
       // 4b. Unpack scripts to temp directory
       try {
-        final pyContent = await rootBundle.loadString('mpv_websocket_bridge.py');
+        var pyContent = await rootBundle.loadString('mpv_websocket_bridge.py');
+        pyContent = pyContent.replaceAll('WEBSOCKET_PORT = 9002', 'WEBSOCKET_PORT = $sessionPort');
         final pyFile = io.File('$tempDir${sep}mpv_websocket_bridge.py');
         await pyFile.writeAsString(pyContent);
         bridgePyPath = pyFile.path;
       } catch (_) {}
 
       try {
-        final ps1Content = await rootBundle.loadString('mpv_websocket_bridge.ps1');
+        var ps1Content = await rootBundle.loadString('mpv_websocket_bridge.ps1');
+        ps1Content = ps1Content.replaceAll('\$wsPort = 9002', '\$wsPort = $sessionPort');
+        ps1Content = ps1Content.replaceAll("\$pipeName = 'mpvsocket'", "\$pipeName = '$sessionPipe'");
         final ps1File = io.File('$tempDir${sep}mpv_websocket_bridge.ps1');
         await ps1File.writeAsString(ps1Content);
         bridgePs1Path = ps1File.path;
@@ -181,8 +192,8 @@ class DspProvider extends ChangeNotifier {
             mode: io.ProcessStartMode.detached,
             environment: {'PYTHONUNBUFFERED': '1'},
           );
-          _addLog('  Python bridge pid ${bp.pid} → ws://127.0.0.1:9002');
-          _ipc.setSocketPath('ws://127.0.0.1:9002');
+          _addLog('  Python bridge pid ${bp.pid} → ws://127.0.0.1:$sessionPort');
+          _ipc.setSocketPath('ws://127.0.0.1:$sessionPort');
           bridgeStarted = true;
           await Future.delayed(const Duration(milliseconds: 1000));
         } catch (e) {
@@ -197,10 +208,13 @@ class DspProvider extends ChangeNotifier {
           final bp = await io.Process.start(
             'powershell.exe',
             ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', bridgePs1Path],
-            mode: io.ProcessStartMode.detached,
+            mode: io.ProcessStartMode.normal,
           );
-          _addLog('  PowerShell bridge pid ${bp.pid} → ws://127.0.0.1:9002');
-          _ipc.setSocketPath('ws://127.0.0.1:9002');
+          // Drain stdout/stderr so PowerShell doesn't freeze when the 4KB pipe buffer fills
+          bp.stdout.listen((_) {});
+          bp.stderr.listen((_) {});
+          _addLog('  PowerShell bridge pid ${bp.pid} → ws://127.0.0.1:$sessionPort');
+          _ipc.setSocketPath('ws://127.0.0.1:$sessionPort');
           bridgeStarted = true;
           await Future.delayed(const Duration(milliseconds: 1200));
         } catch (e) {
