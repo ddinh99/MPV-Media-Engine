@@ -19,10 +19,19 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  image_path: "assets/app_icon.png"
+  windows:
+    generate: true
+    image_path: "assets/app_icon.png"
+    icon_size: 256
 
 flutter:
   uses-material-design: true
   assets:
     - mpv_websocket_bridge.py
     - mpv_websocket_bridge.ps1
+    - assets/app_icon.png
 

@@ -221,6 +221,12 @@ class _AppHeader extends StatelessWidget {
                 tooltip: 'Command Log',
                 onPressed: onToggleLog,
               ),
+              // Info
+              IconButton(
+                icon: Icon(Icons.info_outline, size: 16, color: AppTheme.textMuted),
+                tooltip: 'About',
+                onPressed: () => _showAbout(context),
+              ),
               // Help
               IconButton(
                 icon: Icon(Icons.help_outline, size: 16, color: AppTheme.textMuted),
@@ -231,6 +237,32 @@ class _AppHeader extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _showAbout(BuildContext context) {
+    showAboutDialog(
+      context: context,
+      applicationName: 'MVP Sound Engine',
+      applicationVersion: 'v1.0.0',
+      applicationLegalese: '© 2026 Dai Dinh',
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          'A professional Digital Signal Processing (DSP) control surface '
+          'for MPV, providing real-time manipulation of audio filters, '
+          'hardware speaker tuning, and cinematic loudness management.',
+          style: GoogleFonts.inter(fontSize: 13),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Credits & Acknowledgements:\n'
+          '• Developed by Dai Dinh\n'
+          '• Built with Flutter\n'
+          '• Audio Engine: MPV & FFmpeg',
+          style: GoogleFonts.inter(fontSize: 12, height: 1.5),
+        ),
+      ],
     );
   }
 
