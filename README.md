@@ -21,12 +21,16 @@ Normally, adjusting audio filters (like dynamic range compression, downmixing, o
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Download & Run (Recommended)
+1. Go to the [Releases page](https://github.com/ddinh99/MPV-Sound-Engine/releases) and download the latest `MPV-Sound-Engine-v1.0.zip`.
+2. Extract the folder and double-click `MPV_Sound_Engine.exe` to launch the GUI.
+*(Note: You do **not** need Flutter or any programming tools installed to run the pre-compiled application!)*
+
+### Building from Source (For Developers)
+#### Prerequisites
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) installed.
 - Windows OS (Currently designed for Windows desktop).
 - An active `mpv.exe` player.
-
-### Installation & Running
 
 1. Clone the repository:
    ```bash
