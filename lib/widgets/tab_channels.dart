@@ -22,35 +22,9 @@ class TabChannels extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (dsp.hasCustomFilterOverride)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    border: Border.all(color: color),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.info_outline, color: color, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Expert Override Active. The current preset uses a raw FFmpeg filter string. The simple UI sliders below cannot parse this complex string and are temporarily disconnected.',
-                          style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              Opacity(
-                opacity: dsp.hasCustomFilterOverride ? 0.4 : 1.0,
-                child: IgnorePointer(
-                  ignoring: dsp.hasCustomFilterOverride,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                       // Quick controls
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,10 +102,6 @@ class TabChannels extends StatelessWidget {
                   const SizedBox(height: 16),
                   _MatrixTable(matrix: p, dsp: dsp, accentColor: color),
                 ],
-              ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),
