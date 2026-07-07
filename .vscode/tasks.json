@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Kill Zombies",
+      "type": "shell",
+      "command": "taskkill /F /IM MPV_Sound_Engine.exe /T 2>nul & taskkill /F /IM dart.exe /T 2>nul & exit 0",
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    }
+  ]
+}

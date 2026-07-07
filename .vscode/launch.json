@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: Run Windows Desktop",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "-d",
+        "windows"
+      ],
+      "preLaunchTask": "Kill Zombies"
+    }
+  ]
+}

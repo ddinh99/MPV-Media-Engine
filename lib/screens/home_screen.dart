@@ -463,6 +463,13 @@ class _SettingsDialogState extends State<_SettingsDialog> {
           await widget.dsp.setMpvExePath(path);
         }
       }
+    } catch (e, st) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error opening file picker: $e')),
+        );
+      }
+      debugPrint('File picker error: $e\n$st');
     } finally {
       if (mounted) setState(() => _picking = false);
     }

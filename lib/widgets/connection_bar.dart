@@ -120,7 +120,7 @@ class ConnectionBar extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       onPressed: () {
                         // Triggers the onboarding setup dialog
-                        showFirstRunSetupIfNeeded(context, dsp);
+                        showFirstRunSetupIfNeeded(context, dsp, force: true);
                       },
                     ),
                   ],

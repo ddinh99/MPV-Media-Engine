@@ -10,8 +10,8 @@ import '../providers/dsp_provider.dart';
 import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 
 /// Shows the first-run setup dialog if the provider says it's needed.
-void showFirstRunSetupIfNeeded(BuildContext context, DspProvider dsp) {
-  if (!dsp.needsFirstTimeSetup) return;
+void showFirstRunSetupIfNeeded(BuildContext context, DspProvider dsp, {bool force = false}) {
+  if (!force && !dsp.needsFirstTimeSetup) return;
   showDialog(
     context: context,
     barrierDismissible: false,
