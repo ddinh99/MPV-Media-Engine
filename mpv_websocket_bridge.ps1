@@ -7,19 +7,40 @@ Write-Host '=================================================='
 Write-Host ' MVP Sound Engine - PowerShell WebSocket Bridge'
 Write-Host '=================================================='
 
-# 1. Connect to MPV Named Pipe
-Write-Host 'Connecting to MPV Named Pipe: \\.\pipe\mpvsocket...'
+# 1. Connect to MPV (Try Named Pipe first, fallback to TCP Port 9001)
+$connected = $false
+$writer = $null
+$pipe = $null
+$tcpClient = $null
+
+Write-Host 'Attempting to connect to MPV Named Pipe (\\.\pipe\mpvsocket)...'
 try {
     $pipe = New-Object System.IO.Pipes.NamedPipeClientStream('.', $pipeName, [System.IO.Pipes.PipeDirection]::InOut)
-    $pipe.Connect(3000)
+    $pipe.Connect(1000)
     $writer = New-Object System.IO.StreamWriter($pipe)
     $writer.AutoFlush = $true
-    Write-Host '✓ Connected to MPV successfully!'
+    Write-Host '✓ Connected to MPV via Named Pipe successfully!'
+    $connected = $true
 } catch {
-    Write-Host '✗ Could not connect to MPV.'
-    Write-Host 'Please start MPV first with:'
-    Write-Host '  mpv --input-ipc-server=\\.\pipe\mpvsocket C:\GTCM.mp4'
-    exit
+    Write-Host '  Named Pipe connection failed. Trying TCP (127.0.0.1:9001)...'
+}
+
+if (-not $connected) {
+    try {
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        $tcpClient.Connect('127.0.0.1', 9001)
+        $stream = $tcpClient.GetStream()
+        $writer = New-Object System.IO.StreamWriter($stream)
+        $writer.AutoFlush = $true
+        Write-Host '✓ Connected to MPV via TCP (127.0.0.1:9001) successfully!'
+        $connected = $true
+    } catch {
+        Write-Host '✗ Could not connect to MPV via Named Pipe or TCP.'
+        Write-Host 'Please start MPV first with either:'
+        Write-Host '  mpv --input-ipc-server=\\.\pipe\mpvsocket'
+        Write-Host '  mpv --input-ipc-server=tcp://127.0.0.1:9001'
+        exit
+    }
 }
 
 # 2. Start WebSocket Listener
@@ -44,7 +65,7 @@ try {
             $context = $listener.GetContext()
             if ($context.Request.IsWebSocketRequest) {
                 Write-Host 'Accepting browser client connection...'
-                $wsContext = $context.AcceptWebSocketAsync($null).Result
+                $wsContext = $context.AcceptWebSocketAsync([System.Management.Automation.Language.NullString]::Value).Result
                 $webSocket = $wsContext.WebSocket
                 Write-Host '✓ Browser client connected!'
 
@@ -67,7 +88,7 @@ try {
                     if ($result.Count -gt 0) {
                         $msg = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $result.Count)
                         if ($msg.Trim()) {
-                            Write-Host 'Forwarding message to MPV...'
+                            Write-Host "Forwarding: $msg"
                             # Write directly to MPV named pipe
                             $writer.WriteLine($msg)
                         }
@@ -83,7 +104,8 @@ try {
     }
 } finally {
     $listener.Stop()
-    $writer.Close()
-    $pipe.Close()
+    if ($writer) { $writer.Close() }
+    if ($pipe) { $pipe.Close() }
+    if ($tcpClient) { $tcpClient.Close() }
     Write-Host 'Bridge shut down.'
 }

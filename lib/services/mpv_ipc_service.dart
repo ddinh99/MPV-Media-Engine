@@ -1,7 +1,7 @@
 // lib/services/mpv_ipc_service.dart
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io' as io;
+import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -80,7 +80,7 @@ class MpvIpcService {
         final uri = Uri.parse(path.startsWith('ws') ? path : 'ws://$path');
         final channel = WebSocketChannel.connect(uri);
         
-        await channel.ready.timeout(const Duration(milliseconds: 1000));
+        await channel.ready.timeout(const Duration(milliseconds: _kTimeoutMs));
         
         _connection = channel;
         _subscription = channel.stream.listen(
@@ -125,13 +125,13 @@ class MpvIpcService {
           final port = int.tryParse(parts.last) ?? 9001;
           
           final socket = await io.Socket.connect(host, port)
-              .timeout(const Duration(milliseconds: 1000));
+              .timeout(const Duration(milliseconds: _kTimeoutMs));
           _connection = socket;
         } else {
           final socket = await io.Socket.connect(
             io.InternetAddress(path, type: io.InternetAddressType.unix),
             0,
-          ).timeout(const Duration(milliseconds: 1000));
+          ).timeout(const Duration(milliseconds: _kTimeoutMs));
           _connection = socket;
         }
 
