@@ -269,8 +269,21 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                           Icon(Icons.info_outline, size: 16, color: AppTheme.warning),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              'Running in Web browser: browser security prevents reading local paths via file picker. Please type or paste your local path to mpv.exe manually.',
+                            child: SelectableText.rich(
+                              TextSpan(
+                                children: [
+                                  const TextSpan(
+                                    text: 'Running in Web browser: browser security prevents reading local paths via file picker. Please type or paste your local path to mpv.exe manually.\n\n',
+                                  ),
+                                  TextSpan(
+                                    text: 'Don\'t have MPV installed? Download it from: ',
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+                                  ),
+                                  const TextSpan(
+                                    text: 'https://mpv.io/installation/',
+                                  ),
+                                ],
+                              ),
                               style: GoogleFonts.inter(
                                 fontSize: 11.5,
                                 color: AppTheme.warning,

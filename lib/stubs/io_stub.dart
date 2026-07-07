@@ -23,14 +23,22 @@ class Platform {
 }
 
 class Process {
-  static Future<ProcessResult> start(
+  final int pid;
+  final Stream<List<int>> stdout;
+  final Stream<List<int>> stderr;
+  
+  Process(this.pid) 
+      : stdout = const Stream.empty(), 
+        stderr = const Stream.empty();
+
+  static Future<Process> start(
     String executable,
     List<String> arguments, {
     String? workingDirectory,
     Map<String, String>? environment,
     dynamic mode,
   }) async {
-    return ProcessResult(0);
+    return Process(0);
   }
 }
 
@@ -41,6 +49,7 @@ class ProcessResult {
 
 class ProcessStartMode {
   static const ProcessStartMode detached = ProcessStartMode._();
+  static const ProcessStartMode normal = ProcessStartMode._();
   const ProcessStartMode._();
 }
 
