@@ -8,6 +8,7 @@ class Preset {
   final String emoji;
   final String description;
   final DspState state;
+  final String? customFilter;
 
   const Preset({
     required this.id,
@@ -15,6 +16,7 @@ class Preset {
     required this.emoji,
     required this.description,
     required this.state,
+    this.customFilter,
   });
 
   Map<String, dynamic> toJson() => {
@@ -23,6 +25,7 @@ class Preset {
     'emoji': emoji,
     'description': description,
     'state': state.toJson(),
+    'customFilter': customFilter,
   };
 
   factory Preset.fromJson(Map<String, dynamic> json) => Preset(
@@ -31,6 +34,7 @@ class Preset {
     emoji: json['emoji'] as String,
     description: json['description'] as String,
     state: DspState.fromJson(json['state'] as Map<String, dynamic>),
+    customFilter: json['customFilter'] as String?,
   );
 }
 

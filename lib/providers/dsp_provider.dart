@@ -336,7 +336,7 @@ class DspProvider extends ChangeNotifier {
 
   void loadPreset(Preset preset) {
     _activePresetId = preset.id;
-    _customFilterOverride = null;
+    _customFilterOverride = preset.customFilter;
     _state = preset.state.copyWith();
     _rebuildPreview();
     notifyListeners();
@@ -361,10 +361,11 @@ class DspProvider extends ChangeNotifier {
       emoji: '👤',
       description: 'Personal preset',
       state: _state.copyWith(),
+      customFilter: _customFilterOverride,
     );
     _customPresets.add(newPreset);
     _activePresetId = id;
-    _customFilterOverride = null; // since we saved current UI state
+    // We intentionally DO NOT clear _customFilterOverride here, so the GUI keeps displaying it!
     notifyListeners();
     await PreferencesService.saveCustomPresets(_customPresets);
     _addLog('Saved personal preset: $name');
