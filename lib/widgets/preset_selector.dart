@@ -31,18 +31,24 @@ class PresetSelector extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 16),
-              ...builtinPresets.map((preset) {
-                final isActive = dsp.activePresetId == preset.id;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: _PresetChip(
-                    preset: preset,
-                    isActive: isActive,
-                    onTap: () => dsp.loadPreset(preset),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: builtinPresets.map((preset) {
+                      final isActive = dsp.activePresetId == preset.id;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: _PresetChip(
+                          preset: preset,
+                          isActive: isActive,
+                          onTap: () => dsp.loadPreset(preset),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }),
-              const Spacer(),
+                ),
+              ),
               // Favorites Menu
               PopupMenuButton<Map<String, String>>(
                 tooltip: 'Favorites',
@@ -75,8 +81,14 @@ class PresetSelector extends StatelessWidget {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(label, style: TextStyle(color: isActive ? AppTheme.primary : AppTheme.textPrimary, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
-                          if (isActive) const Icon(Icons.check, color: AppTheme.primary, size: 18),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: TextStyle(color: isActive ? AppTheme.primary : AppTheme.textPrimary, fontWeight: isActive ? FontWeight.bold : FontWeight.normal),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (isActive) const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
                         ],
                       ),
                     );
@@ -88,6 +100,9 @@ class PresetSelector extends StatelessWidget {
                     const PopupMenuDivider(),
                     buildFav('Klipsch ProMedia 2.1 THX', '🔊 Klipsch ProMedia 2.1 THX', '#af-add=lavfi=[dynaudnorm=f=400:g=4.0:p=0.8,pan=stereo|FL=0.7*FL+0.5*FC+0.5*BL+0.4*LFE|FR=0.7*FR+0.5*FC+0.5*BR+0.4*LFE,anequalizer=c0 f=60 w=50 g=+4.5 t=1|c1 f=60 w=50 g=+4.5 t=1|c0 f=8000 w=2000 g=+2.5 t=1|c1 f=8000 w=2000 g=+2.5 t=1,acompressor=threshold=-18dB:ratio=3:makeup=2dB]'),
                     buildFav('Logitech Z906 5.1 Surround', '🔊 Logitech Z906 5.1 Surround', '#af-add=lavfi=[dynaudnorm=f=300:g=3.5:p=0.9,pan=5.1|FL=FL|FR=FR|FC=FC+0.2*FL+0.2*FR|LFE=LFE+0.2*FC|BL=BL+0.2*SL|BR=BR+0.2*SR,anequalizer=c0 f=80 w=50 g=+3.0 t=1|c1 f=80 w=50 g=+3.0 t=1,acompressor=threshold=-20dB:ratio=2.5:makeup=1.5dB]'),
+                    buildFav('Logitech Z623 2.1 THX', '🔊 Logitech Z623 2.1 THX (Aggressive)', '#af-add=lavfi=[dynaudnorm=f=250:g=4.5:p=0.85,pan=stereo|FL=0.7*FL+0.5*FC+0.6*LFE|FR=0.7*FR+0.5*FC+0.6*LFE,anequalizer=c0 f=60 w=50 g=+5.0 t=1|c1 f=60 w=50 g=+5.0 t=1|c0 f=2000 w=800 g=-1.5 t=1|c1 f=2000 w=800 g=-1.5 t=1,acompressor=threshold=-24dB:ratio=3.5:makeup=2dB]'),
+                    buildFav('Edifier S3000Pro (Studio Punch)', '🔊 Edifier S3000Pro (Studio Punch)', '#af-add=lavfi=[dynaudnorm=f=400:g=2.5:p=0.8,pan=stereo|FL=0.8*FL+0.4*FC+0.3*LFE|FR=0.8*FR+0.4*FC+0.3*LFE,anequalizer=c0 f=50 w=40 g=+3.0 t=1|c1 f=50 w=40 g=+3.0 t=1|c0 f=8000 w=2000 g=+2.0 t=1|c1 f=8000 w=2000 g=+2.0 t=1,acompressor=threshold=-16dB:ratio=1.8:makeup=1dB]'),
+                    buildFav('Creative Pebble V3 (Maximized)', '🔊 Creative Pebble V3 (Maximized)', '#af-add=lavfi=[dynaudnorm=f=150:g=6.0:p=0.95,pan=stereo|FL=0.5*FL+0.7*FC+0.8*LFE|FR=0.5*FR+0.7*FC+0.8*LFE,anequalizer=c0 f=100 w=80 g=+6.0 t=1|c1 f=100 w=80 g=+6.0 t=1|c0 f=3000 w=1000 g=+2.5 t=1|c1 f=3000 w=1000 g=+2.5 t=1,acompressor=threshold=-30dB:ratio=5:attack=5:release=50:makeup=6dB,alimiter=limit=-1dB]'),
                     buildFav('Standard 7.1 Home Theater', '🔊 Standard 7.1 Home Theater', '#af-add=lavfi=[dynaudnorm=f=500:g=2.5,pan=7.1|FL=FL|FR=FR|FC=FC|LFE=LFE|BL=BL|BR=BR|SL=SL|SR=SR,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1,acompressor=threshold=-16dB:ratio=2:makeup=1dB]'),
                     buildFav('Bose Companion 20 (Stereo)', '🔊 Bose Companion 20 (Stereo)', '#af-add=lavfi=[dynaudnorm=f=450:g=3.0,pan=stereo|FL=0.8*FL+0.5*FC+0.3*LFE|FR=0.8*FR+0.5*FC+0.3*LFE,extrastereo=0.15,anequalizer=c0 f=80 w=60 g=+2.0 t=1|c1 f=80 w=60 g=+2.0 t=1|c0 f=250 w=100 g=-1.5 t=1|c1 f=250 w=100 g=-1.5 t=1,acompressor=threshold=-20dB:ratio=2.2:makeup=1.5dB]'),
                     buildFav('Razer Leviathan Soundbar', '🔊 Razer Leviathan Soundbar', '#af-add=lavfi=[dynaudnorm=f=250:g=3.5:p=0.85,pan=stereo|FL=0.6*FL+0.4*FC+0.5*BL+0.3*LFE|FR=0.6*FR+0.4*FC+0.5*BR+0.3*LFE,extrastereo=0.4,anequalizer=c0 f=100 w=80 g=+2.5 t=1|c1 f=100 w=80 g=+2.5 t=1|c0 f=4000 w=1000 g=+1.5 t=1|c1 f=4000 w=1000 g=+1.5 t=1,acompressor=threshold=-22dB:ratio=4:makeup=3dB]'),

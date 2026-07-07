@@ -218,8 +218,8 @@ class TabAmbience extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

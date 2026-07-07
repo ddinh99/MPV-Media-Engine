@@ -181,8 +181,8 @@ class TabLoudness extends StatelessWidget {
                     ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

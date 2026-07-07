@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/theme.dart';
 import '../models/eq_band.dart';
+import '../models/preset.dart';
 import '../providers/dsp_provider.dart';
 import 'dsp_slider.dart';
 
@@ -172,13 +173,14 @@ class TabEq extends StatelessWidget {
                       ],
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-    },
+            ],
+          ),
+        );
+      },
     );
   }
 
