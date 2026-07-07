@@ -159,6 +159,97 @@ class PresetSelector extends StatelessWidget {
                 },
               ),
               const SizedBox(width: 8),
+              // Personal Settings Menu
+              PopupMenuButton<String>(
+                tooltip: 'Personal Settings',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person, color: Colors.blueAccent, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Personal',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, size: 16),
+                    ],
+                  ),
+                ),
+                itemBuilder: (context) {
+                  final items = <PopupMenuEntry<String>>[
+                    const PopupMenuItem(
+                      value: '__save__',
+                      child: Text('➕ Save Current Settings...'),
+                    ),
+                  ];
+                  if (dsp.customPresets.isNotEmpty) {
+                    items.add(const PopupMenuDivider());
+                    for (final p in dsp.customPresets) {
+                      items.add(
+                        PopupMenuItem(
+                          value: p.id,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('👤 ${p.name}'),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                tooltip: 'Delete this preset',
+                                onPressed: () {
+                                  Navigator.pop(context); // Close the popup menu
+                                  dsp.deleteCustomPreset(p.id);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                  return items;
+                },
+                onSelected: (val) async {
+                  if (val == '__save__') {
+                    final nameCtrl = TextEditingController();
+                    final name = await showDialog<String>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: const Text('Save Personal Preset'),
+                        content: TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(hintText: 'Enter a name for this preset'),
+                          autofocus: true,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(c, nameCtrl.text),
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (name != null && name.trim().isNotEmpty) {
+                      dsp.saveCurrentAsPreset(name.trim());
+                    }
+                  } else {
+                    try {
+                      final p = dsp.customPresets.firstWhere((preset) => preset.id == val);
+                      dsp.loadPreset(p);
+                    } catch (_) {}
+                  }
+                },
+              ),
+              const SizedBox(width: 8),
               // Auto-apply toggle
               Row(
                 children: [

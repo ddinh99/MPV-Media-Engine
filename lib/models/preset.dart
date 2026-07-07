@@ -16,6 +16,22 @@ class Preset {
     required this.description,
     required this.state,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'emoji': emoji,
+    'description': description,
+    'state': state.toJson(),
+  };
+
+  factory Preset.fromJson(Map<String, dynamic> json) => Preset(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    emoji: json['emoji'] as String,
+    description: json['description'] as String,
+    state: DspState.fromJson(json['state'] as Map<String, dynamic>),
+  );
 }
 
 List<Preset> get builtinPresets => [

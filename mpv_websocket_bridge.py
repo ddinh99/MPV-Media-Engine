@@ -103,10 +103,18 @@ def handle_web_client(client_socket, mpv_socket):
                 
             if msg.strip():
                 print(f"[Bridge] Forwarding: {msg.strip()}")
-                # Forward directly to MPV via the TCP socket
-                mpv_socket.sendall((msg + "\n").encode('utf-8'))
+                try:
+                    # Forward directly to MPV via the TCP socket
+                    mpv_socket.sendall((msg + "\n").encode('utf-8'))
+                except Exception as e:
+                    print(f"[Bridge] Failed to write to MPV socket: {e}")
+                    print("[Bridge] Exiting bridge process...")
+                    import os
+                    os._exit(1)
     except Exception as e:
         print(f"Client thread exception: {e}")
+        import os
+        os._exit(1)
     finally:
         client_socket.close()
 

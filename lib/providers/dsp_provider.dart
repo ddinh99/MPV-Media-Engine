@@ -19,6 +19,7 @@ class DspProvider extends ChangeNotifier {
   DspState _state = DspState();
   String? _activePresetId = 'movie_dialog';
   String? _customFilterOverride;
+  List<Preset> _customPresets = [];
   bool _autoApply = true;
   String _filterPreview = '';
   Timer? _debounce;
@@ -31,6 +32,7 @@ class DspProvider extends ChangeNotifier {
 
   DspState get state => _state;
   String? get activePresetId => _activePresetId;
+  List<Preset> get customPresets => List.unmodifiable(_customPresets);
   bool get autoApply => _autoApply;
   String get filterPreview => _filterPreview;
   IpcConnectionState get connectionState => _ipc.connectionState;
@@ -54,6 +56,7 @@ class DspProvider extends ChangeNotifier {
 
   Future<void> _loadPreferences() async {
     _mpvExePath = await PreferencesService.getMpvExePath();
+    _customPresets = await PreferencesService.getCustomPresets();
     _prefsLoaded = true;
     notifyListeners();
     if (hasMpvExe) {
@@ -334,6 +337,33 @@ class DspProvider extends ChangeNotifier {
     notifyListeners();
     if (_autoApply) _scheduleApply();
     _addLog('Preset: ⭐ $name');
+  }
+
+  Future<void> saveCurrentAsPreset(String name) async {
+    final id = 'custom_${DateTime.now().millisecondsSinceEpoch}';
+    final newPreset = Preset(
+      id: id,
+      name: name,
+      emoji: '👤',
+      description: 'Personal preset',
+      state: _state.copyWith(),
+    );
+    _customPresets.add(newPreset);
+    _activePresetId = id;
+    _customFilterOverride = null; // since we saved current UI state
+    notifyListeners();
+    await PreferencesService.saveCustomPresets(_customPresets);
+    _addLog('Saved personal preset: $name');
+  }
+
+  Future<void> deleteCustomPreset(String id) async {
+    _customPresets.removeWhere((p) => p.id == id);
+    if (_activePresetId == id) {
+      _activePresetId = null;
+    }
+    notifyListeners();
+    await PreferencesService.saveCustomPresets(_customPresets);
+    _addLog('Deleted personal preset');
   }
 
   // ── DynAudNorm ─────────────────────────────────────────────────────────────

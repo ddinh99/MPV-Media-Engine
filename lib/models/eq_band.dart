@@ -22,6 +22,20 @@ class EqBand {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'freq': freq,
+    'width': width,
+    'gain': gain,
+    'type': type,
+  };
+
+  factory EqBand.fromJson(Map<String, dynamic> json) => EqBand(
+    freq: json['freq'] as int,
+    width: json['width'] as int,
+    gain: (json['gain'] as num).toDouble(),
+    type: json['type'] as int? ?? 1,
+  );
+
   /// Builds anequalizer band string for both channels (c0 and c1)
   String toFilterString() {
     final sign = gain >= 0 ? '+' : '';

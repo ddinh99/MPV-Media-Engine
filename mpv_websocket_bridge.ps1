@@ -89,8 +89,14 @@ try {
                         $msg = [System.Text.Encoding]::UTF8.GetString($buffer, 0, $result.Count)
                         if ($msg.Trim()) {
                             Write-Host "Forwarding: $msg"
-                            # Write directly to MPV named pipe
-                            $writer.WriteLine($msg)
+                            try {
+                                # Write directly to MPV named pipe
+                                $writer.WriteLine($msg)
+                            } catch {
+                                Write-Host "Failed to write to MPV pipe. MPV probably closed."
+                                Write-Host "Exiting bridge..."
+                                break
+                            }
                         }
                     }
                 }
@@ -100,6 +106,8 @@ try {
             }
         } catch {
             Write-Host "Client error: $($_.Exception.Message)"
+            Write-Host "Exiting bridge due to fatal client loop error."
+            break
         }
     }
 } finally {

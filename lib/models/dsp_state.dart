@@ -37,6 +37,24 @@ class PanMatrix {
       frlfe: frlfe ?? this.frlfe,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'flfl': flfl, 'flfc': flfc, 'flbl': flbl, 'flsl': flsl, 'fllfe': fllfe,
+    'frfr': frfr, 'frfc': frfc, 'frbr': frbr, 'frsr': frsr, 'frlfe': frlfe,
+  };
+
+  factory PanMatrix.fromJson(Map<String, dynamic> json) => PanMatrix(
+    flfl: (json['flfl'] as num?)?.toDouble() ?? 0.40,
+    flfc: (json['flfc'] as num?)?.toDouble() ?? 0.55,
+    flbl: (json['flbl'] as num?)?.toDouble() ?? -0.20,
+    flsl: (json['flsl'] as num?)?.toDouble() ?? -0.18,
+    fllfe: (json['fllfe'] as num?)?.toDouble() ?? 0.06,
+    frfr: (json['frfr'] as num?)?.toDouble() ?? 0.40,
+    frfc: (json['frfc'] as num?)?.toDouble() ?? 0.55,
+    frbr: (json['frbr'] as num?)?.toDouble() ?? 0.20,
+    frsr: (json['frsr'] as num?)?.toDouble() ?? 0.18,
+    frlfe: (json['frlfe'] as num?)?.toDouble() ?? 0.06,
+  );
 }
 
 class DynAudNormSettings {
@@ -62,6 +80,20 @@ class DynAudNormSettings {
       maxGain: maxGain ?? this.maxGain,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'frameLength': frameLength,
+    'gain': gain,
+    'peak': peak,
+    'maxGain': maxGain,
+  };
+
+  factory DynAudNormSettings.fromJson(Map<String, dynamic> json) => DynAudNormSettings(
+    frameLength: json['frameLength'] as int? ?? 420,
+    gain: (json['gain'] as num?)?.toDouble() ?? 3.3,
+    peak: (json['peak'] as num?)?.toDouble() ?? 0.5,
+    maxGain: (json['maxGain'] as num?)?.toDouble() ?? 3.0,
+  );
 }
 
 class AmbienceSettings {
@@ -103,6 +135,28 @@ class AmbienceSettings {
       mixWeight: mixWeight ?? this.mixWeight,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'enabled': enabled,
+    'highpassFreq': highpassFreq,
+    'lowpassFreq': lowpassFreq,
+    'echoDelay': echoDelay,
+    'echoDecay': echoDecay,
+    'echoVolume': echoVolume,
+    'echoFeedback': echoFeedback,
+    'mixWeight': mixWeight,
+  };
+
+  factory AmbienceSettings.fromJson(Map<String, dynamic> json) => AmbienceSettings(
+    enabled: json['enabled'] as bool? ?? true,
+    highpassFreq: (json['highpassFreq'] as num?)?.toDouble() ?? 700.0,
+    lowpassFreq: (json['lowpassFreq'] as num?)?.toDouble() ?? 7500.0,
+    echoDelay: (json['echoDelay'] as num?)?.toDouble() ?? 0.22,
+    echoDecay: (json['echoDecay'] as num?)?.toDouble() ?? 0.32,
+    echoVolume: (json['echoVolume'] as num?)?.toDouble() ?? 18.0,
+    echoFeedback: (json['echoFeedback'] as num?)?.toDouble() ?? 0.20,
+    mixWeight: (json['mixWeight'] as num?)?.toDouble() ?? 0.36,
+  );
 }
 
 class HighShelfSettings {
@@ -123,6 +177,18 @@ class HighShelfSettings {
       width: width ?? this.width,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'freq': freq,
+    'gain': gain,
+    'width': width,
+  };
+
+  factory HighShelfSettings.fromJson(Map<String, dynamic> json) => HighShelfSettings(
+    freq: (json['freq'] as num?)?.toDouble() ?? 4200.0,
+    gain: (json['gain'] as num?)?.toDouble() ?? 1.4,
+    width: (json['width'] as num?)?.toDouble() ?? 2200.0,
+  );
 }
 
 class CompressorSettings {
@@ -152,6 +218,22 @@ class CompressorSettings {
       makeup: makeup ?? this.makeup,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'threshold': threshold,
+    'ratio': ratio,
+    'attack': attack,
+    'release': release,
+    'makeup': makeup,
+  };
+
+  factory CompressorSettings.fromJson(Map<String, dynamic> json) => CompressorSettings(
+    threshold: (json['threshold'] as num?)?.toDouble() ?? -22.0,
+    ratio: (json['ratio'] as num?)?.toDouble() ?? 4.5,
+    attack: (json['attack'] as num?)?.toDouble() ?? 3.0,
+    release: (json['release'] as num?)?.toDouble() ?? 110.0,
+    makeup: (json['makeup'] as num?)?.toDouble() ?? 4.0,
+  );
 }
 
 class LimiterSettings {
@@ -166,6 +248,16 @@ class LimiterSettings {
       limit: limit ?? this.limit,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'enabled': enabled,
+    'limit': limit,
+  };
+
+  factory LimiterSettings.fromJson(Map<String, dynamic> json) => LimiterSettings(
+    enabled: json['enabled'] as bool? ?? true,
+    limit: (json['limit'] as num?)?.toDouble() ?? -1.0,
+  );
 }
 
 class DspState {
@@ -224,4 +316,32 @@ class DspState {
       bypass: bypass ?? this.bypass,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'dynaudnormEnabled': dynaudnormEnabled,
+    'dynaudnorm': dynaudnorm.toJson(),
+    'panMatrix': panMatrix.toJson(),
+    'ambience': ambience.toJson(),
+    'extraStereo': extraStereo,
+    'eqBands': eqBands.map((e) => e.toJson()).toList(),
+    'highShelf': highShelf.toJson(),
+    'compressor': compressor.toJson(),
+    'limiter': limiter.toJson(),
+    'bypass': bypass,
+  };
+
+  factory DspState.fromJson(Map<String, dynamic> json) => DspState(
+    dynaudnormEnabled: json['dynaudnormEnabled'] as bool? ?? true,
+    dynaudnorm: json['dynaudnorm'] != null ? DynAudNormSettings.fromJson(json['dynaudnorm']) : null,
+    panMatrix: json['panMatrix'] != null ? PanMatrix.fromJson(json['panMatrix']) : null,
+    ambience: json['ambience'] != null ? AmbienceSettings.fromJson(json['ambience']) : null,
+    extraStereo: (json['extraStereo'] as num?)?.toDouble() ?? 0.08,
+    eqBands: json['eqBands'] != null
+        ? (json['eqBands'] as List).map((e) => EqBand.fromJson(e as Map<String, dynamic>)).toList()
+        : null,
+    highShelf: json['highShelf'] != null ? HighShelfSettings.fromJson(json['highShelf']) : null,
+    compressor: json['compressor'] != null ? CompressorSettings.fromJson(json['compressor']) : null,
+    limiter: json['limiter'] != null ? LimiterSettings.fromJson(json['limiter']) : null,
+    bypass: json['bypass'] as bool? ?? false,
+  );
 }
