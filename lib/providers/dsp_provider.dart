@@ -345,7 +345,7 @@ class DspProvider extends ChangeNotifier {
   }
 
   void applyCustomFilter(String name, String filterString) {
-    _activePresetId = 'custom';
+    _activePresetId = name;
     _customFilterOverride = filterString;
     _rebuildPreview();
     notifyListeners();

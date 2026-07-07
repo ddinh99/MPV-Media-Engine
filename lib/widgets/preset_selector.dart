@@ -65,95 +65,41 @@ class PresetSelector extends StatelessWidget {
                     ],
                   ),
                 ),
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: {
-                      'name': 'GOOGLE AI tweak rev 4',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=500:g=3.5:p=0.7:m=5,pan=stereo|FL=0.68*FL+0.55*FC+0.30*BL+0.25*SL+0.30*LFE|FR=0.68*FR+0.55*FC+0.30*BR+0.25*SR+0.30*LFE,asplit=2[main][amb],[amb]highpass=f=220,lowpass=f=8500,aecho=0.25:0.40:24:0.35,aphaser=type=t:speed=0.1:decay=0.2,extrastereo=0.32[amb2],[main][amb2]amix=inputs=2:weights=1 0.75:normalize=0,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1|c0 f=130 w=50 g=-3.5 t=1|c1 f=130 w=50 g=-3.5 t=1|c0 f=250 w=70 g=+1.5 t=1|c1 f=250 w=70 g=+1.5 t=1|c0 f=1000 w=200 g=+1.8 t=1|c1 f=1000 w=200 g=+1.8 t=1|c0 f=1800 w=300 g=+2.0 t=1|c1 f=1800 w=300 g=+2.0 t=1|c0 f=2800 w=500 g=+3.5 t=1|c1 f=2800 w=500 g=+3.5 t=1|c0 f=3500 w=600 g=+2.0 t=1|c1 f=3500 w=600 g=+2.0 t=1|c0 f=5500 w=300 g=-2.0 t=1|c1 f=5500 w=300 g=-2.0 t=1|c0 f=10000 w=2000 g=+1.5 t=1|c1 f=10000 w=2000 g=+1.5 t=1,highshelf=f=5000:g=1.2:w=2000:t=1,acompressor=threshold=-20dB:ratio=2.5:attack=10:release=180:makeup=2dB,alimiter=limit=-0.5dB]'
-                    },
-                    child: const Text('⭐ GOOGLE AI tweak rev 4 (Incredible)'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'GOOGLE same as rev 4. fix parse filter size 4 invalid',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=250:g=3.5:p=0.95:m=8:c=1,pan=stereo|FL=0.68*FL+0.55*FC+0.30*BL+0.25*SL+0.30*LFE|FR=0.68*FR+0.55*FC+0.30*BR+0.25*SR+0.30*LFE,asplit=2[main][amb],[amb]highpass=f=220,lowpass=f=8500,aecho=0.25:0.40:24:0.35,aphaser=type=t:speed=0.1:decay=0.2,extrastereo=0.32[amb2],[main][amb2]amix=inputs=2:weights=1 0.75:normalize=0,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1|c0 f=130 w=50 g=-3.5 t=1|c1 f=130 w=50 g=-3.5 t=1|c0 f=250 w=70 g=+1.5 t=1|c1 f=250 w=70 g=+1.5 t=1|c0 f=1000 w=200 g=+1.8 t=1|c1 f=1000 w=200 g=+1.8 t=1|c0 f=1800 w=300 g=+2.0 t=1|c1 f=1800 w=300 g=+2.0 t=1|c0 f=2800 w=500 g=+3.5 t=1|c1 f=2800 w=500 g=+3.5 t=1|c0 f=3500 w=600 g=+2.0 t=1|c1 f=3500 w=600 g=+2.0 t=1|c0 f=5500 w=300 g=-2.0 t=1|c1 f=5500 w=300 g=-2.0 t=1|c0 f=10000 w=2000 g=+1.5 t=1|c1 f=10000 w=2000 g=+1.5 t=1,highshelf=f=5000:g=1.2:w=2000:t=1,acompressor=threshold=-20dB:ratio=2.5:attack=10:release=180:makeup=2dB,alimiter=limit=-0.5dB]'
-                    },
-                    child: const Text('⭐ GOOGLE same as rev 4 (Best)'),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Klipsch ProMedia 2.1 THX',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=400:g=4.0:p=0.8,pan=stereo|FL=0.7*FL+0.5*FC+0.5*BL+0.4*LFE|FR=0.7*FR+0.5*FC+0.5*BR+0.4*LFE,anequalizer=c0 f=60 w=50 g=+4.5 t=1|c1 f=60 w=50 g=+4.5 t=1|c0 f=8000 w=2000 g=+2.5 t=1|c1 f=8000 w=2000 g=+2.5 t=1,acompressor=threshold=-18dB:ratio=3:makeup=2dB]'
-                    },
-                    child: const Text('🔊 Klipsch ProMedia 2.1 THX'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Logitech Z906 5.1 Surround',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=300:g=3.5:p=0.9,pan=5.1|FL=FL|FR=FR|FC=FC+0.2*FL+0.2*FR|LFE=LFE+0.2*FC|BL=BL+0.2*SL|BR=BR+0.2*SR,anequalizer=c0 f=80 w=50 g=+3.0 t=1|c1 f=80 w=50 g=+3.0 t=1,acompressor=threshold=-20dB:ratio=2.5:makeup=1.5dB]'
-                    },
-                    child: const Text('🔊 Logitech Z906 5.1 Surround'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Standard 7.1 Home Theater',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=500:g=2.5,pan=7.1|FL=FL|FR=FR|FC=FC|LFE=LFE|BL=BL|BR=BR|SL=SL|SR=SR,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1,acompressor=threshold=-16dB:ratio=2:makeup=1dB]'
-                    },
-                    child: const Text('🔊 Standard 7.1 Home Theater'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Bose Companion 20 (Stereo)',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=450:g=3.0,pan=stereo|FL=0.8*FL+0.5*FC+0.3*LFE|FR=0.8*FR+0.5*FC+0.3*LFE,extrastereo=0.15,anequalizer=c0 f=80 w=60 g=+2.0 t=1|c1 f=80 w=60 g=+2.0 t=1|c0 f=250 w=100 g=-1.5 t=1|c1 f=250 w=100 g=-1.5 t=1,acompressor=threshold=-20dB:ratio=2.2:makeup=1.5dB]'
-                    },
-                    child: const Text('🔊 Bose Companion 20 (Stereo)'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Razer Leviathan Soundbar',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=250:g=3.5:p=0.85,pan=stereo|FL=0.6*FL+0.4*FC+0.5*BL+0.3*LFE|FR=0.6*FR+0.4*FC+0.5*BR+0.3*LFE,extrastereo=0.4,anequalizer=c0 f=100 w=80 g=+2.5 t=1|c1 f=100 w=80 g=+2.5 t=1|c0 f=4000 w=1000 g=+1.5 t=1|c1 f=4000 w=1000 g=+1.5 t=1,acompressor=threshold=-22dB:ratio=4:makeup=3dB]'
-                    },
-                    child: const Text('🔊 Razer Leviathan Soundbar'),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Apple AirPods Pro',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=400:g=3.0,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=60 w=50 g=+2.0 t=1|c1 f=60 w=50 g=+2.0 t=1|c0 f=3000 w=500 g=+1.5 t=1|c1 f=3000 w=500 g=+1.5 t=1,acompressor=threshold=-22dB:ratio=2.5:makeup=1.5dB]'
-                    },
-                    child: const Text('🎧 Apple AirPods Pro'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Sony WH-1000XM Series',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=300:g=2.5,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=40 w=30 g=+4.0 t=1|c1 f=40 w=30 g=+4.0 t=1|c0 f=150 w=80 g=-2.0 t=1|c1 f=150 w=80 g=-2.0 t=1,acompressor=threshold=-18dB:ratio=3:makeup=1dB]'
-                    },
-                    child: const Text('🎧 Sony WH-1000XM Series'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Sennheiser HD600 Series',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=500:g=2.0,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=30 w=20 g=+4.5 t=1|c1 f=30 w=20 g=+4.5 t=1|c0 f=4000 w=500 g=-1.5 t=1|c1 f=4000 w=500 g=-1.5 t=1,alimiter=limit=-0.5dB]'
-                    },
-                    child: const Text('🎧 Sennheiser HD600 Series'),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Late Night Viewing',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=150:g=6.0:p=0.9,pan=stereo|FL=0.5*FL+0.8*FC|FR=0.5*FR+0.8*FC,anequalizer=c0 f=80 w=60 g=-6.0 t=1|c1 f=80 w=60 g=-6.0 t=1|c0 f=2000 w=500 g=+3.0 t=1|c1 f=2000 w=500 g=+3.0 t=1,acompressor=threshold=-28dB:ratio=6.0:attack=2:release=50:makeup=8dB,alimiter=limit=-2dB]'
-                    },
-                    child: const Text('🌛 Late Night Viewing'),
-                  ),
-                  PopupMenuItem(
-                    value: {
-                      'name': 'Anime & Clear Vocals',
-                      'filter': '#af-add=lavfi=[dynaudnorm=f=250:g=3.5,pan=stereo|FL=0.6*FL+0.7*FC|FR=0.6*FR+0.7*FC,anequalizer=c0 f=100 w=50 g=-1.5 t=1|c1 f=100 w=50 g=-1.5 t=1|c0 f=1200 w=300 g=+2.5 t=1|c1 f=1200 w=300 g=+2.5 t=1|c0 f=3500 w=800 g=+2.0 t=1|c1 f=3500 w=800 g=+2.0 t=1,acompressor=threshold=-20dB:ratio=3.0:makeup=2.5dB]'
-                    },
-                    child: const Text('🎤 Anime & Clear Vocals'),
-                  ),
-                ],
+                itemBuilder: (context) {
+                  final activeId = dsp.activePresetId;
+
+                  PopupMenuItem<Map<String, String>> buildFav(String name, String label, String filter) {
+                    final isActive = activeId == name;
+                    return PopupMenuItem(
+                      value: {'name': name, 'filter': filter},
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(label, style: TextStyle(color: isActive ? AppTheme.primary : AppTheme.textPrimary, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
+                          if (isActive) const Icon(Icons.check, color: AppTheme.primary, size: 18),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return [
+                    buildFav('GOOGLE AI tweak rev 4', '⭐ GOOGLE AI tweak rev 4 (Incredible)', '#af-add=lavfi=[dynaudnorm=f=500:g=3.5:p=0.7:m=5,pan=stereo|FL=0.68*FL+0.55*FC+0.30*BL+0.25*SL+0.30*LFE|FR=0.68*FR+0.55*FC+0.30*BR+0.25*SR+0.30*LFE,asplit=2[main][amb],[amb]highpass=f=220,lowpass=f=8500,aecho=0.25:0.40:24:0.35,aphaser=type=t:speed=0.1:decay=0.2,extrastereo=0.32[amb2],[main][amb2]amix=inputs=2:weights=1 0.75:normalize=0,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1|c0 f=130 w=50 g=-3.5 t=1|c1 f=130 w=50 g=-3.5 t=1|c0 f=250 w=70 g=+1.5 t=1|c1 f=250 w=70 g=+1.5 t=1|c0 f=1000 w=200 g=+1.8 t=1|c1 f=1000 w=200 g=+1.8 t=1|c0 f=1800 w=300 g=+2.0 t=1|c1 f=1800 w=300 g=+2.0 t=1|c0 f=2800 w=500 g=+3.5 t=1|c1 f=2800 w=500 g=+3.5 t=1|c0 f=3500 w=600 g=+2.0 t=1|c1 f=3500 w=600 g=+2.0 t=1|c0 f=5500 w=300 g=-2.0 t=1|c1 f=5500 w=300 g=-2.0 t=1|c0 f=10000 w=2000 g=+1.5 t=1|c1 f=10000 w=2000 g=+1.5 t=1,highshelf=f=5000:g=1.2:w=2000:t=1,acompressor=threshold=-20dB:ratio=2.5:attack=10:release=180:makeup=2dB,alimiter=limit=-0.5dB]'),
+                    buildFav('GOOGLE same as rev 4. fix parse filter size 4 invalid', '⭐ GOOGLE same as rev 4 (Best)', '#af-add=lavfi=[dynaudnorm=f=250:g=3.5:p=0.95:m=8:c=1,pan=stereo|FL=0.68*FL+0.55*FC+0.30*BL+0.25*SL+0.30*LFE|FR=0.68*FR+0.55*FC+0.30*BR+0.25*SR+0.30*LFE,asplit=2[main][amb],[amb]highpass=f=220,lowpass=f=8500,aecho=0.25:0.40:24:0.35,aphaser=type=t:speed=0.1:decay=0.2,extrastereo=0.32[amb2],[main][amb2]amix=inputs=2:weights=1 0.75:normalize=0,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1|c0 f=130 w=50 g=-3.5 t=1|c1 f=130 w=50 g=-3.5 t=1|c0 f=250 w=70 g=+1.5 t=1|c1 f=250 w=70 g=+1.5 t=1|c0 f=1000 w=200 g=+1.8 t=1|c1 f=1000 w=200 g=+1.8 t=1|c0 f=1800 w=300 g=+2.0 t=1|c1 f=1800 w=300 g=+2.0 t=1|c0 f=2800 w=500 g=+3.5 t=1|c1 f=2800 w=500 g=+3.5 t=1|c0 f=3500 w=600 g=+2.0 t=1|c1 f=3500 w=600 g=+2.0 t=1|c0 f=5500 w=300 g=-2.0 t=1|c1 f=5500 w=300 g=-2.0 t=1|c0 f=10000 w=2000 g=+1.5 t=1|c1 f=10000 w=2000 g=+1.5 t=1,highshelf=f=5000:g=1.2:w=2000:t=1,acompressor=threshold=-20dB:ratio=2.5:attack=10:release=180:makeup=2dB,alimiter=limit=-0.5dB]'),
+                    const PopupMenuDivider(),
+                    buildFav('Klipsch ProMedia 2.1 THX', '🔊 Klipsch ProMedia 2.1 THX', '#af-add=lavfi=[dynaudnorm=f=400:g=4.0:p=0.8,pan=stereo|FL=0.7*FL+0.5*FC+0.5*BL+0.4*LFE|FR=0.7*FR+0.5*FC+0.5*BR+0.4*LFE,anequalizer=c0 f=60 w=50 g=+4.5 t=1|c1 f=60 w=50 g=+4.5 t=1|c0 f=8000 w=2000 g=+2.5 t=1|c1 f=8000 w=2000 g=+2.5 t=1,acompressor=threshold=-18dB:ratio=3:makeup=2dB]'),
+                    buildFav('Logitech Z906 5.1 Surround', '🔊 Logitech Z906 5.1 Surround', '#af-add=lavfi=[dynaudnorm=f=300:g=3.5:p=0.9,pan=5.1|FL=FL|FR=FR|FC=FC+0.2*FL+0.2*FR|LFE=LFE+0.2*FC|BL=BL+0.2*SL|BR=BR+0.2*SR,anequalizer=c0 f=80 w=50 g=+3.0 t=1|c1 f=80 w=50 g=+3.0 t=1,acompressor=threshold=-20dB:ratio=2.5:makeup=1.5dB]'),
+                    buildFav('Standard 7.1 Home Theater', '🔊 Standard 7.1 Home Theater', '#af-add=lavfi=[dynaudnorm=f=500:g=2.5,pan=7.1|FL=FL|FR=FR|FC=FC|LFE=LFE|BL=BL|BR=BR|SL=SL|SR=SR,anequalizer=c0 f=40 w=30 g=+2.0 t=1|c1 f=40 w=30 g=+2.0 t=1,acompressor=threshold=-16dB:ratio=2:makeup=1dB]'),
+                    buildFav('Bose Companion 20 (Stereo)', '🔊 Bose Companion 20 (Stereo)', '#af-add=lavfi=[dynaudnorm=f=450:g=3.0,pan=stereo|FL=0.8*FL+0.5*FC+0.3*LFE|FR=0.8*FR+0.5*FC+0.3*LFE,extrastereo=0.15,anequalizer=c0 f=80 w=60 g=+2.0 t=1|c1 f=80 w=60 g=+2.0 t=1|c0 f=250 w=100 g=-1.5 t=1|c1 f=250 w=100 g=-1.5 t=1,acompressor=threshold=-20dB:ratio=2.2:makeup=1.5dB]'),
+                    buildFav('Razer Leviathan Soundbar', '🔊 Razer Leviathan Soundbar', '#af-add=lavfi=[dynaudnorm=f=250:g=3.5:p=0.85,pan=stereo|FL=0.6*FL+0.4*FC+0.5*BL+0.3*LFE|FR=0.6*FR+0.4*FC+0.5*BR+0.3*LFE,extrastereo=0.4,anequalizer=c0 f=100 w=80 g=+2.5 t=1|c1 f=100 w=80 g=+2.5 t=1|c0 f=4000 w=1000 g=+1.5 t=1|c1 f=4000 w=1000 g=+1.5 t=1,acompressor=threshold=-22dB:ratio=4:makeup=3dB]'),
+                    const PopupMenuDivider(),
+                    buildFav('Apple AirPods Pro', '🎧 Apple AirPods Pro', '#af-add=lavfi=[dynaudnorm=f=400:g=3.0,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=60 w=50 g=+2.0 t=1|c1 f=60 w=50 g=+2.0 t=1|c0 f=3000 w=500 g=+1.5 t=1|c1 f=3000 w=500 g=+1.5 t=1,acompressor=threshold=-22dB:ratio=2.5:makeup=1.5dB]'),
+                    buildFav('Sony WH-1000XM Series', '🎧 Sony WH-1000XM Series', '#af-add=lavfi=[dynaudnorm=f=300:g=2.5,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=40 w=30 g=+4.0 t=1|c1 f=40 w=30 g=+4.0 t=1|c0 f=150 w=80 g=-2.0 t=1|c1 f=150 w=80 g=-2.0 t=1,acompressor=threshold=-18dB:ratio=3:makeup=1dB]'),
+                    buildFav('Sennheiser HD600 Series', '🎧 Sennheiser HD600 Series', '#af-add=lavfi=[dynaudnorm=f=500:g=2.0,pan=stereo|FL=FL+0.5*FC|FR=FR+0.5*FC,anequalizer=c0 f=30 w=20 g=+4.5 t=1|c1 f=30 w=20 g=+4.5 t=1|c0 f=4000 w=500 g=-1.5 t=1|c1 f=4000 w=500 g=-1.5 t=1,alimiter=limit=-0.5dB]'),
+                    const PopupMenuDivider(),
+                    buildFav('Late Night Viewing', '🌛 Late Night Viewing', '#af-add=lavfi=[dynaudnorm=f=150:g=6.0:p=0.9,pan=stereo|FL=0.5*FL+0.8*FC|FR=0.5*FR+0.8*FC,anequalizer=c0 f=80 w=60 g=-6.0 t=1|c1 f=80 w=60 g=-6.0 t=1|c0 f=2000 w=500 g=+3.0 t=1|c1 f=2000 w=500 g=+3.0 t=1,acompressor=threshold=-28dB:ratio=6.0:attack=2:release=50:makeup=8dB,alimiter=limit=-2dB]'),
+                    buildFav('Anime & Clear Vocals', '🎤 Anime & Clear Vocals', '#af-add=lavfi=[dynaudnorm=f=250:g=3.5,pan=stereo|FL=0.6*FL+0.7*FC|FR=0.6*FR+0.7*FC,anequalizer=c0 f=100 w=50 g=-1.5 t=1|c1 f=100 w=50 g=-1.5 t=1|c0 f=1200 w=300 g=+2.5 t=1|c1 f=1200 w=300 g=+2.5 t=1|c0 f=3500 w=800 g=+2.0 t=1|c1 f=3500 w=800 g=+2.0 t=1,acompressor=threshold=-20dB:ratio=3.0:makeup=2.5dB]'),
+                  ];
+                },
                 onSelected: (val) {
                   dsp.applyCustomFilter(val['name']!, val['filter']!);
                 },
@@ -191,13 +137,17 @@ class PresetSelector extends StatelessWidget {
                   if (dsp.customPresets.isNotEmpty) {
                     items.add(const PopupMenuDivider());
                     for (final p in dsp.customPresets) {
+                      final isActive = dsp.activePresetId == p.id;
                       items.add(
                         PopupMenuItem(
                           value: p.id,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text('👤 ${p.name}'),
+                              Expanded(
+                                child: Text('👤 ${p.name}', style: TextStyle(color: isActive ? AppTheme.primary : AppTheme.textPrimary, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
+                              ),
+                              if (isActive) const Padding(padding: EdgeInsets.only(right: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                                 tooltip: 'Delete this preset',
