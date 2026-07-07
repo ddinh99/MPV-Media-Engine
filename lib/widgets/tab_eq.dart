@@ -21,11 +21,40 @@ class TabEq extends StatelessWidget {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              if (dsp.hasCustomFilterOverride)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentEQ.withOpacity(0.1),
+                    border: Border.all(color: AppTheme.accentEQ),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppTheme.accentEQ, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Expert Override Active. The current preset uses a raw FFmpeg filter string. The simple UI sliders below cannot parse this complex string and are temporarily disconnected.',
+                          style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textPrimary, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => dsp.loadPreset(builtinPresets.firstWhere((p) => p.id == 'movie_dialog')),
+                        child: const Text('Reset Sliders'),
+                      ),
+                    ],
+                  ),
+                ),
+              Opacity(
+                opacity: dsp.hasCustomFilterOverride ? 0.4 : 1.0,
+                child: IgnorePointer(
+                  ignoring: dsp.hasCustomFilterOverride,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                   // EQ bands section
                   Expanded(
                     flex: 3,
@@ -145,10 +174,11 @@ class TabEq extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
-          ),
-        );
-      },
+            ),
+          ],
+        ),
+      );
+    },
     );
   }
 

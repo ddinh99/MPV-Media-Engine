@@ -37,6 +37,7 @@ class DspProvider extends ChangeNotifier {
   List<Preset> get customPresets => List.unmodifiable(_customPresets);
   bool get autoApply => _autoApply;
   String get filterPreview => _filterPreview;
+  bool get hasCustomFilterOverride => _customFilterOverride != null;
   IpcConnectionState get connectionState => _ipc.connectionState;
   String get socketPath => _ipc.socketPath;
   String? get lastError => _ipc.lastError;
