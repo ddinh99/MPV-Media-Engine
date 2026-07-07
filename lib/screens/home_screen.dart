@@ -80,54 +80,58 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.background,
-      body: Column(
-        children: [
-          // Title bar / app header
-          _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
-          // MPV connection bar
-          const ConnectionBar(),
-          // Preset selector
-          const PresetSelector(),
-          // Tab bar
-          Container(
-            color: AppTheme.surface,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: false,
-              tabs: _tabs,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              indicatorWeight: 2,
-            ),
-          ),
-          const Divider(height: 1),
-          // Main content
-          Expanded(
-            child: Row(
-              children: [
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: const [
-                      TabLoudness(),
-                      TabChannels(),
-                      TabAmbience(),
-                      TabEq(),
-                      TabSafety(),
-                      TabDebug(),
-                    ],
-                  ),
+    return Consumer<ThemeProvider>(
+      builder: (context, theme, child) {
+        return Scaffold(
+          backgroundColor: AppTheme.background,
+          body: Column(
+            children: [
+              // Title bar / app header
+              _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
+              // MPV connection bar
+              const ConnectionBar(),
+              // Preset selector
+              const PresetSelector(),
+              // Tab bar
+              Container(
+                color: AppTheme.surface,
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: false,
+                  tabs: _tabs,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  indicatorWeight: 2,
                 ),
-                // Log panel
-                if (_showLog) _LogPanel(),
-              ],
-            ),
+              ),
+              const Divider(height: 1),
+              // Main content
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [ // Removed const to allow children to rebuild on theme change
+                          TabLoudness(),
+                          TabChannels(),
+                          TabAmbience(),
+                          TabEq(),
+                          TabSafety(),
+                          TabDebug(),
+                        ],
+                      ),
+                    ),
+                    // Log panel
+                    if (_showLog) _LogPanel(),
+                  ],
+                ),
+              ),
+              // Filter preview bar at bottom
+              FilterPreview(), // Removed const
+            ],
           ),
-          // Filter preview bar at bottom
-          const FilterPreview(),
-        ],
-      ),
+        );
+      },
     );
   }
 }
