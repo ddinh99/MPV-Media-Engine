@@ -1,5 +1,10 @@
 # MPV Sound Engine 🎛️
 
+![Screenshot 1](screenshots/MPVSE1.jpg)
+![Screenshot 2](screenshots/MPVSE2.jpg)
+![Screenshot 3](screenshots/MPVSE3.jpg)
+![Screenshot 4](screenshots/MPVSE4.jpg)
+
 A real-time audio DSP and parametric EQ engine built specifically for the [MPV media player](https://mpv.io/).
 
 Normally, adjusting audio filters (like dynamic range compression, downmixing, or EQ) in MPV requires writing complex, tedious FFmpeg `lavfi` chains in a text config file. **MPV Sound Engine** provides a beautiful, real-time GUI that injects these filters directly into your active MPV instance over WebSockets/IPC.
