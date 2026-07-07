@@ -37,42 +37,63 @@ class TabEq extends StatelessWidget {
                         // Visual EQ bar display
                         _EqVisualizer(bands: bands, color: color),
                         const SizedBox(height: 20),
-                        // Frequency band labels
+                        // Vertical sliders aligned with columns
                         Row(
-                          children: bands
-                              .map((b) => Expanded(
-                                    child: Column(
-                                      children: [
-                                        Text(
-                                          _freqLabel(b.freq),
-                                          style: GoogleFonts.inter(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: _gainColor(b.gain, color),
-                                          ),
-                                          textAlign: TextAlign.center,
+                          children: bands.asMap().entries.map((entry) {
+                            final i = entry.key;
+                            final band = entry.value;
+                            final sliderColor = _gainColor(band.gain, color);
+                            return Expanded(
+                              child: Column(
+                                children: [
+                                  // The vertical slider
+                                  SizedBox(
+                                    height: 150,
+                                    child: RotatedBox(
+                                      quarterTurns: 3,
+                                      child: SliderTheme(
+                                        data: SliderTheme.of(context).copyWith(
+                                          activeTrackColor: sliderColor,
+                                          thumbColor: sliderColor,
+                                          inactiveTrackColor: sliderColor.withOpacity(0.15),
+                                          overlayColor: sliderColor.withOpacity(0.10),
+                                          trackHeight: 3,
                                         ),
-                                      ],
+                                        child: Slider(
+                                          value: band.gain.clamp(-12.0, 12.0),
+                                          min: -12.0,
+                                          max: 12.0,
+                                          divisions: 240,
+                                          onChanged: (v) => dsp.setEqBandGain(i, v),
+                                        ),
+                                      ),
                                     ),
-                                  ))
-                              .toList(),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // The current gain label
+                                  Text(
+                                    '${band.gain > 0 ? '+' : ''}${band.gain.toStringAsFixed(1)}',
+                                    style: GoogleFonts.jetBrainsMono(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: sliderColor,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // The frequency label
+                                  Text(
+                                    _freqLabel(band.freq),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
                         ),
-                        const SizedBox(height: 16),
-                        // Individual band sliders
-                        ...bands.asMap().entries.map((entry) {
-                          final i = entry.key;
-                          final band = entry.value;
-                          return DspSlider(
-                            label: '${_freqLabel(band.freq)} (${band.freq}Hz)',
-                            value: band.gain,
-                            min: -12.0,
-                            max: 12.0,
-                            divisions: 240,
-                            unit: 'dB',
-                            accentColor: _gainColor(band.gain, color),
-                            onChanged: (v) => dsp.setEqBandGain(i, v),
-                          );
-                        }),
                         Container(
                           margin: const EdgeInsets.only(top: 8),
                           padding: const EdgeInsets.all(10),

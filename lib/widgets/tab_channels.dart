@@ -22,9 +22,6 @@ class TabChannels extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
                       // Quick controls
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
