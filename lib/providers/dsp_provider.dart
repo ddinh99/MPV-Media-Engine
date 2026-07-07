@@ -18,6 +18,7 @@ class DspProvider extends ChangeNotifier {
 
   DspState _state = DspState();
   String? _activePresetId = 'movie_dialog';
+  String? _customFilterOverride;
   bool _autoApply = true;
   String _filterPreview = '';
   Timer? _debounce;
@@ -259,6 +260,7 @@ class DspProvider extends ChangeNotifier {
 
   void _update(DspState newState, {bool clearPreset = false}) {
     _state = newState;
+    _customFilterOverride = null;
     if (clearPreset) _activePresetId = null;
     _rebuildPreview();
     notifyListeners();
@@ -266,7 +268,9 @@ class DspProvider extends ChangeNotifier {
   }
 
   void _rebuildPreview() {
-    if (_state.bypass) {
+    if (_customFilterOverride != null) {
+      _filterPreview = _customFilterOverride!;
+    } else if (_state.bypass) {
       _filterPreview = '# BYPASS — no filters applied';
     } else {
       _filterPreview = FilterBuilder.buildConfigLine(_state);
@@ -280,7 +284,16 @@ class DspProvider extends ChangeNotifier {
 
   Future<void> _applyNow() async {
     if (_ipc.connectionState != IpcConnectionState.connected) return;
-    final cmd = FilterBuilder.buildIpcCommand(_state);
+    
+    String cmd;
+    if (_customFilterOverride != null) {
+      cmd = jsonEncode({
+        "command": ["set_property", "af", _customFilterOverride!.replaceFirst('#af-add=', '')]
+      });
+    } else {
+      cmd = FilterBuilder.buildIpcCommand(_state);
+    }
+    
     final ok = await _ipc.sendCommand(cmd);
     _addLog(ok ? '✓ Applied' : '✗ Send failed');
   }
@@ -306,11 +319,21 @@ class DspProvider extends ChangeNotifier {
 
   void loadPreset(Preset preset) {
     _activePresetId = preset.id;
+    _customFilterOverride = null;
     _state = preset.state.copyWith();
     _rebuildPreview();
     notifyListeners();
     if (_autoApply) _scheduleApply();
     _addLog('Preset: ${preset.emoji} ${preset.name}');
+  }
+
+  void applyCustomFilter(String name, String filterString) {
+    _activePresetId = 'custom';
+    _customFilterOverride = filterString;
+    _rebuildPreview();
+    notifyListeners();
+    if (_autoApply) _scheduleApply();
+    _addLog('Preset: ⭐ $name');
   }
 
   // ── DynAudNorm ─────────────────────────────────────────────────────────────

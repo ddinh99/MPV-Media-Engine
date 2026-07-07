@@ -36,14 +36,12 @@ class FilterPreview extends StatelessWidget {
               const SizedBox(width: 6),
               // Preview text
               Expanded(
-                child: Text(
+                child: SelectableText(
                   dsp.filterPreview,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 11,
+                    fontSize: 12, // Increased font size slightly
                     color: dsp.state.bypass ? AppTheme.textMuted : AppTheme.primary,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
               const SizedBox(width: 12),
