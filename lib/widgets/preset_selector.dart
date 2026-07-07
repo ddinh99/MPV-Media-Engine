@@ -149,6 +149,10 @@ class PresetSelector extends StatelessWidget {
                 itemBuilder: (context) {
                   final items = <PopupMenuEntry<String>>[
                     const PopupMenuItem(
+                      value: '__import__',
+                      child: Text('📥 Import Raw Filter String...'),
+                    ),
+                    const PopupMenuItem(
                       value: '__save__',
                       child: Text('➕ Save Current Settings...'),
                     ),
@@ -184,7 +188,57 @@ class PresetSelector extends StatelessWidget {
                   return items;
                 },
                 onSelected: (val) async {
-                  if (val == '__save__') {
+                  if (val == '__import__') {
+                    final ctrl = TextEditingController();
+                    final result = await showDialog<String>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: Row(
+                          children: [
+                            Icon(Icons.code, color: AppTheme.primary),
+                            const SizedBox(width: 8),
+                            const Text('Import Custom Filter'),
+                          ],
+                        ),
+                        content: SizedBox(
+                          width: 500,
+                          child: TextField(
+                            controller: ctrl,
+                            maxLines: 5,
+                            style: GoogleFonts.jetBrainsMono(fontSize: 12),
+                            decoration: const InputDecoration(
+                              hintText: 'Paste your raw filter string here...\ne.g. af-add=lavfi=[dynaudnorm...]',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(c, ctrl.text),
+                            child: const Text('Activate'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (result != null && result.trim().isNotEmpty) {
+                      String cleanFilter = result.trim();
+                      // Normalize the string so it works correctly with our backend format
+                      if (cleanFilter.startsWith('af-add=')) {
+                        cleanFilter = '#' + cleanFilter;
+                      } else if (cleanFilter.startsWith('af=')) {
+                        cleanFilter = '#af-add=' + cleanFilter.substring(3);
+                      } else if (cleanFilter.startsWith('lavfi=')) {
+                        cleanFilter = '#af-add=' + cleanFilter;
+                      } else if (!cleanFilter.startsWith('#af-add=')) {
+                        cleanFilter = '#af-add=' + cleanFilter;
+                      }
+                      dsp.applyCustomFilter('Imported Filter', cleanFilter);
+                    }
+                  } else if (val == '__save__') {
                     final nameCtrl = TextEditingController();
                     final name = await showDialog<String>(
                       context: context,

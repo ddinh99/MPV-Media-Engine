@@ -259,7 +259,9 @@ class _AppHeader extends StatelessWidget {
           'Credits & Acknowledgements:\n'
           '• Developed by Dai Dinh\n'
           '• Built with Flutter\n'
-          '• Audio Engine: MPV & FFmpeg',
+          '• Audio Engine: MPV & FFmpeg\n\n'
+          'For bug reports and feedback, contact:\n'
+          'ddinh99@gmail.com',
           style: GoogleFonts.inter(fontSize: 12, height: 1.5),
         ),
       ],

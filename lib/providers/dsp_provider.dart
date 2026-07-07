@@ -11,6 +11,7 @@ import '../models/dsp_state.dart';
 import '../models/eq_band.dart';
 import '../models/preset.dart';
 import '../services/filter_builder.dart';
+import '../services/filter_parser.dart';
 import '../services/mpv_ipc_service.dart';
 import '../services/preferences_service.dart';
 
@@ -348,6 +349,14 @@ class DspProvider extends ChangeNotifier {
   void applyCustomFilter(String name, String filterString) {
     _activePresetId = name;
     _customFilterOverride = filterString;
+    
+    // Attempt to parse the raw string back into the GUI state so sliders update!
+    try {
+      _state = FilterParser.parse(filterString);
+    } catch (e) {
+      _addLog('Parser warning: Could not fully parse string to GUI ($e)');
+    }
+
     _rebuildPreview();
     notifyListeners();
     if (_autoApply) _scheduleApply();
