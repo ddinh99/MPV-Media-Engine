@@ -187,6 +187,21 @@ Win32Window::MessageHandler(HWND hwnd,
       }
       return 0;
 
+    case WM_GETMINMAXINFO: {
+      auto info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale_factor = dpi / 96.0;
+
+      // Enforce a minimum window size of 940x640 logical pixels.
+      // This is required to prevent UI overflow crashes since the app layout
+      // has 6 fixed-width, non-scrollable tabs and a bottom filter preview bar
+      // that requires a significant amount of horizontal and vertical space.
+      info->ptMinTrackSize.x = static_cast<LONG>(940 * scale_factor);
+      info->ptMinTrackSize.y = static_cast<LONG>(640 * scale_factor);
+      return 0;
+    }
+
     case WM_DPICHANGED: {
       auto newRectSize = reinterpret_cast<RECT*>(lparam);
       LONG newWidth = newRectSize->right - newRectSize->left;
