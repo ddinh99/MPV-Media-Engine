@@ -405,26 +405,42 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
 
                   const SizedBox(height: 24),
 
-                  // Confirm button
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      icon: const Icon(Icons.play_circle_filled_rounded,
-                          size: 20),
-                      label: const Text("I'm ready — let's go!"),
-                      style: FilledButton.styleFrom(
-                        backgroundColor:
-                            hasPath ? AppTheme.primary : AppTheme.border,
-                        foregroundColor:
-                            hasPath ? Colors.white : AppTheme.textMuted,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        textStyle: GoogleFonts.inter(
-                            fontSize: 14, fontWeight: FontWeight.w700),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 16),
+                          textStyle: GoogleFonts.inter(
+                              fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(color: AppTheme.textMuted),
+                        ),
                       ),
-                      onPressed: hasPath ? _confirm : null,
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.play_circle_filled_rounded,
+                              size: 20),
+                          label: const Text("I'm ready — let's go!"),
+                          style: FilledButton.styleFrom(
+                            backgroundColor:
+                                hasPath ? AppTheme.primary : AppTheme.border,
+                            foregroundColor:
+                                hasPath ? Colors.white : AppTheme.textMuted,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            textStyle: GoogleFonts.inter(
+                                fontSize: 14, fontWeight: FontWeight.w700),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
+                          ),
+                          onPressed: hasPath ? _confirm : null,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
