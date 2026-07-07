@@ -35,3 +35,8 @@ Normally, adjusting audio filters (like dynamic range compression, downmixing, o
 
 ## 🛠️ How it Works
 The application connects to MPV's IPC (Inter-Process Communication) socket. As you interact with the UI, it translates your settings into raw FFmpeg `lavfi` strings (like `af-add=lavfi=[...]`) and sends them directly to the player to be processed on the fly.
+
+## 💖 Support the Project
+If this app helped you get the perfect sound out of your headphones or speakers, or saved you from writing tedious FFmpeg scripts, consider buying me a coffee to support future updates!
+
+[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/daidinh)
