@@ -3,27 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  static bool isDark = false;
+
   // Color palette
-  static const Color background = Color(0xFFF8F9FA);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF1F3F5);
-  static const Color border = Color(0xFFE9ECEF);
-  static const Color borderStrong = Color(0xFFCED4DA);
+  static Color get background => isDark ? const Color(0xFF0F172A) : const Color(0xFFF8F9FA);
+  static Color get surface => isDark ? const Color(0xFF1E293B) : const Color(0xFFFFFFFF);
+  static Color get surfaceVariant => isDark ? const Color(0xFF334155) : const Color(0xFFF1F3F5);
+  static Color get border => isDark ? const Color(0xFF475569) : const Color(0xFFE9ECEF);
+  static Color get borderStrong => isDark ? const Color(0xFF64748B) : const Color(0xFFCED4DA);
 
   static const Color primary = Color(0xFF2563EB);
-  static const Color primaryLight = Color(0xFFDBEAFE);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static Color get primaryLight => isDark ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE);
+  static Color get primaryDark => isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
 
   static const Color success = Color(0xFF16A34A);
-  static const Color successLight = Color(0xFFDCFCE7);
+  static Color get successLight => isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7);
   static const Color error = Color(0xFFDC2626);
-  static const Color errorLight = Color(0xFFFEE2E2);
+  static Color get errorLight => isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2);
   static const Color warning = Color(0xFFD97706);
-  static const Color warningLight = Color(0xFFFEF3C7);
+  static Color get warningLight => isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7);
 
-  static const Color textPrimary = Color(0xFF111827);
-  static const Color textSecondary = Color(0xFF6B7280);
-  static const Color textMuted = Color(0xFF9CA3AF);
+  static Color get textPrimary => isDark ? const Color(0xFFF8FAFC) : const Color(0xFF111827);
+  static Color get textSecondary => isDark ? const Color(0xFFCBD5E1) : const Color(0xFF6B7280);
+  static Color get textMuted => isDark ? const Color(0xFF94A3B8) : const Color(0xFF9CA3AF);
 
   // Slider accent colors per tab
   static const Color accentLoudness = Color(0xFF7C3AED); // purple
@@ -37,11 +39,13 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primary,
-        brightness: Brightness.light,
+        brightness: isDark ? Brightness.dark : Brightness.light,
         surface: surface,
       ),
       scaffoldBackgroundColor: background,
-      textTheme: GoogleFonts.interTextTheme(),
+      textTheme: GoogleFonts.interTextTheme(
+        ThemeData(brightness: isDark ? Brightness.dark : Brightness.light).textTheme,
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: surface,
         elevation: 0,
@@ -52,6 +56,7 @@ class AppTheme {
           fontWeight: FontWeight.w600,
           color: textPrimary,
         ),
+        iconTheme: IconThemeData(color: textPrimary),
       ),
       tabBarTheme: TabBarTheme(
         labelColor: primary,
@@ -75,7 +80,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: border),
+          side: BorderSide(color: border),
         ),
       ),
     );

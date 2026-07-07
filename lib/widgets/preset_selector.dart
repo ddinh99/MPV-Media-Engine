@@ -88,7 +88,7 @@ class PresetSelector extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (isActive) const Padding(padding: EdgeInsets.only(left: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
+                          if (isActive) Padding(padding: const EdgeInsets.only(left: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
                         ],
                       ),
                     );
@@ -162,7 +162,7 @@ class PresetSelector extends StatelessWidget {
                               Expanded(
                                 child: Text('👤 ${p.name}', style: TextStyle(color: isActive ? AppTheme.primary : AppTheme.textPrimary, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
                               ),
-                              if (isActive) const Padding(padding: EdgeInsets.only(right: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
+                              if (isActive) Padding(padding: const EdgeInsets.only(right: 8.0), child: Icon(Icons.check, color: AppTheme.primary, size: 18)),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                                 tooltip: 'Delete this preset',

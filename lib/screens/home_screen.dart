@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
+import '../providers/theme_provider.dart';
 import '../widgets/connection_bar.dart';
 import '../widgets/filter_preview.dart';
 import '../widgets/first_run_setup.dart';
@@ -139,8 +140,8 @@ class _AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<DspProvider>(
-      builder: (context, dsp, _) {
+    return Consumer2<DspProvider, ThemeProvider>(
+      builder: (context, dsp, themeProvider, _) {
         return Container(
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -155,8 +156,8 @@ class _AppHeader extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [AppTheme.primary, Color(0xFF7C3AED)],
+                  gradient: LinearGradient(
+                    colors: [AppTheme.primary, const Color(0xFF7C3AED)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -190,6 +191,16 @@ class _AppHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              // Theme toggle
+              IconButton(
+                icon: Icon(
+                  themeProvider.isDark ? Icons.light_mode : Icons.dark_mode,
+                  size: 16,
+                  color: AppTheme.textMuted,
+                ),
+                tooltip: 'Toggle Theme',
+                onPressed: () => themeProvider.toggleTheme(),
+              ),
               // Settings button
               IconButton(
                 icon: Icon(
@@ -212,7 +223,7 @@ class _AppHeader extends StatelessWidget {
               ),
               // Help
               IconButton(
-                icon: const Icon(Icons.help_outline, size: 16, color: AppTheme.textMuted),
+                icon: Icon(Icons.help_outline, size: 16, color: AppTheme.textMuted),
                 tooltip: 'How to use',
                 onPressed: () => _showHelp(context),
               ),
@@ -236,7 +247,7 @@ class _AppHeader extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: Row(
           children: [
-            const Icon(Icons.graphic_eq, color: AppTheme.primary),
+            Icon(Icons.graphic_eq, color: AppTheme.primary),
             const SizedBox(width: 8),
             Text('How to use MVP Sound Engine', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           ],
@@ -430,7 +441,7 @@ class _SettingsDialogState extends State<_SettingsDialog> {
         return AlertDialog(
       title: Row(
         children: [
-          const Icon(Icons.settings_outlined, color: AppTheme.primary),
+          Icon(Icons.settings_outlined, color: AppTheme.primary),
           const SizedBox(width: 8),
           Text('Settings', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         ],

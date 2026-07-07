@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'constants/theme.dart';
 import 'providers/dsp_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/home_screen.dart';
 
 class MvpSoundEngineApp extends StatelessWidget {
@@ -10,13 +11,21 @@ class MvpSoundEngineApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DspProvider(),
-      child: MaterialApp(
-        title: 'MVP Sound Engine',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
-        home: const HomeScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DspProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          AppTheme.isDark = themeProvider.isDark;
+          return MaterialApp(
+            title: 'MVP Sound Engine',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.theme,
+            home: const HomeScreen(),
+          );
+        },
       ),
     );
   }

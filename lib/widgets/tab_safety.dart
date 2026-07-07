@@ -14,7 +14,7 @@ class TabSafety extends StatelessWidget {
     return Consumer<DspProvider>(
       builder: (context, dsp, _) {
         final lim = dsp.state.limiter;
-        const color = AppTheme.accentSafety;
+        final color = AppTheme.accentSafety;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),

@@ -187,7 +187,7 @@ class ConnectionBar extends StatelessWidget {
                                       content: TextField(
                                         controller: controller,
                                         style: GoogleFonts.jetBrainsMono(color: AppTheme.textPrimary, fontSize: 13),
-                                        decoration: const InputDecoration(
+                                        decoration: InputDecoration(
                                           hintText: 'e.g., 127.0.0.1:9001 or ws://localhost:9002',
                                           hintStyle: TextStyle(color: AppTheme.textMuted),
                                           enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppTheme.border)),
@@ -197,11 +197,11 @@ class ConnectionBar extends StatelessWidget {
                                       actions: [
                                         TextButton(
                                           onPressed: () => Navigator.pop(context),
-                                          child: const Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
+                                          child: Text('Cancel', style: TextStyle(color: AppTheme.textMuted)),
                                         ),
                                         TextButton(
                                           onPressed: () => Navigator.pop(context, controller.text),
-                                          child: const Text('Save', style: TextStyle(color: AppTheme.primary)),
+                                          child: Text('Save', style: TextStyle(color: AppTheme.primary)),
                                         ),
                                       ],
                                     );
@@ -280,7 +280,7 @@ class ConnectionBar extends StatelessWidget {
                   else
                     IconButton(
                       icon: isConnecting
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 12,
                               height: 12,
                               child: CircularProgressIndicator(

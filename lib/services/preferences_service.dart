@@ -41,4 +41,16 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kMpvExePath);
   }
+
+  static const String _kIsDarkTheme = 'is_dark_theme';
+
+  static Future<bool> getIsDarkTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_kIsDarkTheme) ?? false;
+  }
+
+  static Future<void> setIsDarkTheme(bool isDark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kIsDarkTheme, isDark);
+  }
 }

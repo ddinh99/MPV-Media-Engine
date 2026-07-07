@@ -15,7 +15,7 @@ class TabEq extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<DspProvider>(
       builder: (context, dsp, _) {
-        const color = AppTheme.accentEQ;
+        final color = AppTheme.accentEQ;
         final hs = dsp.state.highShelf;
         final bands = dsp.state.eqBands;
 

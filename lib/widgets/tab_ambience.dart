@@ -14,7 +14,7 @@ class TabAmbience extends StatelessWidget {
     return Consumer<DspProvider>(
       builder: (context, dsp, _) {
         final a = dsp.state.ambience;
-        const color = AppTheme.accentAmbience;
+        final color = AppTheme.accentAmbience;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -45,7 +45,7 @@ class TabAmbience extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.info_outline, size: 16, color: AppTheme.textMuted),
+                            Icon(Icons.info_outline, size: 16, color: AppTheme.textMuted),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(

@@ -15,7 +15,7 @@ class TabLoudness extends StatelessWidget {
       builder: (context, dsp, _) {
         final dn = dsp.state.dynaudnorm;
         final cp = dsp.state.compressor;
-        const color = AppTheme.accentLoudness;
+        final color = AppTheme.accentLoudness;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),

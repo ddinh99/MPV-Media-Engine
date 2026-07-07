@@ -15,7 +15,7 @@ class TabChannels extends StatelessWidget {
     return Consumer<DspProvider>(
       builder: (context, dsp, _) {
         final p = dsp.state.panMatrix;
-        const color = AppTheme.accentChannels;
+        final color = AppTheme.accentChannels;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
