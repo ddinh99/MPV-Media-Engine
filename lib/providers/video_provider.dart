@@ -223,13 +223,20 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(targetPrim: prim);
     notifyListeners();
     _sendCommand('target-prim', prim);
+    if (_state.targetColorspaceHint) {
+      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+    }
   }
 
   void setTargetGamut(String gamut) {
     _activePresetId = null;
     _state = _state.copyWith(targetGamut: gamut);
     notifyListeners();
+    // target-gamut may be mapped to target-prim on newer mpv versions, but we send it anyway
     _sendCommand('target-gamut', gamut);
+    if (_state.targetColorspaceHint) {
+      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+    }
   }
 
   void setTargetTrc(String trc) {
@@ -237,6 +244,9 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(targetTrc: trc);
     notifyListeners();
     _sendCommand('target-trc', trc);
+    if (_state.targetColorspaceHint) {
+      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+    }
   }
 
   // --- Module C: Hardware Grading & Deband ---
