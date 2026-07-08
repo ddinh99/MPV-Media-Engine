@@ -170,7 +170,7 @@ class _AppHeader extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(7),
                 ),
-                child: const Icon(Icons.graphic_eq, size: 16, color: Colors.white),
+                child: const Icon(Icons.smart_display, size: 16, color: Colors.white),
               ),
               const SizedBox(width: 10),
               Text(
