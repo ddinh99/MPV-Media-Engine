@@ -91,9 +91,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               // Title bar / app header
               _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
               // MPV connection bar
-              const ConnectionBar(),
+              ConnectionBar(),
               // Preset selector
-              const PresetSelector(),
+              PresetSelector(),
               // Tab bar
               Container(
                 color: AppTheme.surface,
