@@ -13,6 +13,8 @@ class VideoPresetSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<VideoProvider>(
       builder: (context, provider, child) {
+        final allPresets = [...builtinVideoPresets, ...provider.customPresets];
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -28,6 +30,42 @@ class VideoPresetSelector extends StatelessWidget {
                     color: AppTheme.textPrimary,
                   ),
                 ),
+                const Spacer(),
+                TextButton.icon(
+                  icon: const Icon(Icons.bookmark_add, size: 16),
+                  label: Text('Save Current Settings', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppTheme.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  onPressed: () async {
+                    final nameCtrl = TextEditingController();
+                    final name = await showDialog<String>(
+                      context: context,
+                      builder: (c) => AlertDialog(
+                        title: Text('Save Personal Preset', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+                        content: TextField(
+                          controller: nameCtrl,
+                          decoration: const InputDecoration(hintText: 'Enter a name for this preset'),
+                          autofocus: true,
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(c),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(c, nameCtrl.text),
+                            child: const Text('Save'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (name != null && name.trim().isNotEmpty) {
+                      provider.saveCustomPreset(name.trim());
+                    }
+                  },
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -35,10 +73,11 @@ class VideoPresetSelector extends StatelessWidget {
               height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: builtinVideoPresets.length,
+                itemCount: allPresets.length,
                 itemBuilder: (context, index) {
-                  final preset = builtinVideoPresets[index];
+                  final preset = allPresets[index];
                   final isActive = provider.activePresetId == preset.id;
+                  final isCustom = preset.id.startsWith('custom_');
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
@@ -77,6 +116,11 @@ class VideoPresetSelector extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
+                                  if (isCustom)
+                                    GestureDetector(
+                                      onTap: () => provider.deleteCustomPreset(preset.id),
+                                      child: Icon(Icons.close, size: 14, color: AppTheme.textMuted),
+                                    ),
                                 ],
                               ),
                               const Spacer(),

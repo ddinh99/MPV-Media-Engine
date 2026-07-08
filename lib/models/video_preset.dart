@@ -15,6 +15,22 @@ class VideoPreset {
     required this.description,
     required this.state,
   });
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'emoji': emoji,
+    'description': description,
+    'state': state.toJson(),
+  };
+
+  factory VideoPreset.fromJson(Map<String, dynamic> json) => VideoPreset(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    emoji: json['emoji'] as String? ?? '🎬',
+    description: json['description'] as String? ?? '',
+    state: VideoState.fromJson(json['state'] as Map<String, dynamic>),
+  );
 }
 
 List<VideoPreset> get builtinVideoPresets => [

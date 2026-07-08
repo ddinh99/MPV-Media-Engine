@@ -2,6 +2,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/preset.dart';
+import '../models/video_preset.dart';
 
 class PreferencesService {
   static const String _kMpvExePath = 'mpv_exe_path';
@@ -35,6 +36,27 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     final jsonStr = jsonEncode(presets.map((e) => e.toJson()).toList());
     await prefs.setString(_kCustomPresets, jsonStr);
+  }
+
+  static const String _kCustomVideoPresets = 'custom_video_presets';
+
+  static Future<List<VideoPreset>> getCustomVideoPresets() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_kCustomVideoPresets);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> decoded = jsonDecode(jsonStr);
+      return decoded.map((e) => VideoPreset.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      print('Failed to load custom video presets: $e');
+      return [];
+    }
+  }
+
+  static Future<void> saveCustomVideoPresets(List<VideoPreset> presets) async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = jsonEncode(presets.map((e) => e.toJson()).toList());
+    await prefs.setString(_kCustomVideoPresets, jsonStr);
   }
 
   static Future<void> clearMpvExePath() async {

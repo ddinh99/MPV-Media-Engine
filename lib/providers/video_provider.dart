@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import '../models/video_preset.dart';
 import '../models/video_state.dart';
+import '../services/preferences_service.dart';
 import 'dsp_provider.dart';
 
 class VideoProvider extends ChangeNotifier {
@@ -12,15 +13,47 @@ class VideoProvider extends ChangeNotifier {
   VideoState _state = VideoState();
   String? _activePresetId;
   List<String> _availableShaders = [];
+  List<VideoPreset> _customPresets = [];
   Timer? _debounceTimer;
   
   VideoProvider(this.dspProvider) {
     _loadAvailableShaders();
+    _loadCustomPresets();
   }
 
   VideoState get state => _state;
   String? get activePresetId => _activePresetId;
   List<String> get availableShaders => List.unmodifiable(_availableShaders);
+  List<VideoPreset> get customPresets => List.unmodifiable(_customPresets);
+
+  Future<void> _loadCustomPresets() async {
+    _customPresets = await PreferencesService.getCustomVideoPresets();
+    notifyListeners();
+  }
+
+  void saveCustomPreset(String name) {
+    final id = 'custom_${DateTime.now().millisecondsSinceEpoch}';
+    final newPreset = VideoPreset(
+      id: id,
+      name: name,
+      emoji: '⭐',
+      description: 'Personal configuration',
+      state: _state.copyWith(), // Snapshot current state
+    );
+    _customPresets.add(newPreset);
+    _activePresetId = id;
+    PreferencesService.saveCustomVideoPresets(_customPresets);
+    notifyListeners();
+  }
+
+  void deleteCustomPreset(String id) {
+    _customPresets.removeWhere((p) => p.id == id);
+    if (_activePresetId == id) {
+      _activePresetId = null;
+    }
+    PreferencesService.saveCustomVideoPresets(_customPresets);
+    notifyListeners();
+  }
 
   String _getShadersDirectory() {
     final baseDir = io.Directory.current.path;
