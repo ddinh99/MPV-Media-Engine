@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
 import '../providers/theme_provider.dart';
@@ -247,11 +248,14 @@ class _AppHeader extends StatelessWidget {
     );
   }
 
-  void _showAbout(BuildContext context) {
+  void _showAbout(BuildContext context) async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    if (!context.mounted) return;
+
     showAboutDialog(
       context: context,
       applicationName: 'MPV Media Engine',
-      applicationVersion: 'v1.1.0',
+      applicationVersion: 'v${packageInfo.version}',
       applicationLegalese: '© 2026 Dai Dinh\nReleased under the MIT License.',
       children: [
         const SizedBox(height: 16),
