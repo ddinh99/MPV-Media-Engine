@@ -215,6 +215,47 @@ class TabVideo extends StatelessWidget {
             divisions: 40,
             onChanged: video.setContrastRecovery,
           ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(height: 1),
+          ),
+          Row(
+            children: [
+              Text(
+                'SDR to HDR Remap (Target Hinting)',
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
+              ),
+              const Spacer(),
+              Switch(
+                value: video.state.targetColorspaceHint,
+                onChanged: video.setTargetColorspaceHint,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          if (video.state.targetColorspaceHint) ...[
+            const SizedBox(height: 12),
+            _buildDropdownRow(
+              label: 'Target Primaries',
+              value: video.state.targetPrim,
+              items: const ['auto', 'bt.709', 'bt.2020', 'apple', 'dci-p3', 'display-p3'],
+              onChanged: (val) => video.setTargetPrim(val!),
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownRow(
+              label: 'Target Gamut',
+              value: video.state.targetGamut,
+              items: const ['auto', 'bt.709', 'dci-p3', 'display-p3', 'bt.2020'],
+              onChanged: (val) => video.setTargetGamut(val!),
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownRow(
+              label: 'Target TRC',
+              value: video.state.targetTrc,
+              items: const ['auto', 'bt.1886', 'srgb', 'linear', 'gamma2.2', 'gamma2.8', 'pq', 'hlg'],
+              onChanged: (val) => video.setTargetTrc(val!),
+            ),
+          ],
         ],
       ),
     );

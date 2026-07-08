@@ -7,6 +7,11 @@ class VideoState {
   double contrastRecovery;
   bool visualizeToneMapping;
   
+  bool targetColorspaceHint;
+  String targetPrim;
+  String targetGamut;
+  String targetTrc;
+  
   int brightness;
   int contrast;
   int gamma;
@@ -32,6 +37,10 @@ class VideoState {
     this.targetPeak = 100.0,
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
+    this.targetColorspaceHint = false,
+    this.targetPrim = 'auto',
+    this.targetGamut = 'auto',
+    this.targetTrc = 'auto',
     this.brightness = 0,
     this.contrast = 0,
     this.gamma = 0,
@@ -56,6 +65,10 @@ class VideoState {
     double? targetPeak,
     double? contrastRecovery,
     bool? visualizeToneMapping,
+    bool? targetColorspaceHint,
+    String? targetPrim,
+    String? targetGamut,
+    String? targetTrc,
     int? brightness,
     int? contrast,
     int? gamma,
@@ -79,6 +92,10 @@ class VideoState {
       targetPeak: targetPeak ?? this.targetPeak,
       contrastRecovery: contrastRecovery ?? this.contrastRecovery,
       visualizeToneMapping: visualizeToneMapping ?? this.visualizeToneMapping,
+      targetColorspaceHint: targetColorspaceHint ?? this.targetColorspaceHint,
+      targetPrim: targetPrim ?? this.targetPrim,
+      targetGamut: targetGamut ?? this.targetGamut,
+      targetTrc: targetTrc ?? this.targetTrc,
       brightness: brightness ?? this.brightness,
       contrast: contrast ?? this.contrast,
       gamma: gamma ?? this.gamma,
@@ -104,6 +121,10 @@ class VideoState {
     'targetPeak': targetPeak,
     'contrastRecovery': contrastRecovery,
     'visualizeToneMapping': visualizeToneMapping,
+    'targetColorspaceHint': targetColorspaceHint,
+    'targetPrim': targetPrim,
+    'targetGamut': targetGamut,
+    'targetTrc': targetTrc,
     'brightness': brightness,
     'contrast': contrast,
     'gamma': gamma,
@@ -128,6 +149,10 @@ class VideoState {
     targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 100.0,
     contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
     visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
+    targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
+    targetPrim: json['targetPrim'] as String? ?? 'auto',
+    targetGamut: json['targetGamut'] as String? ?? 'auto',
+    targetTrc: json['targetTrc'] as String? ?? 'auto',
     brightness: json['brightness'] as int? ?? 0,
     contrast: json['contrast'] as int? ?? 0,
     gamma: json['gamma'] as int? ?? 0,

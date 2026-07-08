@@ -107,6 +107,10 @@ class VideoProvider extends ChangeNotifier {
     setTargetPeak(preset.state.targetPeak);
     setContrastRecovery(preset.state.contrastRecovery);
     setVisualizeToneMapping(preset.state.visualizeToneMapping);
+    setTargetColorspaceHint(preset.state.targetColorspaceHint);
+    setTargetPrim(preset.state.targetPrim);
+    setTargetGamut(preset.state.targetGamut);
+    setTargetTrc(preset.state.targetTrc);
     
     setBrightness(preset.state.brightness);
     setContrast(preset.state.contrast);
@@ -205,6 +209,34 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(visualizeToneMapping: vis);
     notifyListeners();
     _sendCommand('tone-mapping-visualize', vis);
+  }
+
+  void setTargetColorspaceHint(bool val) {
+    _activePresetId = null;
+    _state = _state.copyWith(targetColorspaceHint: val);
+    notifyListeners();
+    _sendCommand('target-colorspace-hint', val ? 'yes' : 'no');
+  }
+
+  void setTargetPrim(String prim) {
+    _activePresetId = null;
+    _state = _state.copyWith(targetPrim: prim);
+    notifyListeners();
+    _sendCommand('target-prim', prim);
+  }
+
+  void setTargetGamut(String gamut) {
+    _activePresetId = null;
+    _state = _state.copyWith(targetGamut: gamut);
+    notifyListeners();
+    _sendCommand('target-gamut', gamut);
+  }
+
+  void setTargetTrc(String trc) {
+    _activePresetId = null;
+    _state = _state.copyWith(targetTrc: trc);
+    notifyListeners();
+    _sendCommand('target-trc', trc);
   }
 
   // --- Module C: Hardware Grading & Deband ---
