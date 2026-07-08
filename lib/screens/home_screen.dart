@@ -252,7 +252,7 @@ class _AppHeader extends StatelessWidget {
       context: context,
       applicationName: 'MPV Media Engine',
       applicationVersion: 'v1.1.0',
-      applicationLegalese: '© 2026 Dai Dinh',
+      applicationLegalese: '© 2026 Dai Dinh\nReleased under the MIT License.',
       children: [
         const SizedBox(height: 16),
         Text(
