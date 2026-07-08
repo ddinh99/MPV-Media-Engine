@@ -4,7 +4,7 @@ project(mvp_sound_engine LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "MPV_Sound_Engine")
+set(BINARY_NAME "MPV_Media_Engine")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.

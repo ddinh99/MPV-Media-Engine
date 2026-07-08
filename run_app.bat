@@ -5,7 +5,7 @@ echo ========================================================
 
 echo.
 echo [1/2] Cleaning up old background processes...
-taskkill /F /IM MPV_Sound_Engine.exe /T 2>nul
+taskkill /F /IM MPV_Media_Engine.exe /T 2>nul
 taskkill /F /IM dart.exe /T 2>nul
 taskkill /F /IM dartaotruntime.exe /T 2>nul
 
