@@ -18,7 +18,7 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 - **HDR to SDR Tone Mapping**: Instantly switch between tone mapping algorithms (bt.2446a, mobius, spline) and push target peak brightness for viewing dark HDR movies in bright rooms.
 - **SDR to HDR Expansion**: Manually force `target-colorspace-hint` and dynamically target specific Primaries, Gamuts, and TRCs (like `bt.2020` or `pq`) to perfectly map content to your high-end HDR monitor.
 - **Hardware Grading & Deband**: Fix color banding on low-bitrate anime or adjust raw brightness/contrast sliders on the fly.
-- **Smart Presets**: One-click curated setups for Anime, Live Action, and HDR. Includes a handy "Bypass (Default)" panic button to instantly reset the engine if you push settings too far.
+- **Smart & Custom Presets**: One-click curated setups for Anime, Live Action, and HDR. You can also save and load your own tailored **Custom Video Presets**. Includes a handy "Bypass (Default)" panic button to instantly reset the engine if you push settings too far.
 
 ### 🎧 Sound Engine (DSP)
 - **Real-Time Parametric EQ**: A full 7-band EQ that updates instantly as you drag the sliders.
