@@ -14,10 +14,11 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 
 ### 🎬 Video Engine
 - **Custom Shader Injection**: Dynamically inject, toggle, and reorder GLSL shaders (like `Anime4K`, `FSRCNNX`, `CAS`) in real-time.
-- **Scaling & Motion Interpolation**: Tweak temporal scalers (`tscale`), Luma/Chroma upscalers (`ewa_lanczossharp`), and lock video sync to your display refresh rate for buttery smooth motion.
+- **High Performance Mode**: Native temporal motion interpolation targeting high-refresh-rate displays. Fine-tune your `tscale` kernel (Box, Spline64, Mitchell) and windowing functions (Sphinx, Hann) for buttery smooth, ghost-free panning.
 - **HDR to SDR Tone Mapping**: Instantly switch between tone mapping algorithms (bt.2446a, mobius, spline) and push target peak brightness for viewing dark HDR movies in bright rooms.
+- **SDR to HDR Expansion**: Manually force `target-colorspace-hint` and dynamically target specific Primaries, Gamuts, and TRCs (like `bt.2020` or `pq`) to perfectly map content to your high-end HDR monitor.
 - **Hardware Grading & Deband**: Fix color banding on low-bitrate anime or adjust raw brightness/contrast sliders on the fly.
-- **Video Presets**: One-click curated setups for Anime, Live Action, and HDR-to-SDR viewing environments.
+- **Smart Presets**: One-click curated setups for Anime, Live Action, and HDR. Includes a handy "Bypass (Default)" panic button to instantly reset the engine if you push settings too far.
 
 ### 🎧 Sound Engine (DSP)
 - **Real-Time Parametric EQ**: A full 7-band EQ that updates instantly as you drag the sliders.
@@ -28,7 +29,7 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 ## 🚀 Getting Started
 
 ### Download & Run (Recommended)
-1. Go to the [Releases page](https://github.com/ddinh99/MPV-Media-Engine/releases) and download the latest `MPV-Media-Engine-v1.2.zip`.
+1. Go to the [Releases page](https://github.com/ddinh99/MPV-Media-Engine/releases) and download the latest `MPV-Media-Engine-v1.3.zip`.
 2. Extract the folder and double-click `MPV_Media_Engine.exe` to launch the GUI.
 *(Note: You do **not** need Flutter or any programming tools installed to run the pre-compiled application!)*
 
