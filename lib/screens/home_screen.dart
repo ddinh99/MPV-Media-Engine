@@ -16,6 +16,7 @@ import '../widgets/tab_eq.dart';
 import '../widgets/tab_loudness.dart';
 import '../widgets/tab_safety.dart';
 import '../widgets/tab_debug.dart';
+import '../widgets/tab_video.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     Tab(text: 'Ambience & Space', icon: Icon(Icons.spatial_audio, size: 14)),
     Tab(text: 'EQ & Tone', icon: Icon(Icons.equalizer, size: 14)),
     Tab(text: 'Safety', icon: Icon(Icons.security, size: 14)),
+    Tab(text: 'Video Engine', icon: Icon(Icons.video_settings, size: 14)),
     Tab(text: 'Debug IPC', icon: Icon(Icons.bug_report, size: 14)),
   ];
 
@@ -117,6 +119,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           TabAmbience(),
                           TabEq(),
                           TabSafety(),
+                          TabVideo(),
                           TabDebug(),
                         ],
                       ),

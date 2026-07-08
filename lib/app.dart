@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'constants/theme.dart';
 import 'providers/dsp_provider.dart';
 import 'providers/theme_provider.dart';
+import 'providers/video_provider.dart';
 import 'screens/home_screen.dart';
 
 class MvpSoundEngineApp extends StatelessWidget {
@@ -14,6 +15,9 @@ class MvpSoundEngineApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => DspProvider()),
+        ChangeNotifierProvider(
+          create: (context) => VideoProvider(context.read<DspProvider>()),
+        ),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
       ],
       child: Consumer<ThemeProvider>(
