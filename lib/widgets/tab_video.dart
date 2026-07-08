@@ -238,14 +238,14 @@ class TabVideo extends StatelessWidget {
           _buildDropdownRow(
             label: 'Luma Upscaler (scale)',
             value: video.state.scale,
-            items: const ['bilinear', 'bicubic', 'spline36', 'ewa_lanczos', 'ewa_lanczossharp'],
+            items: const ['bilinear', 'bicubic', 'spline36', 'spline64', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
             onChanged: (val) => video.setScale(val!),
           ),
           const SizedBox(height: 12),
           _buildDropdownRow(
             label: 'Chroma Upscaler (cscale)',
             value: video.state.cscale,
-            items: const ['bilinear', 'bicubic', 'spline36', 'ewa_lanczos', 'ewa_lanczossharp'],
+            items: const ['bilinear', 'bicubic', 'spline36', 'spline64', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
             onChanged: (val) => video.setCScale(val!),
           ),
           const SizedBox(height: 12),
