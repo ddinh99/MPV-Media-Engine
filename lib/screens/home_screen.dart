@@ -31,12 +31,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _setupDialogShown = false;
 
   final _tabs = const [
+    Tab(text: 'Video Engine', icon: Icon(Icons.video_settings, size: 14)),
     Tab(text: 'Loudness & Dynamics', icon: Icon(Icons.show_chart, size: 14)),
     Tab(text: 'Channels & Stereo', icon: Icon(Icons.surround_sound, size: 14)),
     Tab(text: 'Ambience & Space', icon: Icon(Icons.spatial_audio, size: 14)),
     Tab(text: 'EQ & Tone', icon: Icon(Icons.equalizer, size: 14)),
     Tab(text: 'Safety', icon: Icon(Icons.security, size: 14)),
-    Tab(text: 'Video Engine', icon: Icon(Icons.video_settings, size: 14)),
     Tab(text: 'Debug IPC', icon: Icon(Icons.bug_report, size: 14)),
   ];
 
@@ -114,12 +114,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       child: TabBarView(
                         controller: _tabController,
                         children: [ // Removed const to allow children to rebuild on theme change
+                          TabVideo(),
                           TabLoudness(),
                           TabChannels(),
                           TabAmbience(),
                           TabEq(),
                           TabSafety(),
-                          TabVideo(),
                           TabDebug(),
                         ],
                       ),
@@ -174,7 +174,7 @@ class _AppHeader extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Text(
-                'MVP Sound Engine',
+                'MPV Media Engine',
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -189,7 +189,7 @@ class _AppHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  'DSP Control Surface for MPV',
+                  'Media Control Surface for MPV',
                   style: GoogleFonts.inter(
                     fontSize: 10,
                     fontWeight: FontWeight.w600,
@@ -250,14 +250,14 @@ class _AppHeader extends StatelessWidget {
   void _showAbout(BuildContext context) {
     showAboutDialog(
       context: context,
-      applicationName: 'MVP Sound Engine',
+      applicationName: 'MPV Media Engine',
       applicationVersion: 'v1.0.0',
       applicationLegalese: '© 2026 Dai Dinh',
       children: [
         const SizedBox(height: 16),
         Text(
-          'A professional Digital Signal Processing (DSP) control surface '
-          'for MPV, providing real-time manipulation of audio filters, '
+          'A professional Media & DSP control surface '
+          'for MPV, providing real-time manipulation of video scalers, shaders, '
           'hardware speaker tuning, and cinematic loudness management.',
           style: GoogleFonts.inter(fontSize: 13),
         ),
@@ -290,7 +290,7 @@ class _AppHeader extends StatelessWidget {
           children: [
             Icon(Icons.graphic_eq, color: AppTheme.primary),
             const SizedBox(width: 8),
-            Text('How to use MVP Sound Engine', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+            Text('How to use MPV Media Engine', style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           ],
         ),
         content: SizedBox(

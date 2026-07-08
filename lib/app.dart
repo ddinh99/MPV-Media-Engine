@@ -24,7 +24,7 @@ class MvpSoundEngineApp extends StatelessWidget {
         builder: (context, themeProvider, child) {
           AppTheme.isDark = themeProvider.isDark;
           return MaterialApp(
-            title: 'MVP Sound Engine',
+            title: 'MPV Media Engine',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.theme,
             home: const HomeScreen(),

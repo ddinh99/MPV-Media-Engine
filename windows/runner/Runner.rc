@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.mvpsoundengine" "\0"
-            VALUE "FileDescription", "mvp_sound_engine" "\0"
+            VALUE "CompanyName", "com.mpvmediaengine" "\0"
+            VALUE "FileDescription", "MPV Media Engine" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "mvp_sound_engine" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.mvpsoundengine. All rights reserved." "\0"
+            VALUE "InternalName", "mpv_sound_engine" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.mpvmediaengine. All rights reserved." "\0"
             VALUE "OriginalFilename", "mvp_sound_engine.exe" "\0"
-            VALUE "ProductName", "mvp_sound_engine" "\0"
+            VALUE "ProductName", "MPV Media Engine" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

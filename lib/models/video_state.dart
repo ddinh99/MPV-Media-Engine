@@ -15,6 +15,13 @@ class VideoState {
   int debandIterations;
   int debandThreshold;
 
+  bool interpolation;
+  String videoSync;
+  String tscale;
+  String scale;
+  String cscale;
+  String dscale;
+
   VideoState({
     this.activeShaders = const [],
     this.toneMappingAlgorithm = 'auto',
@@ -27,6 +34,12 @@ class VideoState {
     this.deband = false,
     this.debandIterations = 1,
     this.debandThreshold = 0,
+    this.interpolation = false,
+    this.videoSync = 'audio',
+    this.tscale = 'oversample',
+    this.scale = 'bilinear',
+    this.cscale = 'bilinear',
+    this.dscale = 'bilinear',
   });
 
   VideoState copyWith({
@@ -41,6 +54,12 @@ class VideoState {
     bool? deband,
     int? debandIterations,
     int? debandThreshold,
+    bool? interpolation,
+    String? videoSync,
+    String? tscale,
+    String? scale,
+    String? cscale,
+    String? dscale,
   }) {
     return VideoState(
       activeShaders: activeShaders ?? this.activeShaders,
@@ -54,6 +73,12 @@ class VideoState {
       deband: deband ?? this.deband,
       debandIterations: debandIterations ?? this.debandIterations,
       debandThreshold: debandThreshold ?? this.debandThreshold,
+      interpolation: interpolation ?? this.interpolation,
+      videoSync: videoSync ?? this.videoSync,
+      tscale: tscale ?? this.tscale,
+      scale: scale ?? this.scale,
+      cscale: cscale ?? this.cscale,
+      dscale: dscale ?? this.dscale,
     );
   }
 }

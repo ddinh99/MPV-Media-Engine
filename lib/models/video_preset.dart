@@ -1,0 +1,121 @@
+// lib/models/video_preset.dart
+import 'video_state.dart';
+
+class VideoPreset {
+  final String id;
+  final String name;
+  final String emoji;
+  final String description;
+  final VideoState state;
+
+  const VideoPreset({
+    required this.id,
+    required this.name,
+    required this.emoji,
+    required this.description,
+    required this.state,
+  });
+}
+
+List<VideoPreset> get builtinVideoPresets => [
+  VideoPreset(
+    id: 'anime_cartoon',
+    name: 'Anime/Cartoon',
+    emoji: '🌸',
+    description: 'Anime4K upscale with medium debanding',
+    state: VideoState(
+      activeShaders: ['Anime4K_Restore_CNN_M.glsl'],
+      toneMappingAlgorithm: 'auto',
+      targetPeak: 100.0,
+      contrastRecovery: 0.0,
+      visualizeToneMapping: false,
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      deband: true,
+      debandIterations: 2,
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      scale: 'spline36',
+      cscale: 'spline36',
+      dscale: 'mitchell',
+    ),
+  ),
+  VideoPreset(
+    id: 'cinematic_upscale',
+    name: 'Live Action',
+    emoji: '🎬',
+    description: 'FSRCNNX and CAS for sharp upscaling',
+    state: VideoState(
+      activeShaders: ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS.glsl'],
+      toneMappingAlgorithm: 'auto',
+      targetPeak: 100.0,
+      contrastRecovery: 0.0,
+      visualizeToneMapping: false,
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      deband: false,
+      debandIterations: 1,
+      debandThreshold: 0,
+      interpolation: true,
+      videoSync: 'display-resample',
+      tscale: 'oversample',
+      scale: 'ewa_lanczossharp',
+      cscale: 'ewa_lanczossharp',
+      dscale: 'mitchell',
+    ),
+  ),
+  VideoPreset(
+    id: 'hdr_bright',
+    name: 'HDR to SDR',
+    emoji: '☀️',
+    description: 'High peak brightness for bright rooms',
+    state: VideoState(
+      activeShaders: [],
+      toneMappingAlgorithm: 'bt.2446a',
+      targetPeak: 400.0,
+      contrastRecovery: 0.35,
+      visualizeToneMapping: false,
+      brightness: 5,
+      contrast: 5,
+      gamma: 0,
+      deband: false,
+      debandIterations: 1,
+      debandThreshold: 0,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      scale: 'bilinear',
+      cscale: 'bilinear',
+      dscale: 'bilinear',
+    ),
+  ),
+  VideoPreset(
+    id: 'bypass',
+    name: 'Bypass',
+    emoji: '🔇',
+    description: 'No shaders, default settings',
+    state: VideoState(
+      activeShaders: [],
+      toneMappingAlgorithm: 'auto',
+      targetPeak: 100.0,
+      contrastRecovery: 0.0,
+      visualizeToneMapping: false,
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      deband: false,
+      debandIterations: 1,
+      debandThreshold: 0,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      scale: 'bilinear',
+      cscale: 'bilinear',
+      dscale: 'bilinear',
+    ),
+  ),
+];

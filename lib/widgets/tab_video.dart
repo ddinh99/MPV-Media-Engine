@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/theme.dart';
 import '../providers/video_provider.dart';
+import 'video_preset_selector.dart';
 import 'dsp_slider.dart'; // Reusing this if possible, or using standard sliders.
 
 class TabVideo extends StatelessWidget {
@@ -18,6 +19,9 @@ class TabVideo extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const VideoPresetSelector(),
+              const SizedBox(height: 24),
+
               _buildSectionTitle('Shaders Engine', Icons.layers),
               const SizedBox(height: 12),
               _buildShadersEngine(context, video),
@@ -26,6 +30,11 @@ class TabVideo extends StatelessWidget {
               _buildSectionTitle('HDR / Tone Mapping', Icons.hdr_on),
               const SizedBox(height: 12),
               _buildToneMapping(context, video),
+              const SizedBox(height: 32),
+
+              _buildSectionTitle('Scaling & Interpolation', Icons.fit_screen),
+              const SizedBox(height: 12),
+              _buildScalingAndInterpolation(context, video),
               const SizedBox(height: 32),
 
               _buildSectionTitle('Hardware Grading & Deband', Icons.tune),
@@ -188,6 +197,69 @@ class TabVideo extends StatelessWidget {
     );
   }
 
+  Widget _buildScalingAndInterpolation(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Interpolation (Motion Smoothing)',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              ),
+              const Spacer(),
+              Switch(
+                value: video.state.interpolation,
+                onChanged: video.setInterpolation,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          if (video.state.interpolation) ...[
+            const SizedBox(height: 16),
+            _buildDropdownRow(
+              label: 'Temporal Scaler (tscale)',
+              value: video.state.tscale,
+              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36'],
+              onChanged: (val) => video.setTScale(val!),
+            ),
+          ],
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: Divider(height: 1),
+          ),
+          _buildDropdownRow(
+            label: 'Luma Upscaler (scale)',
+            value: video.state.scale,
+            items: const ['bilinear', 'bicubic', 'spline36', 'ewa_lanczos', 'ewa_lanczossharp'],
+            onChanged: (val) => video.setScale(val!),
+          ),
+          const SizedBox(height: 12),
+          _buildDropdownRow(
+            label: 'Chroma Upscaler (cscale)',
+            value: video.state.cscale,
+            items: const ['bilinear', 'bicubic', 'spline36', 'ewa_lanczos', 'ewa_lanczossharp'],
+            onChanged: (val) => video.setCScale(val!),
+          ),
+          const SizedBox(height: 12),
+          _buildDropdownRow(
+            label: 'Downscaler (dscale)',
+            value: video.state.dscale,
+            items: const ['bilinear', 'bicubic', 'mitchell', 'catmull_rom'],
+            onChanged: (val) => video.setDScale(val!),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGradingAndDeband(BuildContext context, VideoProvider video) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -301,6 +373,41 @@ class TabVideo extends StatelessWidget {
               fontWeight: FontWeight.w600,
               color: AppTheme.textPrimary,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownRow({
+    required String label,
+    required String value,
+    required List<String> items,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 170,
+          child: Text(
+            label,
+            style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+          ),
+        ),
+        Expanded(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            value: value,
+            dropdownColor: AppTheme.surface,
+            style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textPrimary),
+            underline: Container(height: 1, color: AppTheme.border),
+            onChanged: onChanged,
+            items: items.map<DropdownMenuItem<String>>((String val) {
+              return DropdownMenuItem<String>(
+                value: val,
+                child: Text(val),
+              );
+            }).toList(),
           ),
         ),
       ],
