@@ -22,11 +22,20 @@ class VideoProvider extends ChangeNotifier {
   String? get activePresetId => _activePresetId;
   List<String> get availableShaders => List.unmodifiable(_availableShaders);
 
+  String _getShadersDirectory() {
+    final baseDir = io.Directory.current.path;
+    final releasePath = path.join(baseDir, 'data', 'flutter_assets', 'assets', 'shaders');
+    if (io.Directory(releasePath).existsSync()) {
+      return releasePath;
+    }
+    return path.join(baseDir, 'assets', 'shaders');
+  }
+
   void _loadAvailableShaders() async {
     // Attempt to load from flutter assets via Directory on desktop
     if (!kIsWeb) {
       try {
-        final dir = io.Directory(path.join('assets', 'shaders'));
+        final dir = io.Directory(_getShadersDirectory());
         if (await dir.exists()) {
           final entities = await dir.list().toList();
           _availableShaders = entities
@@ -98,11 +107,9 @@ class VideoProvider extends ChangeNotifier {
     // Resolve absolute paths for mpv
     List<String> absolutePaths = [];
     if (!kIsWeb) {
-      // Basic resolution: Assuming execution from project root or next to assets
-      // A more robust method involves resolving relative to Platform.resolvedExecutable
-      final baseDir = io.Directory.current.path;
+      final shaderDir = _getShadersDirectory();
       for (final sf in shaderFiles) {
-        absolutePaths.add(path.join(baseDir, 'assets', 'shaders', sf).replaceAll('\\', '/'));
+        absolutePaths.add(path.join(shaderDir, sf).replaceAll('\\', '/'));
       }
     }
     
