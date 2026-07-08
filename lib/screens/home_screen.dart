@@ -251,7 +251,7 @@ class _AppHeader extends StatelessWidget {
     showAboutDialog(
       context: context,
       applicationName: 'MPV Media Engine',
-      applicationVersion: 'v1.0.0',
+      applicationVersion: 'v1.1.0',
       applicationLegalese: '© 2026 Dai Dinh',
       children: [
         const SizedBox(height: 16),
