@@ -271,6 +271,11 @@ class TabVideo extends StatelessWidget {
             'Temporal Motion Interpolation',
             style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Recommended for RTX 30/40 series or Radeon RX 6000/7000 and above.',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
+          ),
           const SizedBox(height: 16),
           Row(
             children: [
