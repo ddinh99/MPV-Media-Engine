@@ -118,6 +118,10 @@ class VideoProvider extends ChangeNotifier {
     
     setInterpolation(preset.state.interpolation);
     setTScale(preset.state.tscale);
+    setTScaleWindow(preset.state.tscaleWindow);
+    setTScaleRadius(preset.state.tscaleRadius);
+    setTScaleBlur(preset.state.tscaleBlur);
+    setTScaleClamp(preset.state.tscaleClamp);
     setScale(preset.state.scale);
     setCScale(preset.state.cscale);
     setDScale(preset.state.dscale);
@@ -265,6 +269,34 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(tscale: algo);
     notifyListeners();
     _sendCommand('tscale', algo);
+  }
+
+  void setTScaleWindow(String window) {
+    _activePresetId = null;
+    _state = _state.copyWith(tscaleWindow: window);
+    notifyListeners();
+    _sendCommand('tscale-window', window);
+  }
+
+  void setTScaleRadius(double radius) {
+    _activePresetId = null;
+    _state = _state.copyWith(tscaleRadius: radius);
+    notifyListeners();
+    _sendCommand('tscale-radius', radius, debounce: true);
+  }
+
+  void setTScaleBlur(double blur) {
+    _activePresetId = null;
+    _state = _state.copyWith(tscaleBlur: blur);
+    notifyListeners();
+    _sendCommand('tscale-blur', blur, debounce: true);
+  }
+
+  void setTScaleClamp(double clamp) {
+    _activePresetId = null;
+    _state = _state.copyWith(tscaleClamp: clamp);
+    notifyListeners();
+    _sendCommand('tscale-clamp', clamp, debounce: true);
   }
 
   void setScale(String algo) {

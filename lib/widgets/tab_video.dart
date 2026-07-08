@@ -22,24 +22,47 @@ class TabVideo extends StatelessWidget {
               const VideoPresetSelector(),
               const SizedBox(height: 24),
 
-              _buildSectionTitle('Shaders Engine', Icons.layers),
-              const SizedBox(height: 12),
-              _buildShadersEngine(context, video),
-              const SizedBox(height: 32),
-              
-              _buildSectionTitle('HDR / Tone Mapping', Icons.hdr_on),
-              const SizedBox(height: 12),
-              _buildToneMapping(context, video),
-              const SizedBox(height: 32),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle('Shaders Engine', Icons.layers),
+                        const SizedBox(height: 12),
+                        _buildShadersEngine(context, video),
+                        const SizedBox(height: 32),
+                        
+                        _buildSectionTitle('HDR / Tone Mapping', Icons.hdr_on),
+                        const SizedBox(height: 12),
+                        _buildToneMapping(context, video),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildSectionTitle('Scaling', Icons.fit_screen),
+                        const SizedBox(height: 12),
+                        _buildScaling(context, video),
+                        const SizedBox(height: 32),
 
-              _buildSectionTitle('Scaling & Interpolation', Icons.fit_screen),
-              const SizedBox(height: 12),
-              _buildScalingAndInterpolation(context, video),
-              const SizedBox(height: 32),
+                        _buildSectionTitle('Hardware Grading & Deband', Icons.tune),
+                        const SizedBox(height: 12),
+                        _buildGradingAndDeband(context, video),
+                        const SizedBox(height: 32),
 
-              _buildSectionTitle('Hardware Grading & Deband', Icons.tune),
-              const SizedBox(height: 12),
-              _buildGradingAndDeband(context, video),
+                        _buildSectionTitle('High Performance Mode', Icons.speed),
+                        const SizedBox(height: 12),
+                        _buildVectorMotionInterpolation(context, video),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -197,7 +220,7 @@ class TabVideo extends StatelessWidget {
     );
   }
 
-  Widget _buildScalingAndInterpolation(BuildContext context, VideoProvider video) {
+  Widget _buildScaling(BuildContext context, VideoProvider video) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -208,33 +231,6 @@ class TabVideo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Text(
-                'Interpolation (Motion Smoothing)',
-                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
-              ),
-              const Spacer(),
-              Switch(
-                value: video.state.interpolation,
-                onChanged: video.setInterpolation,
-                activeColor: AppTheme.primary,
-              ),
-            ],
-          ),
-          if (video.state.interpolation) ...[
-            const SizedBox(height: 16),
-            _buildDropdownRow(
-              label: 'Temporal Scaler (tscale)',
-              value: video.state.tscale,
-              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36'],
-              onChanged: (val) => video.setTScale(val!),
-            ),
-          ],
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1),
-          ),
           _buildDropdownRow(
             label: 'Luma Upscaler (scale)',
             value: video.state.scale,
@@ -255,6 +251,98 @@ class TabVideo extends StatelessWidget {
             items: const ['bilinear', 'bicubic', 'mitchell', 'catmull_rom'],
             onChanged: (val) => video.setDScale(val!),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVectorMotionInterpolation(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceVariant,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Temporal Motion Interpolation',
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Interpolation (Motion Smoothing)',
+                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'video-sync=display-resample',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: video.state.interpolation,
+                onChanged: video.setInterpolation,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          if (video.state.interpolation) ...[
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(height: 1),
+            ),
+            _buildDropdownRow(
+              label: 'Temporal Scaler (tscale)',
+              value: video.state.tscale,
+              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36'],
+              onChanged: (val) => video.setTScale(val!),
+            ),
+            const SizedBox(height: 12),
+            _buildDropdownRow(
+              label: 'Window (tscale-window)',
+              value: video.state.tscaleWindow,
+              items: const ['sphinx', 'hann', 'hamming', 'quadric', 'welch', 'blackman'],
+              onChanged: (val) => video.setTScaleWindow(val!),
+            ),
+            const SizedBox(height: 16),
+            _buildSliderRow(
+              label: 'Radius (tscale-radius)',
+              value: video.state.tscaleRadius,
+              min: 0.5,
+              max: 3.0,
+              divisions: 250,
+              onChanged: video.setTScaleRadius,
+            ),
+            const SizedBox(height: 12),
+            _buildSliderRow(
+              label: 'Blur (tscale-blur)',
+              value: video.state.tscaleBlur,
+              min: 0.0,
+              max: 1.0,
+              divisions: 100,
+              onChanged: video.setTScaleBlur,
+            ),
+            const SizedBox(height: 12),
+            _buildSliderRow(
+              label: 'Clamp (tscale-clamp)',
+              value: video.state.tscaleClamp,
+              min: 0.0,
+              max: 1.0,
+              divisions: 100,
+              onChanged: video.setTScaleClamp,
+            ),
+          ],
         ],
       ),
     );

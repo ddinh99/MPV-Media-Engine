@@ -18,6 +18,10 @@ class VideoState {
   bool interpolation;
   String videoSync;
   String tscale;
+  String tscaleWindow;
+  double tscaleRadius;
+  double tscaleBlur;
+  double tscaleClamp;
   String scale;
   String cscale;
   String dscale;
@@ -37,6 +41,10 @@ class VideoState {
     this.interpolation = false,
     this.videoSync = 'audio',
     this.tscale = 'oversample',
+    this.tscaleWindow = 'sphinx',
+    this.tscaleRadius = 0.95,
+    this.tscaleBlur = 0.01,
+    this.tscaleClamp = 0.0,
     this.scale = 'bilinear',
     this.cscale = 'bilinear',
     this.dscale = 'bilinear',
@@ -57,6 +65,10 @@ class VideoState {
     bool? interpolation,
     String? videoSync,
     String? tscale,
+    String? tscaleWindow,
+    double? tscaleRadius,
+    double? tscaleBlur,
+    double? tscaleClamp,
     String? scale,
     String? cscale,
     String? dscale,
@@ -76,6 +88,10 @@ class VideoState {
       interpolation: interpolation ?? this.interpolation,
       videoSync: videoSync ?? this.videoSync,
       tscale: tscale ?? this.tscale,
+      tscaleWindow: tscaleWindow ?? this.tscaleWindow,
+      tscaleRadius: tscaleRadius ?? this.tscaleRadius,
+      tscaleBlur: tscaleBlur ?? this.tscaleBlur,
+      tscaleClamp: tscaleClamp ?? this.tscaleClamp,
       scale: scale ?? this.scale,
       cscale: cscale ?? this.cscale,
       dscale: dscale ?? this.dscale,
@@ -97,6 +113,10 @@ class VideoState {
     'interpolation': interpolation,
     'videoSync': videoSync,
     'tscale': tscale,
+    'tscaleWindow': tscaleWindow,
+    'tscaleRadius': tscaleRadius,
+    'tscaleBlur': tscaleBlur,
+    'tscaleClamp': tscaleClamp,
     'scale': scale,
     'cscale': cscale,
     'dscale': dscale,
@@ -117,6 +137,10 @@ class VideoState {
     interpolation: json['interpolation'] as bool? ?? false,
     videoSync: json['videoSync'] as String? ?? 'audio',
     tscale: json['tscale'] as String? ?? 'oversample',
+    tscaleWindow: json['tscaleWindow'] as String? ?? 'sphinx',
+    tscaleRadius: (json['tscaleRadius'] as num?)?.toDouble() ?? 0.95,
+    tscaleBlur: (json['tscaleBlur'] as num?)?.toDouble() ?? 0.01,
+    tscaleClamp: (json['tscaleClamp'] as num?)?.toDouble() ?? 0.0,
     scale: json['scale'] as String? ?? 'bilinear',
     cscale: json['cscale'] as String? ?? 'bilinear',
     dscale: json['dscale'] as String? ?? 'bilinear',
