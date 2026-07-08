@@ -310,7 +310,7 @@ class TabVideo extends StatelessWidget {
             _buildDropdownRow(
               label: 'Temporal Scaler (tscale)',
               value: video.state.tscale,
-              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36'],
+              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36', 'spline64'],
               onChanged: (val) => video.setTScale(val!),
             ),
             const SizedBox(height: 12),
