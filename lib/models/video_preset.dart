@@ -135,9 +135,9 @@ List<VideoPreset> get builtinVideoPresets => [
   ),
   VideoPreset(
     id: 'bypass',
-    name: 'Bypass',
+    name: 'Bypass (Default)',
     emoji: '🔇',
-    description: 'No shaders, default settings',
+    description: 'Reset all settings and disable shaders',
     state: VideoState(
       activeShaders: [],
       toneMappingAlgorithm: 'auto',
