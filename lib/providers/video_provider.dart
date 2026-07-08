@@ -102,40 +102,78 @@ class VideoProvider extends ChangeNotifier {
   }
 
   void applyPreset(VideoPreset preset) {
-    // Call individual setters to ensure IPC commands are dispatched
-    setToneMappingAlgorithm(preset.state.toneMappingAlgorithm);
-    setTargetPeak(preset.state.targetPeak);
-    setContrastRecovery(preset.state.contrastRecovery);
-    setVisualizeToneMapping(preset.state.visualizeToneMapping);
-    setTargetColorspaceHint(preset.state.targetColorspaceHint);
-    setTargetPrim(preset.state.targetPrim);
-    setTargetGamut(preset.state.targetGamut);
-    setTargetTrc(preset.state.targetTrc);
-    
-    setBrightness(preset.state.brightness);
-    setContrast(preset.state.contrast);
-    setGamma(preset.state.gamma);
-    
-    setDeband(preset.state.deband);
-    setDebandIterations(preset.state.debandIterations);
-    setDebandThreshold(preset.state.debandThreshold);
-    
-    setInterpolation(preset.state.interpolation);
-    setTScale(preset.state.tscale);
-    setTScaleWindow(preset.state.tscaleWindow);
-    setTScaleRadius(preset.state.tscaleRadius);
-    setTScaleBlur(preset.state.tscaleBlur);
-    setTScaleClamp(preset.state.tscaleClamp);
-    setScale(preset.state.scale);
-    setCScale(preset.state.cscale);
-    setDScale(preset.state.dscale);
-
-    // Set shaders last
-    setShaders(preset.state.activeShaders);
-
-    // Set active preset ID at the very end to override the nulls set by individual setters
+    // 1. Update ALL local state at once so the UI refreshes instantly
     _activePresetId = preset.id;
+    _state = preset.state.copyWith();
     notifyListeners();
+
+    // 2. Build a list of IPC commands to send (order matters)
+    final commands = <Map<String, dynamic>>[];
+
+    // Tone mapping
+    commands.add({"command": ["set_property", "tone-mapping", preset.state.toneMappingAlgorithm]});
+    commands.add({"command": ["set_property", "target-peak", preset.state.targetPeak]});
+    commands.add({"command": ["set_property", "tone-mapping-contrast-recovery", preset.state.contrastRecovery]});
+    commands.add({"command": ["set_property", "tone-mapping-visualize", preset.state.visualizeToneMapping]});
+
+    // Colorspace
+    commands.add({"command": ["set_property", "target-colorspace-hint", preset.state.targetColorspaceHint ? 'yes' : 'no']});
+    if (preset.state.targetColorspaceHint) {
+      commands.add({"command": ["set_property", "target-prim", preset.state.targetPrim]});
+      commands.add({"command": ["set_property", "target-gamut", preset.state.targetGamut]});
+      commands.add({"command": ["set_property", "target-trc", preset.state.targetTrc]});
+    }
+
+    // Grading
+    commands.add({"command": ["set_property", "brightness", preset.state.brightness]});
+    commands.add({"command": ["set_property", "contrast", preset.state.contrast]});
+    commands.add({"command": ["set_property", "gamma", preset.state.gamma]});
+
+    // Deband
+    commands.add({"command": ["set_property", "deband", preset.state.deband]});
+    commands.add({"command": ["set_property", "deband-iterations", preset.state.debandIterations]});
+    commands.add({"command": ["set_property", "deband-threshold", preset.state.debandThreshold]});
+
+    // Interpolation
+    commands.add({"command": ["set_property", "interpolation", preset.state.interpolation ? 'yes' : 'no']});
+    commands.add({"command": ["set_property", "video-sync", preset.state.interpolation ? 'display-resample' : 'audio']});
+    if (preset.state.interpolation) {
+      commands.add({"command": ["set_property", "tscale", preset.state.tscale]});
+      commands.add({"command": ["set_property", "tscale-window", preset.state.tscaleWindow]});
+      commands.add({"command": ["set_property", "tscale-radius", preset.state.tscaleRadius]});
+      commands.add({"command": ["set_property", "tscale-blur", preset.state.tscaleBlur]});
+      commands.add({"command": ["set_property", "tscale-clamp", preset.state.tscaleClamp]});
+    }
+
+    // Scaling
+    commands.add({"command": ["set_property", "scale", preset.state.scale]});
+    commands.add({"command": ["set_property", "cscale", preset.state.cscale]});
+    commands.add({"command": ["set_property", "dscale", preset.state.dscale]});
+
+    if (!kIsWeb) {
+      if (preset.state.activeShaders.isEmpty) {
+        commands.add({"command": ["set_property", "glsl-shaders", ""]});
+      } else {
+        final shaderDir = _getShadersDirectory();
+        final absolutePaths = preset.state.activeShaders
+            .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
+            .toList();
+        commands.add({"command": ["set_property", "glsl-shaders", absolutePaths]});
+      }
+    }
+
+    // 3. Drip-feed commands to MPV with 150ms gaps
+    _sendCommandQueue(commands);
+  }
+
+  /// Sends a list of commands sequentially with a delay between each.
+  void _sendCommandQueue(List<Map<String, dynamic>> commands) {
+    for (int i = 0; i < commands.length; i++) {
+      final cmd = commands[i];
+      Timer(Duration(milliseconds: 150 * i), () {
+        dspProvider.sendRawCommand(cmd);
+      });
+    }
   }
 
   // --- Module A: Shaders Engine ---
@@ -146,15 +184,18 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
 
     // Resolve absolute paths for mpv
-    List<String> absolutePaths = [];
     if (!kIsWeb) {
-      final shaderDir = _getShadersDirectory();
-      for (final sf in shaderFiles) {
-        absolutePaths.add(path.join(shaderDir, sf).replaceAll('\\', '/'));
+      if (shaderFiles.isEmpty) {
+        // Send empty string to clear all shaders
+        _sendCommand('glsl-shaders', '', debounce: false);
+      } else {
+        final shaderDir = _getShadersDirectory();
+        final absolutePaths = shaderFiles
+            .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
+            .toList();
+        _sendCommand('glsl-shaders', absolutePaths, debounce: false);
       }
     }
-    
-    _sendCommand('glsl-shaders', absolutePaths, debounce: false);
   }
 
   void toggleShader(String shaderFile, bool enable) {
@@ -197,11 +238,11 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(contrastRecovery: val);
     notifyListeners();
-    // Some mpv versions use hdr-contrast-recovery or tone-mapping-contrast-recovery
-    // vo=gpu-next uses tone-mapping-contrast-recovery or contrast-recovery.
-    _sendCommand('tone-mapping-contrast-recovery', val, debounce: true); 
-    // also set standard one just in case
-    _sendCommand('contrast-recovery', val, debounce: true); 
+    _sendCommand('tone-mapping-contrast-recovery', val, debounce: true);
+    // Stagger the second command so MPV doesn't choke
+    Timer(const Duration(milliseconds: 200), () {
+      _sendCommand('contrast-recovery', val);
+    });
   }
 
   void setVisualizeToneMapping(bool vis) {
@@ -224,7 +265,9 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
     _sendCommand('target-prim', prim);
     if (_state.targetColorspaceHint) {
-      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+      Timer(const Duration(milliseconds: 200), () {
+        _sendCommand('target-colorspace-hint', 'yes');
+      });
     }
   }
 
@@ -232,10 +275,11 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(targetGamut: gamut);
     notifyListeners();
-    // target-gamut may be mapped to target-prim on newer mpv versions, but we send it anyway
     _sendCommand('target-gamut', gamut);
     if (_state.targetColorspaceHint) {
-      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+      Timer(const Duration(milliseconds: 200), () {
+        _sendCommand('target-colorspace-hint', 'yes');
+      });
     }
   }
 
@@ -245,7 +289,9 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
     _sendCommand('target-trc', trc);
     if (_state.targetColorspaceHint) {
-      _sendCommand('target-colorspace-hint', 'yes', debounce: true);
+      Timer(const Duration(milliseconds: 200), () {
+        _sendCommand('target-colorspace-hint', 'yes');
+      });
     }
   }
 
@@ -303,7 +349,10 @@ class VideoProvider extends ChangeNotifier {
     );
     notifyListeners();
     _sendCommand('interpolation', val ? 'yes' : 'no');
-    _sendCommand('video-sync', _state.videoSync);
+    // Stagger the second command so MPV doesn't choke
+    Timer(const Duration(milliseconds: 200), () {
+      _sendCommand('video-sync', _state.videoSync);
+    });
   }
 
   void setTScale(String algo) {
