@@ -45,6 +45,11 @@ class TabVideo extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _buildSectionTitle('High Performance Mode', Icons.speed),
+                        const SizedBox(height: 12),
+                        _buildVectorMotionInterpolation(context, video),
+                        const SizedBox(height: 32),
+
                         _buildSectionTitle('Scaling', Icons.fit_screen),
                         const SizedBox(height: 12),
                         _buildScaling(context, video),
@@ -53,11 +58,6 @@ class TabVideo extends StatelessWidget {
                         _buildSectionTitle('Hardware Grading & Deband', Icons.tune),
                         const SizedBox(height: 12),
                         _buildGradingAndDeband(context, video),
-                        const SizedBox(height: 32),
-
-                        _buildSectionTitle('High Performance Mode', Icons.speed),
-                        const SizedBox(height: 12),
-                        _buildVectorMotionInterpolation(context, video),
                       ],
                     ),
                   ),
