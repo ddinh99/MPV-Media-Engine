@@ -1,9 +1,10 @@
 # MPV Media Engine 🎛️🎬
 
-![Screenshot 1](screenshots/MPVSE1.jpg)
-![Screenshot 2](screenshots/MPVSE2.jpg)
-![Screenshot 3](screenshots/MPVSE3.jpg)
-![Screenshot 4](screenshots/MPVSE4.jpg)
+![Screenshot 1](screenshots/MPVME1.jpg)
+![Screenshot 2](screenshots/MPVSE1.jpg)
+![Screenshot 3](screenshots/MPVSE2.jpg)
+![Screenshot 4](screenshots/MPVSE3.jpg)
+![Screenshot 5](screenshots/MPVSE4.jpg)
 
 A real-time master control surface built specifically for the [MPV media player](https://mpv.io/). 
 
@@ -27,7 +28,7 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 ## 🚀 Getting Started
 
 ### Download & Run (Recommended)
-1. Go to the [Releases page](https://github.com/ddinh99/MPV-Media-Engine/releases) and download the latest `MPV-Media-Engine-v1.1.zip`.
+1. Go to the [Releases page](https://github.com/ddinh99/MPV-Media-Engine/releases) and download the latest `MPV-Media-Engine-v1.2.zip`.
 2. Extract the folder and double-click `MPV_Media_Engine.exe` to launch the GUI.
 *(Note: You do **not** need Flutter or any programming tools installed to run the pre-compiled application!)*
 
