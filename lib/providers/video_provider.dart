@@ -364,8 +364,14 @@ class VideoProvider extends ChangeNotifier {
     if (val) {
       _sendCommand('target-colorspace-hint', 'yes');
       _sendCommand('target-trc', 'pq');
+      // Without this, mpv never expands dynamic range at all (per its own
+      // manual: "allows inverse tone mapping ... for upscaling SDR content
+      // to HDR"), so the Algorithm dropdown would silently do nothing
+      // whenever the loaded content is SDR and HDR Output is on.
+      _sendCommand('inverse-tone-mapping', 'yes');
     } else {
       _sendCommand('target-trc', 'auto');
+      _sendCommand('inverse-tone-mapping', 'no');
       if (wasVisualizing) {
         _sendCommand('tone-mapping-visualize', false);
       }
