@@ -2,6 +2,11 @@
 
 #include <optional>
 
+#include <flutter/method_channel.h>
+#include <flutter/standard_method_codec.h>
+#include <dxgi1_6.h>
+#include <wrl/client.h>
+
 #include "flutter/generated_plugin_registrant.h"
 
 FlutterWindow::FlutterWindow(const flutter::DartProject& project)
@@ -35,6 +40,43 @@ bool FlutterWindow::OnCreate() {
   // registered. The following call ensures a frame is pending to ensure the
   // window is shown. It is a no-op if the first frame hasn't completed yet.
   flutter_controller_->ForceRedraw();
+
+  // Register platform method channel for HDR detection
+  auto channel = std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+      flutter_controller_->engine()->messenger(),
+      "com.mpv_media_engine/platform",
+      &flutter::StandardMethodCodec::GetInstance());
+
+  channel->SetMethodCallHandler(
+      [](const flutter::MethodCall<flutter::EncodableValue>& call,
+         std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "isWindowsHdrEnabled") {
+          bool hdrEnabled = false;
+          Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+          if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) {
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+            for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+              Microsoft::WRL::ComPtr<IDXGIOutput> output;
+              for (UINT j = 0; adapter->EnumOutputs(j, &output) != DXGI_ERROR_NOT_FOUND; ++j) {
+                Microsoft::WRL::ComPtr<IDXGIOutput6> output6;
+                if (SUCCEEDED(output.As(&output6))) {
+                  DXGI_OUTPUT_DESC1 desc1;
+                  if (SUCCEEDED(output6->GetDesc1(&desc1))) {
+                    if (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020) {
+                      hdrEnabled = true;
+                    }
+                  }
+                }
+                output.Reset();
+              }
+              adapter.Reset();
+            }
+          }
+          result->Success(flutter::EncodableValue(hdrEnabled));
+        } else {
+          result->NotImplemented();
+        }
+      });
 
   return true;
 }

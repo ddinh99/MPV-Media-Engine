@@ -6,6 +6,8 @@ class VideoState {
   double targetPeak;
   double contrastRecovery;
   bool visualizeToneMapping;
+  bool hdrComputePeak;
+  bool hdrOutput;
   
   bool targetColorspaceHint;
   String targetPrim;
@@ -37,6 +39,8 @@ class VideoState {
     this.targetPeak = 100.0,
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
+    this.hdrComputePeak = true,
+    this.hdrOutput = false,
     this.targetColorspaceHint = false,
     this.targetPrim = 'auto',
     this.targetGamut = 'auto',
@@ -65,6 +69,8 @@ class VideoState {
     double? targetPeak,
     double? contrastRecovery,
     bool? visualizeToneMapping,
+    bool? hdrComputePeak,
+    bool? hdrOutput,
     bool? targetColorspaceHint,
     String? targetPrim,
     String? targetGamut,
@@ -92,6 +98,8 @@ class VideoState {
       targetPeak: targetPeak ?? this.targetPeak,
       contrastRecovery: contrastRecovery ?? this.contrastRecovery,
       visualizeToneMapping: visualizeToneMapping ?? this.visualizeToneMapping,
+      hdrComputePeak: hdrComputePeak ?? this.hdrComputePeak,
+      hdrOutput: hdrOutput ?? this.hdrOutput,
       targetColorspaceHint: targetColorspaceHint ?? this.targetColorspaceHint,
       targetPrim: targetPrim ?? this.targetPrim,
       targetGamut: targetGamut ?? this.targetGamut,
@@ -121,6 +129,7 @@ class VideoState {
     'targetPeak': targetPeak,
     'contrastRecovery': contrastRecovery,
     'visualizeToneMapping': visualizeToneMapping,
+    'hdrComputePeak': hdrComputePeak,
     'targetColorspaceHint': targetColorspaceHint,
     'targetPrim': targetPrim,
     'targetGamut': targetGamut,
@@ -149,6 +158,7 @@ class VideoState {
     targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 100.0,
     contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
     visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
+    hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
     targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
     targetPrim: json['targetPrim'] as String? ?? 'auto',
     targetGamut: json['targetGamut'] as String? ?? 'auto',
