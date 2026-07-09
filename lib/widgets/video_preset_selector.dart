@@ -18,7 +18,13 @@ class VideoPresetSelector extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+            SizedBox(
+              // Fixed height (matches Material's minimum interactive tap
+              // height) so this title row lines up exactly with
+              // SoundSettingsEntry's title row next to it, regardless of the
+              // "Save Current Settings" button's own intrinsic height.
+              height: 48,
+              child: Row(
               children: [
                 Icon(Icons.video_library, size: 18, color: AppTheme.primary),
                 const SizedBox(width: 8),
@@ -67,6 +73,7 @@ class VideoPresetSelector extends StatelessWidget {
                   },
                 ),
               ],
+              ),
             ),
             const SizedBox(height: 12),
             SizedBox(

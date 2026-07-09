@@ -9,9 +9,9 @@ import '../providers/dsp_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/connection_bar.dart';
 import '../widgets/first_run_setup.dart';
+import '../widgets/sound_settings_entry.dart';
 import '../widgets/video_preset_selector.dart';
 import '../widgets/tab_debug.dart';
-import '../widgets/tab_sound.dart';
 import '../widgets/tab_video_grading.dart';
 import '../widgets/tab_video_hdr.dart';
 import '../widgets/tab_video_scaling.dart';
@@ -30,22 +30,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _setupDialogShown = false;
 
   // Video Engine is the app's main feature, so it gets four dedicated tabs
-  // (matching the granularity Sound used to have all to itself); Sound is
-  // now a single consolidated tab (see TabSound) instead of owning the
-  // top-level layout.
+  // (matching the granularity Sound used to have all to itself). Sound is no
+  // longer a tab at all — it's reached via the SoundSettingsEntry card next
+  // to Video Presets (see build()), pushing SoundSettingsScreen full-screen.
   final _tabs = const [
     Tab(text: 'Shaders', icon: Icon(Icons.layers, size: 14)),
     Tab(text: 'HDR & Tone Mapping', icon: Icon(Icons.hdr_on, size: 14)),
     Tab(text: 'Scaling & Interpolation', icon: Icon(Icons.fit_screen, size: 14)),
     Tab(text: 'Grading & Deband', icon: Icon(Icons.tune, size: 14)),
-    Tab(text: 'Sound', icon: Icon(Icons.graphic_eq, size: 14)),
     Tab(text: 'Debug IPC', icon: Icon(Icons.bug_report, size: 14)),
   ];
 
-  /// Tabs whose content is fully self-contained (own preset bar, own
-  /// property controls) and gets nothing from the Video Preset chrome —
-  /// showing it there is just noise once you're inside Sound or Debug.
-  static const Set<int> _videoChromeHiddenOnTabs = {4, 5}; // Sound, Debug IPC
+  /// Tabs whose content is fully self-contained (own property controls) and
+  /// gets nothing from the Video Preset chrome — showing it there is just
+  /// noise once you're inside Debug.
+  static const Set<int> _videoChromeHiddenOnTabs = {4}; // Debug IPC
 
   @override
   void initState() {
@@ -109,11 +108,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
               // MPV connection bar
               ConnectionBar(),
-              // Video preset selector — the app's main feature, hidden on self-contained tabs
+              // Sound Settings entry + Video Presets — the app's main feature,
+              // hidden on self-contained tabs (Debug)
               if (showVideoChrome)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                  child: VideoPresetSelector(),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(width: 220, child: SoundSettingsEntry()),
+                      const SizedBox(width: 16),
+                      Expanded(child: VideoPresetSelector()),
+                    ],
+                  ),
                 ),
               // Tab bar
               Container(
@@ -139,7 +146,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           TabVideoHdr(),
                           TabVideoScaling(),
                           TabVideoGrading(),
-                          TabSound(),
                           TabDebug(),
                         ],
                       ),
