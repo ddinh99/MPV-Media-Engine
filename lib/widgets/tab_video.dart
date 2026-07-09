@@ -188,11 +188,18 @@ class TabVideo extends StatelessWidget {
                 }).toList(),
               ),
               const Spacer(),
-              Text('Visualizer:', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(
+                'Visualizer:',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: video.state.hdrOutput ? null : AppTheme.textMuted,
+                ),
+              ),
               const SizedBox(width: 8),
               Switch(
                 value: video.state.visualizeToneMapping,
-                onChanged: video.setVisualizeToneMapping,
+                onChanged: video.state.hdrOutput ? video.setVisualizeToneMapping : null,
                 activeColor: AppTheme.primary,
               ),
             ],
@@ -246,16 +253,32 @@ class TabVideo extends StatelessWidget {
             children: [
               Text(
                 'SDR to HDR Remap (Target Hinting)',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: video.state.hdrOutput ? AppTheme.textMuted : AppTheme.primary,
+                ),
               ),
               const Spacer(),
               Switch(
                 value: video.state.targetColorspaceHint,
-                onChanged: video.setTargetColorspaceHint,
+                // HDR Output already owns target-colorspace-hint/target-trc as
+                // its own forced PQ passthrough shortcut; letting this switch
+                // flip hint off independently while hdrOutput stays "on" would
+                // leave MPV in a contradictory state (target-trc=pq with
+                // hinting disabled). Disable it while HDR Output governs this.
+                onChanged: video.state.hdrOutput ? null : video.setTargetColorspaceHint,
                 activeColor: AppTheme.primary,
               ),
             ],
           ),
+          if (video.state.hdrOutput) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Controlled by HDR Output above while it\'s on.',
+              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+            ),
+          ],
           if (!video.state.targetColorspaceHint) ...[
             const SizedBox(height: 12),
             _buildDropdownRow(

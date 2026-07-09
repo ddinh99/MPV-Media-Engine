@@ -349,11 +349,16 @@ class VideoProvider extends ChangeNotifier {
     // Repurposed as a "force HDR passthrough" shortcut: tell mpv the display
     // can accept PQ directly via the same target-colorspace-hint mechanism
     // the manual SDR-to-HDR remap panel uses, forcing target-trc to pq.
+    // The Visualizer switch is only usable while HDR Output is on (it has
+    // nothing to draw otherwise), so force it off too when HDR Output is
+    // turned off — otherwise it'd show a stuck-on, greyed-out toggle.
+    final wasVisualizing = _state.visualizeToneMapping;
     _activePresetId = null;
     _state = _state.copyWith(
       hdrOutput: val,
       targetColorspaceHint: val ? true : _state.targetColorspaceHint,
       targetTrc: val ? 'pq' : 'auto',
+      visualizeToneMapping: val ? _state.visualizeToneMapping : false,
     );
     notifyListeners();
     if (val) {
@@ -361,6 +366,9 @@ class VideoProvider extends ChangeNotifier {
       _sendCommand('target-trc', 'pq');
     } else {
       _sendCommand('target-trc', 'auto');
+      if (wasVisualizing) {
+        _sendCommand('tone-mapping-visualize', false);
+      }
     }
   }
 
