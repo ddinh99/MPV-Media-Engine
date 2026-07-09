@@ -8,16 +8,14 @@ import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
 import '../providers/theme_provider.dart';
 import '../widgets/connection_bar.dart';
-import '../widgets/filter_preview.dart';
 import '../widgets/first_run_setup.dart';
-import '../widgets/preset_selector.dart';
-import '../widgets/tab_ambience.dart';
-import '../widgets/tab_channels.dart';
-import '../widgets/tab_eq.dart';
-import '../widgets/tab_loudness.dart';
-import '../widgets/tab_safety.dart';
+import '../widgets/video_preset_selector.dart';
 import '../widgets/tab_debug.dart';
-import '../widgets/tab_video.dart';
+import '../widgets/tab_sound.dart';
+import '../widgets/tab_video_grading.dart';
+import '../widgets/tab_video_hdr.dart';
+import '../widgets/tab_video_scaling.dart';
+import '../widgets/tab_video_shaders.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -31,20 +29,29 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   bool _showLog = false;
   bool _setupDialogShown = false;
 
+  // Video Engine is the app's main feature, so it gets four dedicated tabs
+  // (matching the granularity Sound used to have all to itself); Sound is
+  // now a single consolidated tab (see TabSound) instead of owning the
+  // top-level layout.
   final _tabs = const [
-    Tab(text: 'Video Engine', icon: Icon(Icons.video_settings, size: 14)),
-    Tab(text: 'Loudness & Dynamics', icon: Icon(Icons.show_chart, size: 14)),
-    Tab(text: 'Channels & Stereo', icon: Icon(Icons.surround_sound, size: 14)),
-    Tab(text: 'Ambience & Space', icon: Icon(Icons.spatial_audio, size: 14)),
-    Tab(text: 'EQ & Tone', icon: Icon(Icons.equalizer, size: 14)),
-    Tab(text: 'Safety', icon: Icon(Icons.security, size: 14)),
+    Tab(text: 'Shaders', icon: Icon(Icons.layers, size: 14)),
+    Tab(text: 'HDR & Tone Mapping', icon: Icon(Icons.hdr_on, size: 14)),
+    Tab(text: 'Scaling & Interpolation', icon: Icon(Icons.fit_screen, size: 14)),
+    Tab(text: 'Grading & Deband', icon: Icon(Icons.tune, size: 14)),
+    Tab(text: 'Sound', icon: Icon(Icons.graphic_eq, size: 14)),
     Tab(text: 'Debug IPC', icon: Icon(Icons.bug_report, size: 14)),
   ];
+
+  /// Tabs whose content is fully self-contained (own preset bar, own
+  /// property controls) and gets nothing from the Video Preset chrome —
+  /// showing it there is just noise once you're inside Sound or Debug.
+  static const Set<int> _videoChromeHiddenOnTabs = {4, 5}; // Sound, Debug IPC
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: _tabs.length, vsync: this);
+    _tabController.addListener(_onTabChanged);
 
     // Listen for the moment prefs finish loading; show setup if needed.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -75,14 +82,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     });
   }
 
+  void _onTabChanged() {
+    // Rebuild so the Video Preset chrome can hide itself while on a tab
+    // that's fully self-contained (Sound, Debug).
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final showVideoChrome = !_videoChromeHiddenOnTabs.contains(_tabController.index);
+
     return Consumer<ThemeProvider>(
       builder: (context, theme, child) {
         return Scaffold(
@@ -93,8 +109,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
               // MPV connection bar
               ConnectionBar(),
-              // Preset selector
-              PresetSelector(),
+              // Video preset selector — the app's main feature, hidden on self-contained tabs
+              if (showVideoChrome)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                  child: VideoPresetSelector(),
+                ),
               // Tab bar
               Container(
                 color: AppTheme.surface,
@@ -115,12 +135,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       child: TabBarView(
                         controller: _tabController,
                         children: [ // Removed const to allow children to rebuild on theme change
-                          TabVideo(),
-                          TabLoudness(),
-                          TabChannels(),
-                          TabAmbience(),
-                          TabEq(),
-                          TabSafety(),
+                          TabVideoShaders(),
+                          TabVideoHdr(),
+                          TabVideoScaling(),
+                          TabVideoGrading(),
+                          TabSound(),
                           TabDebug(),
                         ],
                       ),
@@ -130,8 +149,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ],
                 ),
               ),
-              // Filter preview bar at bottom
-              FilterPreview(), // Removed const
             ],
           ),
         );
