@@ -20,7 +20,14 @@ class TabVideoHdr extends StatelessWidget {
             children: [
               videoSectionTitle('HDR / Tone Mapping', Icons.hdr_on),
               const SizedBox(height: 12),
-              _buildToneMapping(context, video),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: _buildToneMapping(context, video)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _buildTargetHinting(context, video)),
+                ],
+              ),
             ],
           ),
         );
@@ -116,21 +123,30 @@ class TabVideoHdr extends StatelessWidget {
             divisions: 40,
             onChanged: video.setContrastRecovery,
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1),
-          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTargetHinting(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: videoCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             children: [
-              Text(
-                'SDR to HDR Remap (Target Hinting)',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: video.state.hdrOutput ? AppTheme.textMuted : AppTheme.primary,
+              Expanded(
+                child: Text(
+                  'SDR to HDR Remap (Target Hinting)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: video.state.hdrOutput ? AppTheme.textMuted : AppTheme.primary,
+                  ),
                 ),
               ),
-              const Spacer(),
               Switch(
                 value: video.state.targetColorspaceHint,
                 // HDR Output already owns target-colorspace-hint/target-trc as
@@ -146,12 +162,12 @@ class TabVideoHdr extends StatelessWidget {
           if (video.state.hdrOutput) ...[
             const SizedBox(height: 8),
             Text(
-              'Controlled by HDR Output above while it\'s on.',
+              'Controlled by HDR Output on the left while it\'s on.',
               style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
             ),
           ],
           if (!video.state.targetColorspaceHint) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             videoDropdownRow(
               label: 'Target Primaries',
               value: video.state.targetPrim,
