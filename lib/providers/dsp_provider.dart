@@ -16,8 +16,30 @@ import '../services/mpv_ipc_service.dart';
 import '../services/preferences_service.dart';
 
 
+/// A single raw IPC command waiting to be sent, paired with a completer so
+/// callers can still await the real send result.
+class _QueuedCommand {
+  final String jsonStr;
+  final Completer<bool> completer;
+  /// Minimum gap to wait *after* this command before sending the next one.
+  /// Lets callers flag commands known to trigger an expensive MPV/libplacebo
+  /// pipeline rebuild (scale/shader/interpolation changes) so they get extra
+  /// breathing room, while cheap property tweaks stay snappy.
+  final Duration? gapAfter;
+  _QueuedCommand(this.jsonStr, this.completer, this.gapAfter);
+}
+
 class DspProvider extends ChangeNotifier {
   final MpvIpcService _ipc = MpvIpcService();
+
+  /// Every raw IPC command (from DSP, VideoProvider, presets, or the debug
+  /// tab) funnels through this single FIFO queue, so no two commands from
+  /// different call sites can ever be written to MPV back-to-back. MPV/its
+  /// GPU pipeline (libplacebo) can freeze if it's slammed with a burst of
+  /// property changes (e.g. scale/shader reinit) with no breathing room.
+  final List<_QueuedCommand> _outbox = [];
+  bool _isDrainingOutbox = false;
+  static const Duration _kMinCommandGap = Duration(milliseconds: 150);
 
   DspState _state = DspState();
   String? _activePresetId = 'movie_dialog';
@@ -72,11 +94,38 @@ class DspProvider extends ChangeNotifier {
     }
   }
 
-  /// Sends a raw JSON IPC command to MPV (for debugging/testing).
-  Future<bool> sendRawCommand(Map<String, dynamic> command) async {
+  /// Sends a raw JSON IPC command to MPV. Commands are queued and dispatched
+  /// one at a time with a minimum gap between them (see [_kMinCommandGap]),
+  /// regardless of which part of the app enqueued them, so bursts from
+  /// overlapping presets/sliders/toggles can never reach MPV at once.
+  /// [minGapAfter] can widen the gap after *this* command specifically —
+  /// use it for properties known to trigger a full MPV/libplacebo render
+  /// pipeline rebuild (scale/cscale/dscale/tscale/glsl-shaders/interpolation).
+  Future<bool> sendRawCommand(Map<String, dynamic> command, {Duration? minGapAfter}) {
     final jsonStr = jsonEncode(command);
-    _addLog('Sending raw command: $jsonStr');
-    return await _ipc.sendCommand(jsonStr);
+    final completer = Completer<bool>();
+    _outbox.add(_QueuedCommand(jsonStr, completer, minGapAfter));
+    unawaited(_drainOutbox());
+    return completer.future;
+  }
+
+  Future<void> _drainOutbox() async {
+    if (_isDrainingOutbox) return;
+    _isDrainingOutbox = true;
+    try {
+      while (_outbox.isNotEmpty) {
+        final item = _outbox.removeAt(0);
+        _addLog('Sending raw command: ${item.jsonStr}');
+        final ok = await _ipc.sendCommand(item.jsonStr);
+        item.completer.complete(ok);
+        if (_outbox.isNotEmpty) {
+          final gap = item.gapAfter ?? _kMinCommandGap;
+          await Future.delayed(gap < _kMinCommandGap ? _kMinCommandGap : gap);
+        }
+      }
+    } finally {
+      _isDrainingOutbox = false;
+    }
   }
 
   /// Save the mpv.exe path to preferences and copy the WebSocket bridge script to its directory.
@@ -523,6 +572,10 @@ class DspProvider extends ChangeNotifier {
   @override
   void dispose() {
     _debounce?.cancel();
+    for (final item in _outbox) {
+      item.completer.complete(false);
+    }
+    _outbox.clear();
     _ipc.dispose();
     super.dispose();
   }

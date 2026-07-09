@@ -179,7 +179,7 @@ class TabVideo extends StatelessWidget {
                 onChanged: (String? newValue) {
                   if (newValue != null) video.setToneMappingAlgorithm(newValue);
                 },
-                items: <String>['auto', 'spline', 'bt.2446a', 'mobius', 'reinhard', 'hable']
+                items: <String>['auto', 'none', 'spline', 'bt.2446a', 'mobius', 'reinhard', 'hable']
                     .map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
@@ -193,6 +193,29 @@ class TabVideo extends StatelessWidget {
               Switch(
                 value: video.state.visualizeToneMapping,
                 onChanged: video.setVisualizeToneMapping,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Text(
+                'HDR Compute Peak:',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: video.state.hdrComputePeak,
+                onChanged: video.setHdrComputePeak,
+                activeColor: AppTheme.primary,
+              ),
+              const Spacer(),
+              Text('HDR Output:', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
+              const SizedBox(width: 8),
+              Switch(
+                value: video.state.hdrOutput,
+                onChanged: video.setHdrOutput,
                 activeColor: AppTheme.primary,
               ),
             ],
@@ -233,7 +256,7 @@ class TabVideo extends StatelessWidget {
               ),
             ],
           ),
-          if (video.state.targetColorspaceHint) ...[
+          if (!video.state.targetColorspaceHint) ...[
             const SizedBox(height: 12),
             _buildDropdownRow(
               label: 'Target Primaries',

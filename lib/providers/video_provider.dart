@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import '../models/video_preset.dart';
 import '../models/video_state.dart';
+import '../services/platform_service.dart';
 import '../services/preferences_service.dart';
 import 'dsp_provider.dart';
 
@@ -19,6 +20,7 @@ class VideoProvider extends ChangeNotifier {
   VideoProvider(this.dspProvider) {
     _loadAvailableShaders();
     _loadCustomPresets();
+    _checkWindowsHdr();
   }
 
   VideoState get state => _state;
@@ -29,6 +31,21 @@ class VideoProvider extends ChangeNotifier {
   Future<void> _loadCustomPresets() async {
     _customPresets = await PreferencesService.getCustomVideoPresets();
     notifyListeners();
+  }
+
+  /// If Windows HDR is on, default to full HDR passthrough settings.
+  Future<void> _checkWindowsHdr() async {
+    final hdrOn = await PlatformService.isWindowsHdrEnabled();
+    if (hdrOn && _state.toneMappingAlgorithm == 'auto') {
+      _state = _state.copyWith(
+        toneMappingAlgorithm: 'none',
+        hdrComputePeak: false,
+        hdrOutput: true,
+        targetColorspaceHint: true,
+        targetTrc: 'auto',
+      );
+      notifyListeners();
+    }
   }
 
   void saveCustomPreset(String name) {
@@ -85,94 +102,128 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
+  /// Properties that force MPV/libplacebo to tear down and rebuild the
+  /// whole GPU render pipeline (shader recompilation). These get extra
+  /// breathing room after they're sent instead of the standard gap.
+  static const Set<String> _kExpensiveProperties = {
+    'scale', 'cscale', 'dscale',
+    'tscale', 'tscale-window',
+    'glsl-shaders', 'interpolation', 'video-sync',
+  };
+  static const Duration _kExpensiveGap = Duration(milliseconds: 400);
+
   /// Sends a command to MPV, utilizing a debounce timer for properties that change rapidly.
   void _sendCommand(String property, dynamic value, {bool debounce = false}) {
     final command = {
       "command": ["set_property", property, value]
     };
+    final gap = _kExpensiveProperties.contains(property) ? _kExpensiveGap : null;
 
     if (debounce) {
       _debounceTimer?.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 32), () {
-        dspProvider.sendRawCommand(command);
+        dspProvider.sendRawCommand(command, minGapAfter: gap);
       });
     } else {
-      dspProvider.sendRawCommand(command);
+      dspProvider.sendRawCommand(command, minGapAfter: gap);
     }
   }
 
   void applyPreset(VideoPreset preset) {
+    // Snapshot the outgoing state so we only send properties that actually
+    // changed — resending unchanged scale/shader/interpolation properties
+    // forces needless libplacebo pipeline rebuilds and is a big contributor
+    // to overwhelming MPV with IPC commands on preset switches.
+    final old = _state;
+    final next = preset.state;
+
     // 1. Update ALL local state at once so the UI refreshes instantly
     _activePresetId = preset.id;
-    _state = preset.state.copyWith();
+    _state = next.copyWith();
     notifyListeners();
 
-    // 2. Build a list of IPC commands to send (order matters)
+    // 2. Build a list of IPC commands to send (order matters), skipping
+    // anything whose value is identical to what's already live in MPV.
     final commands = <Map<String, dynamic>>[];
-
-    // Tone mapping
-    commands.add({"command": ["set_property", "tone-mapping", preset.state.toneMappingAlgorithm]});
-    commands.add({"command": ["set_property", "target-peak", preset.state.targetPeak]});
-    commands.add({"command": ["set_property", "tone-mapping-contrast-recovery", preset.state.contrastRecovery]});
-    commands.add({"command": ["set_property", "tone-mapping-visualize", preset.state.visualizeToneMapping]});
-
-    // Colorspace
-    commands.add({"command": ["set_property", "target-colorspace-hint", preset.state.targetColorspaceHint ? 'yes' : 'no']});
-    if (preset.state.targetColorspaceHint) {
-      commands.add({"command": ["set_property", "target-prim", preset.state.targetPrim]});
-      commands.add({"command": ["set_property", "target-gamut", preset.state.targetGamut]});
-      commands.add({"command": ["set_property", "target-trc", preset.state.targetTrc]});
-    }
-
-    // Grading
-    commands.add({"command": ["set_property", "brightness", preset.state.brightness]});
-    commands.add({"command": ["set_property", "contrast", preset.state.contrast]});
-    commands.add({"command": ["set_property", "gamma", preset.state.gamma]});
-
-    // Deband
-    commands.add({"command": ["set_property", "deband", preset.state.deband]});
-    commands.add({"command": ["set_property", "deband-iterations", preset.state.debandIterations]});
-    commands.add({"command": ["set_property", "deband-threshold", preset.state.debandThreshold]});
-
-    // Interpolation
-    commands.add({"command": ["set_property", "interpolation", preset.state.interpolation ? 'yes' : 'no']});
-    commands.add({"command": ["set_property", "video-sync", preset.state.interpolation ? 'display-resample' : 'audio']});
-    if (preset.state.interpolation) {
-      commands.add({"command": ["set_property", "tscale", preset.state.tscale]});
-      commands.add({"command": ["set_property", "tscale-window", preset.state.tscaleWindow]});
-      commands.add({"command": ["set_property", "tscale-radius", preset.state.tscaleRadius]});
-      commands.add({"command": ["set_property", "tscale-blur", preset.state.tscaleBlur]});
-      commands.add({"command": ["set_property", "tscale-clamp", preset.state.tscaleClamp]});
-    }
-
-    // Scaling
-    commands.add({"command": ["set_property", "scale", preset.state.scale]});
-    commands.add({"command": ["set_property", "cscale", preset.state.cscale]});
-    commands.add({"command": ["set_property", "dscale", preset.state.dscale]});
-
-    if (!kIsWeb) {
-      if (preset.state.activeShaders.isEmpty) {
-        commands.add({"command": ["set_property", "glsl-shaders", ""]});
-      } else {
-        final shaderDir = _getShadersDirectory();
-        final absolutePaths = preset.state.activeShaders
-            .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
-            .toList();
-        commands.add({"command": ["set_property", "glsl-shaders", absolutePaths]});
+    void addIfChanged(String property, dynamic oldValue, dynamic newValue) {
+      if (oldValue != newValue) {
+        commands.add({"command": ["set_property", property, newValue]});
       }
     }
 
-    // 3. Drip-feed commands to MPV with 150ms gaps
+    // Tone mapping
+    addIfChanged('tone-mapping', old.toneMappingAlgorithm, next.toneMappingAlgorithm);
+    addIfChanged('target-peak', old.targetPeak, next.targetPeak);
+    addIfChanged('tone-mapping-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
+    addIfChanged('tone-mapping-visualize', old.visualizeToneMapping, next.visualizeToneMapping);
+    addIfChanged('hdr-compute-peak', old.hdrComputePeak ? 'yes' : 'no', next.hdrComputePeak ? 'yes' : 'no');
+    addIfChanged('hdr-output', old.hdrOutput ? 'yes' : 'no', next.hdrOutput ? 'yes' : 'no');
+
+    // Colorspace
+    addIfChanged('target-colorspace-hint', old.targetColorspaceHint ? 'yes' : 'no', next.targetColorspaceHint ? 'yes' : 'no');
+    if (next.targetColorspaceHint) {
+      addIfChanged('target-prim', old.targetPrim, next.targetPrim);
+      addIfChanged('target-gamut', old.targetGamut, next.targetGamut);
+      addIfChanged('target-trc', old.targetTrc, next.targetTrc);
+    }
+
+    // Grading
+    addIfChanged('brightness', old.brightness, next.brightness);
+    addIfChanged('contrast', old.contrast, next.contrast);
+    addIfChanged('gamma', old.gamma, next.gamma);
+
+    // Deband
+    addIfChanged('deband', old.deband, next.deband);
+    addIfChanged('deband-iterations', old.debandIterations, next.debandIterations);
+    addIfChanged('deband-threshold', old.debandThreshold, next.debandThreshold);
+
+    // Interpolation
+    addIfChanged('interpolation', old.interpolation ? 'yes' : 'no', next.interpolation ? 'yes' : 'no');
+    addIfChanged('video-sync', old.videoSync, next.videoSync);
+    if (next.interpolation) {
+      addIfChanged('tscale', old.tscale, next.tscale);
+      addIfChanged('tscale-window', old.tscaleWindow, next.tscaleWindow);
+      addIfChanged('tscale-radius', old.tscaleRadius, next.tscaleRadius);
+      addIfChanged('tscale-blur', old.tscaleBlur, next.tscaleBlur);
+      addIfChanged('tscale-clamp', old.tscaleClamp, next.tscaleClamp);
+    }
+
+    // Scaling (each of these forces a full libplacebo pipeline rebuild)
+    addIfChanged('scale', old.scale, next.scale);
+    addIfChanged('cscale', old.cscale, next.cscale);
+    addIfChanged('dscale', old.dscale, next.dscale);
+
+    if (!kIsWeb) {
+      final oldShaders = old.activeShaders;
+      final newShaders = next.activeShaders;
+      final shadersChanged = oldShaders.length != newShaders.length ||
+          !oldShaders.asMap().entries.every((e) => newShaders[e.key] == e.value);
+      if (shadersChanged) {
+        if (newShaders.isEmpty) {
+          commands.add({"command": ["set_property", "glsl-shaders", ""]});
+        } else {
+          final shaderDir = _getShadersDirectory();
+          final absolutePaths = newShaders
+              .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
+              .toList();
+          commands.add({"command": ["set_property", "glsl-shaders", absolutePaths]});
+        }
+      }
+    }
+
+    // 3. Enqueue only what changed; the outbox queue paces delivery to MPV.
     _sendCommandQueue(commands);
   }
 
-  /// Sends a list of commands sequentially with a delay between each.
+  /// Enqueues a list of commands to be sent sequentially. Pacing and strict
+  /// ordering are guaranteed centrally by `DspProvider.sendRawCommand`'s
+  /// outbox queue, so it's safe to enqueue all of them immediately here even
+  /// if a previous batch (or an unrelated slider/toggle) is still draining.
   void _sendCommandQueue(List<Map<String, dynamic>> commands) {
-    for (int i = 0; i < commands.length; i++) {
-      final cmd = commands[i];
-      Timer(Duration(milliseconds: 150 * i), () {
-        dspProvider.sendRawCommand(cmd);
-      });
+    for (final cmd in commands) {
+      final property = (cmd["command"] as List)[1] as String;
+      final gap = _kExpensiveProperties.contains(property) ? _kExpensiveGap : null;
+      dspProvider.sendRawCommand(cmd, minGapAfter: gap);
     }
   }
 
@@ -238,10 +289,12 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(contrastRecovery: val);
     notifyListeners();
-    _sendCommand('tone-mapping-contrast-recovery', val, debounce: true);
-    // Stagger the second command so MPV doesn't choke
-    Timer(const Duration(milliseconds: 200), () {
-      _sendCommand('contrast-recovery', val);
+    // Debounce both companion properties together so they're enqueued (and
+    // thus sent) as one ordered pair once the user stops dragging.
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 32), () {
+      dspProvider.sendRawCommand({"command": ["set_property", "tone-mapping-contrast-recovery", val]});
+      dspProvider.sendRawCommand({"command": ["set_property", "contrast-recovery", val]});
     });
   }
 
@@ -250,6 +303,20 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(visualizeToneMapping: vis);
     notifyListeners();
     _sendCommand('tone-mapping-visualize', vis);
+  }
+
+  void setHdrComputePeak(bool val) {
+    _activePresetId = null;
+    _state = _state.copyWith(hdrComputePeak: val);
+    notifyListeners();
+    _sendCommand('hdr-compute-peak', val ? 'yes' : 'no');
+  }
+
+  void setHdrOutput(bool val) {
+    _activePresetId = null;
+    _state = _state.copyWith(hdrOutput: val);
+    notifyListeners();
+    _sendCommand('hdr-output', val ? 'yes' : 'no');
   }
 
   void setTargetColorspaceHint(bool val) {
@@ -265,9 +332,7 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
     _sendCommand('target-prim', prim);
     if (_state.targetColorspaceHint) {
-      Timer(const Duration(milliseconds: 200), () {
-        _sendCommand('target-colorspace-hint', 'yes');
-      });
+      _sendCommand('target-colorspace-hint', 'yes');
     }
   }
 
@@ -277,9 +342,7 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
     _sendCommand('target-gamut', gamut);
     if (_state.targetColorspaceHint) {
-      Timer(const Duration(milliseconds: 200), () {
-        _sendCommand('target-colorspace-hint', 'yes');
-      });
+      _sendCommand('target-colorspace-hint', 'yes');
     }
   }
 
@@ -289,9 +352,7 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
     _sendCommand('target-trc', trc);
     if (_state.targetColorspaceHint) {
-      Timer(const Duration(milliseconds: 200), () {
-        _sendCommand('target-colorspace-hint', 'yes');
-      });
+      _sendCommand('target-colorspace-hint', 'yes');
     }
   }
 
@@ -349,10 +410,7 @@ class VideoProvider extends ChangeNotifier {
     );
     notifyListeners();
     _sendCommand('interpolation', val ? 'yes' : 'no');
-    // Stagger the second command so MPV doesn't choke
-    Timer(const Duration(milliseconds: 200), () {
-      _sendCommand('video-sync', _state.videoSync);
-    });
+    _sendCommand('video-sync', _state.videoSync);
   }
 
   void setTScale(String algo) {
