@@ -381,7 +381,7 @@ class TabVideo extends StatelessWidget {
             _buildDropdownRow(
               label: 'Window (tscale-window)',
               value: video.state.tscaleWindow,
-              items: const ['sphinx', 'hann', 'hamming', 'quadric', 'welch', 'blackman'],
+              items: const ['sphinx', 'hanning', 'hamming', 'quadric', 'welch', 'blackman'],
               onChanged: (val) => video.setTScaleWindow(val!),
             ),
             const SizedBox(height: 16),

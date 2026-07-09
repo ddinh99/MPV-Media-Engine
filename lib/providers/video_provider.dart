@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import '../models/video_preset.dart';
 import '../models/video_state.dart';
+import '../services/mpv_ipc_service.dart';
 import '../services/platform_service.dart';
 import '../services/preferences_service.dart';
 import 'dsp_provider.dart';
@@ -16,11 +17,31 @@ class VideoProvider extends ChangeNotifier {
   List<String> _availableShaders = [];
   List<VideoPreset> _customPresets = [];
   Timer? _debounceTimer;
-  
+
+  /// Whether the next `applyPreset()` must send every property unconditionally
+  /// instead of diffing against local state. Local state is only a shadow of
+  /// what we *believe* MPV has — a freshly (re)connected MPV instance may
+  /// already have shaders/scalers/etc. active from its own mpv.conf or a
+  /// prior session, which our diff has no way of knowing about. Forcing one
+  /// full resync per connection guarantees convergence; diffing after that
+  /// is safe since we're the only thing changing these properties from then on.
+  bool _needsFullResync = true;
+  IpcConnectionState _lastKnownConnectionState = IpcConnectionState.disconnected;
+
   VideoProvider(this.dspProvider) {
     _loadAvailableShaders();
     _loadCustomPresets();
     _checkWindowsHdr();
+    dspProvider.addListener(_onDspProviderChanged);
+  }
+
+  void _onDspProviderChanged() {
+    final current = dspProvider.connectionState;
+    if (current == IpcConnectionState.connected &&
+        _lastKnownConnectionState != IpcConnectionState.connected) {
+      _needsFullResync = true;
+    }
+    _lastKnownConnectionState = current;
   }
 
   VideoState get state => _state;
@@ -42,7 +63,7 @@ class VideoProvider extends ChangeNotifier {
         hdrComputePeak: false,
         hdrOutput: true,
         targetColorspaceHint: true,
-        targetTrc: 'auto',
+        targetTrc: 'pq', // matches setHdrOutput(true)'s forced-passthrough value
       );
       notifyListeners();
     }
@@ -136,6 +157,11 @@ class VideoProvider extends ChangeNotifier {
     // to overwhelming MPV with IPC commands on preset switches.
     final old = _state;
     final next = preset.state;
+    // Force an unconditional full send on the first apply after a (re)connect
+    // — see _needsFullResync's doc comment for why local state can't be
+    // trusted as a proxy for MPV's actual live properties at that point.
+    final forceAll = _needsFullResync;
+    _needsFullResync = false;
 
     // 1. Update ALL local state at once so the UI refreshes instantly
     _activePresetId = preset.id;
@@ -143,21 +169,23 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
 
     // 2. Build a list of IPC commands to send (order matters), skipping
-    // anything whose value is identical to what's already live in MPV.
+    // anything whose value is identical to what's already live in MPV
+    // (unless forceAll, in which case everything is sent regardless).
     final commands = <Map<String, dynamic>>[];
     void addIfChanged(String property, dynamic oldValue, dynamic newValue) {
-      if (oldValue != newValue) {
+      if (forceAll || oldValue != newValue) {
         commands.add({"command": ["set_property", property, newValue]});
       }
     }
 
     // Tone mapping
-    addIfChanged('tone-mapping', old.toneMappingAlgorithm, next.toneMappingAlgorithm);
+    addIfChanged('tone-mapping', _mpvToneMappingValue(old.toneMappingAlgorithm), _mpvToneMappingValue(next.toneMappingAlgorithm));
     addIfChanged('target-peak', old.targetPeak, next.targetPeak);
-    addIfChanged('tone-mapping-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
+    addIfChanged('hdr-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
     addIfChanged('tone-mapping-visualize', old.visualizeToneMapping, next.visualizeToneMapping);
     addIfChanged('hdr-compute-peak', old.hdrComputePeak ? 'yes' : 'no', next.hdrComputePeak ? 'yes' : 'no');
-    addIfChanged('hdr-output', old.hdrOutput ? 'yes' : 'no', next.hdrOutput ? 'yes' : 'no');
+    // Note: hdrOutput has no direct mpv property of its own — it's expressed
+    // via target-trc/target-colorspace-hint below, which presets set directly.
 
     // Colorspace
     addIfChanged('target-colorspace-hint', old.targetColorspaceHint ? 'yes' : 'no', next.targetColorspaceHint ? 'yes' : 'no');
@@ -196,7 +224,8 @@ class VideoProvider extends ChangeNotifier {
     if (!kIsWeb) {
       final oldShaders = old.activeShaders;
       final newShaders = next.activeShaders;
-      final shadersChanged = oldShaders.length != newShaders.length ||
+      final shadersChanged = forceAll ||
+          oldShaders.length != newShaders.length ||
           !oldShaders.asMap().entries.every((e) => newShaders[e.key] == e.value);
       if (shadersChanged) {
         if (newShaders.isEmpty) {
@@ -270,12 +299,17 @@ class VideoProvider extends ChangeNotifier {
   }
 
   // --- Module B: HDR Tone Mapping ---
-  
+
+  /// mpv's --tone-mapping has no "none" choice (verified against mpv 0.41's
+  /// own --list-options); "clip" is the real value that disables tone curve
+  /// shaping. "none" is kept only as the friendly label shown in the GUI.
+  static String _mpvToneMappingValue(String algo) => algo == 'none' ? 'clip' : algo;
+
   void setToneMappingAlgorithm(String algo) {
     _activePresetId = null;
     _state = _state.copyWith(toneMappingAlgorithm: algo);
     notifyListeners();
-    _sendCommand('tone-mapping', algo);
+    _sendCommand('tone-mapping', _mpvToneMappingValue(algo));
   }
 
   void setTargetPeak(double peak) {
@@ -289,13 +323,10 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(contrastRecovery: val);
     notifyListeners();
-    // Debounce both companion properties together so they're enqueued (and
-    // thus sent) as one ordered pair once the user stops dragging.
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 32), () {
-      dspProvider.sendRawCommand({"command": ["set_property", "tone-mapping-contrast-recovery", val]});
-      dspProvider.sendRawCommand({"command": ["set_property", "contrast-recovery", val]});
-    });
+    // Real mpv property is `hdr-contrast-recovery` (0-2); the app previously
+    // sent two nonexistent property names ("tone-mapping-contrast-recovery"
+    // and "contrast-recovery") that mpv silently rejected.
+    _sendCommand('hdr-contrast-recovery', val, debounce: true);
   }
 
   void setVisualizeToneMapping(bool vis) {
@@ -313,10 +344,24 @@ class VideoProvider extends ChangeNotifier {
   }
 
   void setHdrOutput(bool val) {
+    // mpv has no `hdr-output` property (verified against mpv 0.41's own
+    // --list-options — it doesn't exist, so this used to be a silent no-op).
+    // Repurposed as a "force HDR passthrough" shortcut: tell mpv the display
+    // can accept PQ directly via the same target-colorspace-hint mechanism
+    // the manual SDR-to-HDR remap panel uses, forcing target-trc to pq.
     _activePresetId = null;
-    _state = _state.copyWith(hdrOutput: val);
+    _state = _state.copyWith(
+      hdrOutput: val,
+      targetColorspaceHint: val ? true : _state.targetColorspaceHint,
+      targetTrc: val ? 'pq' : 'auto',
+    );
     notifyListeners();
-    _sendCommand('hdr-output', val ? 'yes' : 'no');
+    if (val) {
+      _sendCommand('target-colorspace-hint', 'yes');
+      _sendCommand('target-trc', 'pq');
+    } else {
+      _sendCommand('target-trc', 'auto');
+    }
   }
 
   void setTargetColorspaceHint(bool val) {
@@ -472,6 +517,7 @@ class VideoProvider extends ChangeNotifier {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    dspProvider.removeListener(_onDspProviderChanged);
     super.dispose();
   }
 }
