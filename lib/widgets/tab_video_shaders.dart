@@ -19,6 +19,11 @@ class TabVideoShaders extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               videoSectionTitle('Shaders Engine', Icons.layers),
+              const SizedBox(height: 8),
+              Text(
+                'Check to enable. Active shaders apply in order — use the arrows to reorder them.',
+                style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
+              ),
               const SizedBox(height: 12),
               _buildShadersEngine(context, video),
             ],
@@ -49,42 +54,76 @@ class TabVideoShaders extends StatelessWidget {
       );
     }
 
+    final activeShaders = video.state.activeShaders;
+
     return Container(
+      padding: const EdgeInsets.all(8),
       decoration: videoCardDecoration(),
-      child: ReorderableListView(
+      child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        buildDefaultDragHandles: false,
-        onReorder: video.reorderShaders,
-        children: video.availableShaders.map((shaderName) {
-          final isActive = video.state.activeShaders.contains(shaderName);
-          return Container(
-            key: ValueKey(shaderName),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: AppTheme.border, width: 0.5)),
-            ),
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
-              leading: Checkbox(
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisExtent: 44,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 2,
+        ),
+        itemCount: video.availableShaders.length,
+        itemBuilder: (context, index) {
+          final shaderName = video.availableShaders[index];
+          final isActive = activeShaders.contains(shaderName);
+          // Reordering only makes sense among *active* shaders (only those
+          // are actually applied, in this order) — position within the full
+          // available-shaders list is unrelated and must not be used here.
+          final activeIndex = activeShaders.indexOf(shaderName);
+
+          return Row(
+            children: [
+              Checkbox(
                 value: isActive,
                 onChanged: (val) => video.toggleShader(shaderName, val ?? false),
                 activeColor: AppTheme.primary,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                visualDensity: VisualDensity.compact,
               ),
-              title: Text(
-                shaderName,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
-                  color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+              Expanded(
+                child: Text(
+                  shaderName,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.jetBrainsMono(
+                    fontSize: 12,
+                    color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
                 ),
               ),
-              trailing: ReorderableDragStartListener(
-                index: video.availableShaders.indexOf(shaderName),
-                child: Icon(Icons.drag_handle, color: AppTheme.textMuted),
-              ),
-            ),
+              if (isActive) ...[
+                IconButton(
+                  icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                  tooltip: 'Move earlier in chain',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  color: AppTheme.textMuted,
+                  onPressed: activeIndex > 0
+                      ? () => video.reorderShaders(activeIndex, activeIndex - 1)
+                      : null,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                  tooltip: 'Move later in chain',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                  color: AppTheme.textMuted,
+                  onPressed: activeIndex < activeShaders.length - 1
+                      ? () => video.reorderShaders(activeIndex, activeIndex + 2)
+                      : null,
+                ),
+              ],
+            ],
           );
-        }).toList(),
+        },
       ),
     );
   }
