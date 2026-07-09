@@ -15,12 +15,30 @@ class TabVideoGrading extends StatelessWidget {
       builder: (context, video, child) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              videoSectionTitle('Hardware Grading & Deband', Icons.tune),
-              const SizedBox(height: 12),
-              _buildGradingAndDeband(context, video),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    videoSectionTitle('Hardware Grading', Icons.tune),
+                    const SizedBox(height: 12),
+                    _buildGrading(context, video),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    videoSectionTitle('Deband', Icons.blur_on),
+                    const SizedBox(height: 12),
+                    _buildDeband(context, video),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -28,7 +46,7 @@ class TabVideoGrading extends StatelessWidget {
     );
   }
 
-  Widget _buildGradingAndDeband(BuildContext context, VideoProvider video) {
+  Widget _buildGrading(BuildContext context, VideoProvider video) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: videoCardDecoration(),
@@ -58,10 +76,18 @@ class TabVideoGrading extends StatelessWidget {
             max: 100,
             onChanged: (v) => video.setGamma(v.toInt()),
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1),
-          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeband(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: videoCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Row(
             children: [
               Text(

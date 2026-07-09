@@ -15,17 +15,30 @@ class TabVideoScaling extends StatelessWidget {
       builder: (context, video, child) {
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Column(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              videoSectionTitle('High Performance Mode', Icons.speed),
-              const SizedBox(height: 12),
-              _buildVectorMotionInterpolation(context, video),
-              const SizedBox(height: 32),
-
-              videoSectionTitle('Scaling', Icons.fit_screen),
-              const SizedBox(height: 12),
-              _buildScaling(context, video),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    videoSectionTitle('High Performance Mode', Icons.speed),
+                    const SizedBox(height: 12),
+                    _buildVectorMotionInterpolation(context, video),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    videoSectionTitle('Scaling', Icons.fit_screen),
+                    const SizedBox(height: 12),
+                    _buildScaling(context, video),
+                  ],
+                ),
+              ),
             ],
           ),
         );
