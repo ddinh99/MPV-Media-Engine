@@ -16,6 +16,7 @@ class TabVideoShaders extends StatefulWidget {
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
   String? _lastPlayedFile;
+  bool _isCheckingFile = false;
 
   @override
   void initState() {
@@ -31,15 +32,26 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
   }
 
   void _onVideoProviderChanged() {
-    // When a new video is played, fetch and cache its info once
+    // Debounce: only check file if not already checking (prevent rapid repeated checks)
+    if (_isCheckingFile) return;
+
+    _isCheckingFile = true;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      final video = context.read<VideoProvider>();
-      final currentFile = await video.dspProvider.getProperty('filename') as String?;
-      if (currentFile != null && currentFile != _lastPlayedFile) {
-        _lastPlayedFile = currentFile;
-        // Fetch and cache video info (resolution, codec, fps, etc.)
-        await video.cacheCurrentVideoInfo();
+      if (!mounted) {
+        _isCheckingFile = false;
+        return;
+      }
+
+      try {
+        final video = context.read<VideoProvider>();
+        final currentFile = await video.dspProvider.getProperty('filename') as String?;
+        if (currentFile != null && currentFile != _lastPlayedFile) {
+          _lastPlayedFile = currentFile;
+          // Fetch and cache video info (resolution, codec, fps, etc.)
+          await video.cacheCurrentVideoInfo();
+        }
+      } finally {
+        _isCheckingFile = false;
       }
     });
   }
