@@ -39,9 +39,23 @@ class VideoProvider extends ChangeNotifier {
     final current = dspProvider.connectionState;
     if (current == IpcConnectionState.connected &&
         _lastKnownConnectionState != IpcConnectionState.connected) {
-      _needsFullResync = true;
+      _resyncAll();
     }
     _lastKnownConnectionState = current;
+  }
+
+  /// Pushes the entire current [VideoState] to a freshly connected MPV.
+  ///
+  /// Commands enqueued while disconnected are dropped outright (see
+  /// `DspProvider.sendRawCommand`), so anything the user changed before MPV
+  /// came up — a preset click, a slider drag — never reached the player even
+  /// though the GUI shows it as active. Without this, that divergence would
+  /// persist until the user happened to touch the same control again.
+  /// DspProvider.connect() does the equivalent for the audio chain.
+  void _resyncAll() {
+    _sendCommandQueue(_buildStateCommands(_state, _state, forceAll: true));
+    // We just sent everything, so a subsequent applyPreset() can safely diff.
+    _needsFullResync = false;
   }
 
   VideoState get state => _state;
@@ -168,9 +182,19 @@ class VideoProvider extends ChangeNotifier {
     _state = next.copyWith();
     notifyListeners();
 
-    // 2. Build a list of IPC commands to send (order matters), skipping
-    // anything whose value is identical to what's already live in MPV
-    // (unless forceAll, in which case everything is sent regardless).
+    // 2. Enqueue only what changed; the outbox queue paces delivery to MPV.
+    _sendCommandQueue(_buildStateCommands(old, next, forceAll: forceAll));
+  }
+
+  /// Builds the ordered IPC command list that takes MPV from [old] to [next],
+  /// skipping any property whose value is unchanged. With [forceAll] every
+  /// property is emitted regardless of the diff — used for a full resync,
+  /// where local state can't be trusted as a proxy for MPV's live properties.
+  List<Map<String, dynamic>> _buildStateCommands(
+    VideoState old,
+    VideoState next, {
+    required bool forceAll,
+  }) {
     final commands = <Map<String, dynamic>>[];
     void addIfChanged(String property, dynamic oldValue, dynamic newValue) {
       if (forceAll || oldValue != newValue) {
@@ -240,8 +264,7 @@ class VideoProvider extends ChangeNotifier {
       }
     }
 
-    // 3. Enqueue only what changed; the outbox queue paces delivery to MPV.
-    _sendCommandQueue(commands);
+    return commands;
   }
 
   /// Enqueues a list of commands to be sent sequentially. Pacing and strict

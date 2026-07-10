@@ -102,11 +102,28 @@ class DspProvider extends ChangeNotifier {
   /// use it for properties known to trigger a full MPV/libplacebo render
   /// pipeline rebuild (scale/cscale/dscale/tscale/glsl-shaders/interpolation).
   Future<bool> sendRawCommand(Map<String, dynamic> command, {Duration? minGapAfter}) {
+    // Refuse to queue while disconnected. MpvIpcService.sendCommand would drop
+    // these anyway, but queuing them still costs a pacing gap each (draining a
+    // whole preset takes seconds) and — worse — lets a connection that lands
+    // mid-drain deliver an arbitrary *tail* of the batch to MPV, applying half
+    // a preset. VideoProvider._resyncAll() pushes the real state on connect.
+    if (_ipc.connectionState != IpcConnectionState.connected) {
+      _addLog('⏭ Not connected — skipped: ${_describe(command)}');
+      return Future.value(false);
+    }
     final jsonStr = jsonEncode(command);
     final completer = Completer<bool>();
     _outbox.add(_QueuedCommand(jsonStr, completer, minGapAfter));
     unawaited(_drainOutbox());
     return completer.future;
+  }
+
+  /// Short human-readable form of an IPC command, for the log.
+  /// `{"command": ["set_property", "scale", "ewa_lanczos"]}` → `set_property scale`.
+  static String _describe(Map<String, dynamic> command) {
+    final parts = command['command'];
+    if (parts is List && parts.length >= 2) return '${parts[0]} ${parts[1]}';
+    return jsonEncode(command);
   }
 
   Future<void> _drainOutbox() async {
@@ -115,8 +132,13 @@ class DspProvider extends ChangeNotifier {
     try {
       while (_outbox.isNotEmpty) {
         final item = _outbox.removeAt(0);
-        _addLog('Sending raw command: ${item.jsonStr}');
         final ok = await _ipc.sendCommand(item.jsonStr);
+        // Report what actually happened. The old log line announced the send
+        // before attempting it and ignored the result, so a dropped command
+        // was indistinguishable from a delivered one.
+        _addLog(ok
+            ? 'Sent: ${item.jsonStr}'
+            : '✗ Send failed (connection lost): ${item.jsonStr}');
         item.completer.complete(ok);
         if (_outbox.isNotEmpty) {
           final gap = item.gapAfter ?? _kMinCommandGap;
