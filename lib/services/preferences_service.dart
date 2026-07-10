@@ -178,4 +178,29 @@ class PreferencesService {
       await prefs.setString(_kDefaultPresetHighRes, presetId);
     }
   }
+
+  // ── Current playing video info cache ────────────────────────────────────────
+
+  static const String _kCurrentVideoInfo = 'current_video_info';
+
+  static Future<Map<String, dynamic>?> getCurrentVideoInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_kCurrentVideoInfo);
+    if (jsonStr == null || jsonStr.isEmpty) return null;
+    try {
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  static Future<void> saveCurrentVideoInfo(Map<String, dynamic> info) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kCurrentVideoInfo, jsonEncode(info));
+  }
+
+  static Future<void> clearCurrentVideoInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kCurrentVideoInfo);
+  }
 }

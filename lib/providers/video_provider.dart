@@ -24,6 +24,7 @@ class VideoProvider extends ChangeNotifier {
   ResolutionTier? _lastAutoAppliedTier;
   String? _defaultPresetIdLowRes;
   String? _defaultPresetIdHighRes;
+  Map<String, dynamic>? _cachedVideoInfo;
 
   /// Whether the next `applyPreset()` must send every property unconditionally
   /// instead of diffing against local state. Local state is only a shadow of
@@ -60,6 +61,7 @@ class VideoProvider extends ChangeNotifier {
     await _loadCustomPresets();
     _defaultPresetIdLowRes = await PreferencesService.getDefaultPresetIdForLowRes();
     _defaultPresetIdHighRes = await PreferencesService.getDefaultPresetIdForHighRes();
+    _cachedVideoInfo = await PreferencesService.getCurrentVideoInfo();
 
     final session = await PreferencesService.getLastVideoSession();
     if (session != null) {
@@ -124,6 +126,7 @@ class VideoProvider extends ChangeNotifier {
   num? get currentVideoHeight => _currentVideoHeight;
   String? get defaultPresetIdLowRes => _defaultPresetIdLowRes;
   String? get defaultPresetIdHighRes => _defaultPresetIdHighRes;
+  Map<String, dynamic>? get cachedVideoInfo => _cachedVideoInfo;
 
   Future<void> setDefaultPresetForLowRes(String? presetId) async {
     _defaultPresetIdLowRes = presetId;
@@ -137,24 +140,30 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Fetches the current video's display height from MPV and updates internal state.
-  /// If the resolution tier changed, auto-applies the default preset for that tier.
-  Future<void> updateVideoHeight() async {
+  /// Fetches current video info (resolution, codec, fps) and caches it.
+  /// Called when a new video is loaded. Updates GUI and auto-applies tier default.
+  Future<void> cacheCurrentVideoInfo() async {
     try {
-      final height = await dspProvider.getProperty('dheight') as num?;
-      if (height != _currentVideoHeight) {
-        _currentVideoHeight = height;
+      final info = await dspProvider.fetchVideoInfo();
+      if (info.isNotEmpty) {
+        _cachedVideoInfo = info;
+        await PreferencesService.saveCurrentVideoInfo(info);
 
-        final newTier = getResolutionTier(height);
-        if (newTier != _lastAutoAppliedTier) {
-          _lastAutoAppliedTier = newTier;
-          _applyDefaultPresetForTier(newTier);
+        final height = info['dheight'] as num?;
+        if (height != _currentVideoHeight) {
+          _currentVideoHeight = height;
+
+          final newTier = getResolutionTier(height);
+          if (newTier != _lastAutoAppliedTier) {
+            _lastAutoAppliedTier = newTier;
+            _applyDefaultPresetForTier(newTier);
+          }
         }
 
         notifyListeners();
       }
     } catch (e) {
-      // Silent fail on property fetch errors — video isn't loaded yet or MPV is offline
+      debugPrint('Error caching video info: $e');
     }
   }
 

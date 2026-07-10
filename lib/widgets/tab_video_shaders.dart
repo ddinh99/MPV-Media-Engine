@@ -1,5 +1,4 @@
 // lib/widgets/tab_video_shaders.dart
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -16,60 +15,31 @@ class TabVideoShaders extends StatefulWidget {
 }
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
-  Timer? _pollTimer;
-  num? _lastDisplayedHeight;
-  DateTime? _stableHeightTime;
   String? _lastPlayedFile;
 
   @override
   void initState() {
     super.initState();
-    // Listen to DspProvider to detect new video plays
+    // Listen to DspProvider to detect new video plays and cache info
     context.read<VideoProvider>().dspProvider.addListener(_onVideoProviderChanged);
-    _startPolling();
   }
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
     context.read<VideoProvider>().dspProvider.removeListener(_onVideoProviderChanged);
     super.dispose();
   }
 
   void _onVideoProviderChanged() {
-    // Trigger polling when a new video is played
+    // When a new video is played, fetch and cache its info once
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final currentFile = await context.read<VideoProvider>().dspProvider.getProperty('filename') as String?;
+      final video = context.read<VideoProvider>();
+      final currentFile = await video.dspProvider.getProperty('filename') as String?;
       if (currentFile != null && currentFile != _lastPlayedFile) {
         _lastPlayedFile = currentFile;
-        _lastDisplayedHeight = null;
-        _startPolling();
-      }
-    });
-  }
-
-  void _startPolling() {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
-      if (!mounted) return;
-
-      final video = context.read<VideoProvider>();
-      await video.updateVideoHeight();
-
-      final currentHeight = video.currentVideoHeight;
-
-      // If height was detected and is different from what we displayed
-      if (currentHeight != null && currentHeight != _lastDisplayedHeight) {
-        _lastDisplayedHeight = currentHeight;
-        // Let the UI rebuild with new height
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _pollTimer != null) {
-            // UI has updated, stop polling now
-            _pollTimer?.cancel();
-            _pollTimer = null;
-          }
-        });
+        // Fetch and cache video info (resolution, codec, fps, etc.)
+        await video.cacheCurrentVideoInfo();
       }
     });
   }
@@ -120,7 +90,7 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
     }
 
     final activeShaders = video.state.activeShaders;
-    final currentHeight = video.currentVideoHeight;
+    final currentHeight = (video.cachedVideoInfo?['dheight'] as num?);
     final currentTier = getResolutionTier(currentHeight);
 
     // Group shaders by tier, preserving active-first ordering within each tier
