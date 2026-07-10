@@ -33,7 +33,6 @@ flutter_launcher_icons:
 flutter:
   uses-material-design: true
   assets:
-    - mpv_websocket_bridge.py
     - mpv_websocket_bridge.ps1
     - assets/app_icon.png
     - assets/shaders/

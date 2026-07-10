@@ -51,7 +51,7 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
    ```
 
 ## 🛠️ How it Works
-The application connects to MPV's JSON IPC (Inter-Process Communication) socket via an intermediate python bridge. As you interact with the UI, it translates your settings into raw MPV properties (like `glsl-shaders` or `tone-mapping`) and FFmpeg `lavfi` strings (like `af-add=lavfi=[...]`), sending them directly to the player to be processed on the fly.
+The application connects to MPV's JSON IPC (Inter-Process Communication) named pipe via an intermediate PowerShell bridge — no Python or other runtime needed, since `powershell.exe` ships with Windows. As you interact with the UI, it translates your settings into raw MPV properties (like `glsl-shaders` or `tone-mapping`) and FFmpeg `lavfi` strings (like `af-add=lavfi=[...]`), sending them directly to the player to be processed on the fly.
 
 ## 💖 Support the Project
 If this app helped you get the perfect picture and sound out of your home theater, consider buying me a coffee to support future updates!

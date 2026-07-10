@@ -128,26 +128,12 @@ class DspProvider extends ChangeNotifier {
     }
   }
 
-  /// Save the mpv.exe path to preferences and copy the WebSocket bridge script to its directory.
+  /// Save the mpv.exe path to preferences.
   Future<void> setMpvExePath(String? path) async {
     _mpvExePath = path;
     if (path != null && path.isNotEmpty) {
       await PreferencesService.setMpvExePath(path);
       _addLog('MPV path set: $path');
-      
-      // Auto-copy the WebSocket bridge script next to mpv.exe (desktop only)
-      if (!kIsWeb) {
-        try {
-          final content = await rootBundle.loadString('mpv_websocket_bridge.py');
-          final dir = io.File(path).parent.path;
-          final sep = io.Platform.pathSeparator;
-          final target = io.File('$dir${sep}mpv_websocket_bridge.py');
-          await target.writeAsString(content);
-          _addLog('✓ Auto-copied bridge script next to mpv.exe.');
-        } catch (e) {
-          _addLog('⚠ Note: Could not copy bridge script next to mpv.exe ($e).');
-        }
-      }
     } else {
       await PreferencesService.clearMpvExePath();
       _addLog('MPV path cleared');
@@ -155,8 +141,8 @@ class DspProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pick a video file, launch mpv.exe with Named Pipe IPC, start the Python
-  /// (or PowerShell fallback) WebSocket bridge, then auto-connect.
+  /// Pick a video file, launch mpv.exe with Named Pipe IPC, start the
+  /// PowerShell WebSocket bridge, then auto-connect.
   Future<void> playTestVideo() async {
     if (!hasMpvExe) return;
 
@@ -196,32 +182,14 @@ class DspProvider extends ChangeNotifier {
       // ── Step 3: wait for MPV to create the Named Pipe ─────────────────────
       await Future.delayed(const Duration(milliseconds: 3000));
 
-      // ── Step 4: unpack & launch the bridge (Python or PowerShell) ─────────
-      String bridgePyPath = '';
+      // ── Step 4: unpack & launch the PowerShell bridge ─────────────────────
+      // powershell.exe ships on every Windows install, and the .ps1 speaks
+      // mpv's named pipe — which is the only thing --input-ipc-server ever
+      // creates on Windows (see CLAUDE.md). There is deliberately no
+      // fallback interpreter here.
       String bridgePs1Path = '';
       final tempDir = io.Directory.systemTemp.path;
       final sep = io.Platform.pathSeparator;
-
-      // 4a. Copy next to mpv.exe if permissions allow
-      try {
-        var content = await rootBundle.loadString('mpv_websocket_bridge.py');
-        content = content.replaceAll('WEBSOCKET_PORT = 9002', 'WEBSOCKET_PORT = $sessionPort');
-        final mpvDir = io.File(_mpvExePath!).parent.path;
-        final target = io.File('$mpvDir${sep}mpv_websocket_bridge.py');
-        await target.writeAsString(content);
-        _addLog('✓ Refreshed python bridge next to mpv.exe.');
-      } catch (e) {
-        // Silently ignore or note
-      }
-
-      // 4b. Unpack scripts to temp directory
-      try {
-        var pyContent = await rootBundle.loadString('mpv_websocket_bridge.py');
-        pyContent = pyContent.replaceAll('WEBSOCKET_PORT = 9002', 'WEBSOCKET_PORT = $sessionPort');
-        final pyFile = io.File('$tempDir${sep}mpv_websocket_bridge.py');
-        await pyFile.writeAsString(pyContent);
-        bridgePyPath = pyFile.path;
-      } catch (_) {}
 
       try {
         var ps1Content = await rootBundle.loadString('mpv_websocket_bridge.ps1');
@@ -232,16 +200,6 @@ class DspProvider extends ChangeNotifier {
         bridgePs1Path = ps1File.path;
       } catch (_) {}
 
-      // 4c. Try starting PowerShell bridge first. Unlike the Python bridge
-      // (which only speaks TCP to mpv and can never connect — mpv's
-      // --input-ipc-server is always a named pipe on Windows, see
-      // CLAUDE.md), the PowerShell script tries the named pipe first, so
-      // it's the only one of the two that's actually compatible with how
-      // mpv is launched above. powershell.exe also ships on every Windows
-      // install, whereas relying on `python` being on PATH is unsafe: on a
-      // machine with no real Python, `python` silently resolves to the
-      // Windows Store "app execution alias" stub, which spawns without
-      // throwing and would falsely look like a successful bridge start.
       bool bridgeStarted = false;
       if (bridgePs1Path.isNotEmpty && io.File(bridgePs1Path).existsSync()) {
         _addLog('▶ Starting WebSocket bridge (PowerShell)…');
@@ -263,29 +221,8 @@ class DspProvider extends ChangeNotifier {
         }
       }
 
-      // 4d. Python bridge as a legacy fallback only. Note it can't actually
-      // reach an mpv started with a named pipe (see above), so this is only
-      // useful if a bridge is ever pointed at an mpv listening on real TCP.
-      if (!bridgeStarted && bridgePyPath.isNotEmpty && io.File(bridgePyPath).existsSync()) {
-        _addLog('▶ Starting WebSocket bridge (Python fallback)…');
-        try {
-          final bp = await io.Process.start(
-            'python',
-            [bridgePyPath],
-            mode: io.ProcessStartMode.detached,
-            environment: {'PYTHONUNBUFFERED': '1'},
-          );
-          _addLog('  Python bridge pid ${bp.pid} → ws://127.0.0.1:$sessionPort');
-          _ipc.setSocketPath('ws://127.0.0.1:$sessionPort');
-          bridgeStarted = true;
-          await Future.delayed(const Duration(milliseconds: 1000));
-        } catch (e) {
-          _addLog('  Python bridge start failed: $e');
-        }
-      }
-
       if (!bridgeStarted) {
-        _addLog('⚠ Both PowerShell and Python bridges failed to launch. Please run the bridge manually.');
+        _addLog('⚠ The PowerShell bridge failed to launch. Please run mpv_websocket_bridge.ps1 manually.');
       }
 
       // ── Step 5: auto-connect with retry ─────────────────────────────────

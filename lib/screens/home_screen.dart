@@ -391,7 +391,7 @@ class _AppHeader extends StatelessWidget {
               const SizedBox(height: 12),
               _HelpStep('4', 'Tweak Audio Real-Time:', 'Select presets or adjust sliders. Changes apply instantly to MPV.'),
               const SizedBox(height: 12),
-              _HelpStep('5', 'Manual Mode (Advanced):', 'If running MPV manually, make sure to run mpv_websocket_bridge.py alongside it and click Connect.'),
+              _HelpStep('5', 'Manual Mode (Advanced):', 'If running MPV manually, make sure to run mpv_websocket_bridge.ps1 alongside it and click Connect.'),
               const SizedBox(height: 12),
               const Divider(),
               const SizedBox(height: 8),
@@ -771,9 +771,9 @@ class _SettingsDialogState extends State<_SettingsDialog> {
                     const SizedBox(height: 6),
                     Text(
                       'Clicking Play will:\n'
-                      '  1. Launch mpv.exe with the video + TCP IPC on your socket path\n'
-                      '  2. Start mpv_websocket_bridge.py (must be in the same folder as mpv.exe)\n'
-                      '  3. Bridge exposes ws://localhost:9002 for the web app to connect',
+                      '  1. Launch mpv.exe with the video + a named-pipe IPC server\n'
+                      '  2. Start mpv_websocket_bridge.ps1 (unpacked to your temp folder)\n'
+                      '  3. Bridge exposes ws://127.0.0.1 on a random port for the app to connect',
                       style: GoogleFonts.jetBrainsMono(fontSize: 10, color: AppTheme.textSecondary),
                     ),
                   ],

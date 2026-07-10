@@ -6,9 +6,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
 
-// dart:io is only used on non-web targets. Guard every call with kIsWeb.
-import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
-
 /// Shows the first-run setup dialog if the provider says it's needed.
 void showFirstRunSetupIfNeeded(BuildContext context, DspProvider dsp, {bool force = false}) {
   if (!force && !dsp.needsFirstTimeSetup) return;
@@ -30,7 +27,6 @@ class FirstRunSetupDialog extends StatefulWidget {
 class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
   bool _picking = false;
   String? _pickedPath;
-  String? _bridgeStatus; // null=unchecked, 'found', 'missing'
   late final TextEditingController _pathCtrl;
 
   DspProvider get dsp => widget.dsp;
@@ -51,19 +47,8 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
     if (updateTextField) {
       _pathCtrl.text = path;
     }
-    // Check for bridge script in the same directory (desktop only)
-    String bridgeState = 'missing';
-    if (path.isNotEmpty && !kIsWeb) {
-      try {
-        final dir = io.File(path).parent.path;
-        final sep = io.Platform.pathSeparator;
-        final bridge = io.File('$dir${sep}mpv_websocket_bridge.py');
-        bridgeState = bridge.existsSync() ? 'found' : 'missing';
-      } catch (_) {}
-    }
     setState(() {
       _pickedPath = path.isEmpty ? null : path;
-      _bridgeStatus = path.isEmpty ? null : bridgeState;
     });
   }
 
@@ -104,8 +89,6 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
   @override
   Widget build(BuildContext context) {
     final hasPath = _pickedPath != null;
-    final bridgeFound = _bridgeStatus == 'found';
-    final bridgeMissing = _bridgeStatus == 'missing';
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -329,72 +312,11 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                     ),
 
 
-                  // Step 2 ─ bridge status (shown after path chosen)
-                  if (_bridgeStatus != null) ...[
-                    const SizedBox(height: 20),
-                    _StepRow(
-                      number: '2',
-                      done: bridgeFound,
-                      warning: bridgeMissing,
-                      title: 'WebSocket bridge script',
-                      subtitle: 'mpv_websocket_bridge.py — must be next to mpv.exe',
-                    ),
-                    const SizedBox(height: 10),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 250),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: bridgeFound
-                            ? AppTheme.success.withOpacity(0.06)
-                            : AppTheme.warning.withOpacity(0.06),
-                        border: Border.all(
-                          color: bridgeFound
-                              ? AppTheme.success
-                              : AppTheme.warning,
-                          width: 1.2,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            bridgeFound
-                                ? Icons.check_circle_outline
-                                : Icons.warning_amber_rounded,
-                            size: 16,
-                            color: bridgeFound
-                                ? AppTheme.success
-                                : AppTheme.warning,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              bridgeFound
-                                  ? 'Bridge found ✓  WebSocket mode enabled.'
-                                  : 'Bridge script not found.\n'
-                                    'Copy mpv_websocket_bridge.py next to mpv.exe to enable WebSocket.\n'
-                                    'You can still proceed — the app will connect via TCP directly.',
-                              style: GoogleFonts.inter(
-                                fontSize: 11.5,
-                                color: bridgeFound
-                                    ? AppTheme.success
-                                    : AppTheme.warning,
-                                height: 1.45,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  // Step 3 ─ what happens next (shown after path chosen)
+                  // Step 2 ─ what happens next (shown after path chosen)
                   if (hasPath) ...[
                     const SizedBox(height: 20),
                     _StepRow(
-                      number: '3',
+                      number: '2',
                       done: false,
                       upcoming: true,
                       title: 'Click ▶ Play and pick a video',
@@ -457,7 +379,6 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
 class _StepRow extends StatelessWidget {
   final String number;
   final bool done;
-  final bool warning;
   final bool upcoming;
   final String title;
   final String subtitle;
@@ -467,7 +388,6 @@ class _StepRow extends StatelessWidget {
     required this.done,
     required this.title,
     required this.subtitle,
-    this.warning = false,
     this.upcoming = false,
   });
 
@@ -475,11 +395,9 @@ class _StepRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final Color circleColor = done
         ? AppTheme.success
-        : warning
-            ? AppTheme.warning
-            : upcoming
-                ? AppTheme.textMuted
-                : AppTheme.primary;
+        : upcoming
+            ? AppTheme.textMuted
+            : AppTheme.primary;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -496,16 +414,14 @@ class _StepRow extends StatelessWidget {
           child: Center(
             child: done
                 ? Icon(Icons.check_rounded, size: 14, color: circleColor)
-                : warning
-                    ? Icon(Icons.warning_rounded, size: 14, color: circleColor)
-                    : Text(
-                        number,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: circleColor,
-                        ),
-                      ),
+                : Text(
+                    number,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: circleColor,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(width: 12),
