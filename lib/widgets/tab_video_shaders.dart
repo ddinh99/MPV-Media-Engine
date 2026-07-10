@@ -19,17 +19,34 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
   Timer? _pollTimer;
   num? _lastDisplayedHeight;
   DateTime? _stableHeightTime;
+  String? _lastPlayedFile;
 
   @override
   void initState() {
     super.initState();
+    // Listen to DspProvider to detect new video plays
+    context.read<VideoProvider>().dspProvider.addListener(_onVideoProviderChanged);
     _startPolling();
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
+    context.read<VideoProvider>().dspProvider.removeListener(_onVideoProviderChanged);
     super.dispose();
+  }
+
+  void _onVideoProviderChanged() {
+    // Trigger polling when a new video is played
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final currentFile = await context.read<VideoProvider>().dspProvider.getProperty('filename') as String?;
+      if (currentFile != null && currentFile != _lastPlayedFile) {
+        _lastPlayedFile = currentFile;
+        _lastDisplayedHeight = null;
+        _startPolling();
+      }
+    });
   }
 
   void _startPolling() {
