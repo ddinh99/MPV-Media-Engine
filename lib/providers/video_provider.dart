@@ -296,6 +296,7 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('scale', old.scale, next.scale);
     addIfChanged('cscale', old.cscale, next.cscale);
     addIfChanged('dscale', old.dscale, next.dscale);
+    addIfChanged('hidpi-window-scale', old.hidpiWindowScale ? 'yes' : 'no', next.hidpiWindowScale ? 'yes' : 'no');
 
     if (!kIsWeb) {
       final oldShaders = old.activeShaders;
@@ -601,6 +602,13 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(dscale: algo);
     notifyListeners();
     _sendCommand('dscale', algo);
+  }
+
+  void setHidpiWindowScale(bool val) {
+    _activePresetId = null;
+    _state = _state.copyWith(hidpiWindowScale: val);
+    notifyListeners();
+    _sendCommand('hidpi-window-scale', val ? 'yes' : 'no');
   }
 
   @override

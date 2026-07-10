@@ -73,6 +73,32 @@ class TabVideoScaling extends StatelessWidget {
             items: const ['bilinear', 'bicubic', 'mitchell', 'catmull_rom'],
             onChanged: (val) => video.setDScale(val!),
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'HiDPI Window Scale',
+                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'hidpi-window-scale',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: video.state.hidpiWindowScale,
+                onChanged: video.setHidpiWindowScale,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
         ],
       ),
     );

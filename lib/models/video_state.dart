@@ -33,6 +33,8 @@ class VideoState {
   String cscale;
   String dscale;
 
+  bool hidpiWindowScale;
+
   VideoState({
     this.activeShaders = const [],
     this.toneMappingAlgorithm = 'auto',
@@ -61,6 +63,7 @@ class VideoState {
     this.scale = 'bilinear',
     this.cscale = 'bilinear',
     this.dscale = 'bilinear',
+    this.hidpiWindowScale = false,
   });
 
   VideoState copyWith({
@@ -91,6 +94,7 @@ class VideoState {
     String? scale,
     String? cscale,
     String? dscale,
+    bool? hidpiWindowScale,
   }) {
     return VideoState(
       activeShaders: activeShaders ?? this.activeShaders,
@@ -120,6 +124,7 @@ class VideoState {
       scale: scale ?? this.scale,
       cscale: cscale ?? this.cscale,
       dscale: dscale ?? this.dscale,
+      hidpiWindowScale: hidpiWindowScale ?? this.hidpiWindowScale,
     );
   }
 
@@ -150,6 +155,7 @@ class VideoState {
     'scale': scale,
     'cscale': cscale,
     'dscale': dscale,
+    'hidpiWindowScale': hidpiWindowScale,
   };
 
   factory VideoState.fromJson(Map<String, dynamic> json) => VideoState(
@@ -179,5 +185,6 @@ class VideoState {
     scale: json['scale'] as String? ?? 'bilinear',
     cscale: json['cscale'] as String? ?? 'bilinear',
     dscale: json['dscale'] as String? ?? 'bilinear',
+    hidpiWindowScale: json['hidpiWindowScale'] as bool? ?? false,
   );
 }
