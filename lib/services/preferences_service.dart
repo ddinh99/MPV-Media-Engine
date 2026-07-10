@@ -145,4 +145,37 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kDismissedUpdateVersion, version);
   }
+
+  // ── Default presets per resolution tier ────────────────────────────────────
+
+  static const String _kDefaultPresetLowRes = 'default_preset_lowres';
+  static const String _kDefaultPresetHighRes = 'default_preset_highres';
+
+  static Future<String?> getDefaultPresetIdForLowRes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_kDefaultPresetLowRes);
+  }
+
+  static Future<void> setDefaultPresetIdForLowRes(String? presetId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (presetId == null) {
+      await prefs.remove(_kDefaultPresetLowRes);
+    } else {
+      await prefs.setString(_kDefaultPresetLowRes, presetId);
+    }
+  }
+
+  static Future<String?> getDefaultPresetIdForHighRes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_kDefaultPresetHighRes);
+  }
+
+  static Future<void> setDefaultPresetIdForHighRes(String? presetId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (presetId == null) {
+      await prefs.remove(_kDefaultPresetHighRes);
+    } else {
+      await prefs.setString(_kDefaultPresetHighRes, presetId);
+    }
+  }
 }

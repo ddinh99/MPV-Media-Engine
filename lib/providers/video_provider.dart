@@ -22,6 +22,8 @@ class VideoProvider extends ChangeNotifier {
   Timer? _debounceTimer;
   num? _currentVideoHeight;
   ResolutionTier? _lastAutoAppliedTier;
+  String? _defaultPresetIdLowRes;
+  String? _defaultPresetIdHighRes;
 
   /// Whether the next `applyPreset()` must send every property unconditionally
   /// instead of diffing against local state. Local state is only a shadow of
@@ -56,6 +58,8 @@ class VideoProvider extends ChangeNotifier {
   ///   *default* state, so we resync again once the real state is in place.
   Future<void> _restoreSession() async {
     await _loadCustomPresets();
+    _defaultPresetIdLowRes = await PreferencesService.getDefaultPresetIdForLowRes();
+    _defaultPresetIdHighRes = await PreferencesService.getDefaultPresetIdForHighRes();
 
     final session = await PreferencesService.getLastVideoSession();
     if (session != null) {
@@ -118,9 +122,23 @@ class VideoProvider extends ChangeNotifier {
   List<String> get availableShaders => List.unmodifiable(_availableShaders);
   List<VideoPreset> get customPresets => List.unmodifiable(_customPresets);
   num? get currentVideoHeight => _currentVideoHeight;
+  String? get defaultPresetIdLowRes => _defaultPresetIdLowRes;
+  String? get defaultPresetIdHighRes => _defaultPresetIdHighRes;
+
+  Future<void> setDefaultPresetForLowRes(String? presetId) async {
+    _defaultPresetIdLowRes = presetId;
+    await PreferencesService.setDefaultPresetIdForLowRes(presetId);
+    notifyListeners();
+  }
+
+  Future<void> setDefaultPresetForHighRes(String? presetId) async {
+    _defaultPresetIdHighRes = presetId;
+    await PreferencesService.setDefaultPresetIdForHighRes(presetId);
+    notifyListeners();
+  }
 
   /// Fetches the current video's display height from MPV and updates internal state.
-  /// If the resolution tier changed, auto-applies shader recommendations for that tier.
+  /// If the resolution tier changed, auto-applies the default preset for that tier.
   Future<void> updateVideoHeight() async {
     try {
       final info = await dspProvider.fetchVideoInfo();
@@ -131,7 +149,7 @@ class VideoProvider extends ChangeNotifier {
         final newTier = getResolutionTier(height);
         if (newTier != _lastAutoAppliedTier) {
           _lastAutoAppliedTier = newTier;
-          _applyShaderRecommendations(newTier);
+          _applyDefaultPresetForTier(newTier);
         }
 
         notifyListeners();
@@ -141,51 +159,36 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
-  /// Auto-applies recommended shaders for the given resolution tier.
-  /// Updates activeShaders to match the tier's recommended set.
-  void _applyShaderRecommendations(ResolutionTier tier) {
-    final recommended = _getRecommendedShaders(tier);
-    if (recommended.isEmpty || recommended == _state.activeShaders) return;
+  /// Auto-applies the default preset for the given resolution tier.
+  void _applyDefaultPresetForTier(ResolutionTier tier) {
+    final presetId = tier == ResolutionTier.lowRes
+        ? _defaultPresetIdLowRes
+        : _defaultPresetIdHighRes;
 
-    _state = _state.copyWith(activeShaders: recommended);
-    _sendCommand('glsl-shaders', _buildShaderString(recommended));
-    notifyListeners();
-  }
+    if (presetId == null) return;
 
-  /// Returns the recommended shaders for a given resolution tier.
-  List<String> _getRecommendedShaders(ResolutionTier tier) {
-    final recommendations = <String>[];
-    for (final shader in _availableShaders) {
-      final metadata = shaderMetadataMap[shader];
-      final tiers = metadata?.recommendedFor ?? [ResolutionTier.lowRes, ResolutionTier.highRes];
-
-      if (tiers.contains(tier)) {
-        // For low-res: prioritize upscalers and sharpening
-        // For high-res: keep it minimal to avoid degrading detail
-        if (tier == ResolutionTier.lowRes) {
-          if (shader.contains('FSRCNNX') || shader.contains('SSimSuperRes')) {
-            recommendations.add(shader);
-            break; // Take the first good upscaler
-          }
-        } else if (tier == ResolutionTier.highRes) {
-          // For high-res, only add if it's a very safe enhancement (chroma prediction)
-          if (shader.contains('CfL_Prediction') && shader.endsWith('.glsl')) {
-            recommendations.add(shader);
-            break;
-          }
-        }
+    // Find the preset (built-in or custom)
+    VideoPreset? preset;
+    for (final p in builtinVideoPresets) {
+      if (p.id == presetId) {
+        preset = p;
+        break;
       }
     }
+    preset ??= _customPresets.firstWhere(
+      (p) => p.id == presetId,
+      orElse: () => VideoPreset(
+        id: '',
+        name: '',
+        emoji: '',
+        description: '',
+        state: VideoState(),
+      ),
+    );
 
-    return recommendations;
-  }
+    if (preset.id.isEmpty) return; // Preset not found
 
-  /// Builds the glsl-shaders property value from shader list.
-  String _buildShaderString(List<String> shaders) {
-    if (shaders.isEmpty) return '';
-    return shaders
-        .map((name) => '${_getShadersDirectory()}/$name')
-        .join(':');
+    applyPreset(preset);
   }
 
   Future<void> _loadCustomPresets() async {

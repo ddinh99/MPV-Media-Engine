@@ -85,14 +85,16 @@ class VideoPresetSelector extends StatelessWidget {
                   final preset = allPresets[index];
                   final isActive = provider.activePresetId == preset.id;
                   final isCustom = preset.id.startsWith('custom_');
+                  final isDefaultLowRes = provider.defaultPresetIdLowRes == preset.id;
+                  final isDefaultHighRes = provider.defaultPresetIdHighRes == preset.id;
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: Material(
                       color: Colors.transparent,
-                      child: InkWell(
+                      child: GestureDetector(
                         onTap: () => provider.applyPreset(preset),
-                        borderRadius: BorderRadius.circular(8),
+                        onLongPress: () => _showPresetMenu(context, provider, preset),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           width: 160,
@@ -130,6 +132,43 @@ class VideoPresetSelector extends StatelessWidget {
                                     ),
                                 ],
                               ),
+                              Wrap(
+                                spacing: 4,
+                                children: [
+                                  if (isDefaultLowRes)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: Text(
+                                        '≤1080p',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  if (isDefaultHighRes)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                      child: Text(
+                                        '1440p+',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                               const Spacer(),
                               Text(
                                 preset.description,
@@ -153,6 +192,64 @@ class VideoPresetSelector extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+
+  void _showPresetMenu(BuildContext context, VideoProvider provider, VideoPreset preset) {
+    final isDefaultLowRes = provider.defaultPresetIdLowRes == preset.id;
+    final isDefaultHighRes = provider.defaultPresetIdHighRes == preset.id;
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        color: AppTheme.surface,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${preset.emoji} ${preset.name}',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: Icon(
+                  isDefaultLowRes ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: AppTheme.primary,
+                ),
+                title: Text(
+                  'Default for ≤1080p',
+                  style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textPrimary),
+                ),
+                onTap: () async {
+                  await provider.setDefaultPresetForLowRes(isDefaultLowRes ? null : preset.id);
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                leading: Icon(
+                  isDefaultHighRes ? Icons.radio_button_checked : Icons.radio_button_unchecked,
+                  color: AppTheme.primary,
+                ),
+                title: Text(
+                  'Default for 1440p+',
+                  style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textPrimary),
+                ),
+                onTap: () async {
+                  await provider.setDefaultPresetForHighRes(isDefaultHighRes ? null : preset.id);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
