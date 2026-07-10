@@ -16,20 +16,54 @@ class TabVideoShaders extends StatefulWidget {
 }
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
+  Timer? _pollTimer;
+  String? _lastDetectedHeight;
+
   @override
   void initState() {
     super.initState();
-    context.read<VideoProvider>().updateVideoHeight();
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
+      if (!mounted) return;
+
+      final video = context.read<VideoProvider>();
+      await video.updateVideoHeight();
+
+      // Stop polling once height is detected and GUI updated
+      final heightStr = video.currentVideoHeight?.toString();
+      if (heightStr != null && heightStr != _lastDetectedHeight) {
+        _lastDetectedHeight = heightStr;
+        // Give UI time to rebuild, then stop polling
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _pollTimer?.cancel();
+            _pollTimer = null;
+          }
+        });
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Always check height when tab rebuilds — only MPV IPC calls if height changed
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<VideoProvider>().updateVideoHeight();
-      }
-    });
+    // If polling stopped but no height detected, restart it (video might have loaded)
+    if (_pollTimer == null && _lastDetectedHeight == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _pollTimer == null) {
+          _startPolling();
+        }
+      });
+    }
 
     return Consumer<VideoProvider>(
       builder: (context, video, child) {
