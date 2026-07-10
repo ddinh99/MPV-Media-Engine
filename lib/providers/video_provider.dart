@@ -1,8 +1,10 @@
 // lib/providers/video_provider.dart
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
+import '../models/session.dart';
 import '../models/video_preset.dart';
 import '../models/video_state.dart';
 import '../services/mpv_ipc_service.dart';
@@ -28,11 +30,61 @@ class VideoProvider extends ChangeNotifier {
   bool _needsFullResync = true;
   IpcConnectionState _lastKnownConnectionState = IpcConnectionState.disconnected;
 
+  /// See DspProvider's field of the same name — guards persistence until the
+  /// saved session has been read back, so we can't overwrite it with defaults.
+  bool _sessionRestored = false;
+  Timer? _persistDebounce;
+  String? _lastPersistedJson;
+
   VideoProvider(this.dspProvider) {
     _loadAvailableShaders();
-    _loadCustomPresets();
-    _checkWindowsHdr();
+    _restoreSession();
     dspProvider.addListener(_onDspProviderChanged);
+  }
+
+  /// Restores the last-used video settings, then makes sure MPV hears about
+  /// them. Ordering matters in two directions:
+  ///
+  /// - `_checkWindowsHdr()` only runs when there's *no* saved session. It's a
+  ///   first-launch convenience, and letting it fire afterwards would silently
+  ///   override a tone-mapping choice the user deliberately saved.
+  /// - DspProvider auto-connects while this is still awaiting. If it wins the
+  ///   race, the connect-triggered `_resyncAll()` will have already pushed the
+  ///   *default* state, so we resync again once the real state is in place.
+  Future<void> _restoreSession() async {
+    await _loadCustomPresets();
+
+    final session = await PreferencesService.getLastVideoSession();
+    if (session != null) {
+      _state = session.state;
+      _activePresetId = session.activePresetId;
+    } else {
+      await _checkWindowsHdr();
+    }
+    _sessionRestored = true;
+    notifyListeners();
+
+    _lastKnownConnectionState = dspProvider.connectionState;
+    if (_lastKnownConnectionState == IpcConnectionState.connected) {
+      _resyncAll();
+    }
+  }
+
+  /// Persist on every state change — see DspProvider.notifyListeners().
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    if (!_sessionRestored) return;
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(milliseconds: 400), _persistSession);
+  }
+
+  void _persistSession() {
+    final session = VideoSession(state: _state, activePresetId: _activePresetId);
+    final encoded = jsonEncode(session.toJson());
+    if (encoded == _lastPersistedJson) return;
+    _lastPersistedJson = encoded;
+    PreferencesService.saveLastVideoSession(session);
   }
 
   void _onDspProviderChanged() {
@@ -554,6 +606,9 @@ class VideoProvider extends ChangeNotifier {
   @override
   void dispose() {
     _debounceTimer?.cancel();
+    // Flush a pending write so settings changed in the last 400ms survive quit.
+    if (_persistDebounce?.isActive ?? false) _persistSession();
+    _persistDebounce?.cancel();
     dspProvider.removeListener(_onDspProviderChanged);
     super.dispose();
   }

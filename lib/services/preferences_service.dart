@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/theme.dart';
 import '../models/preset.dart';
+import '../models/session.dart';
 import '../models/video_preset.dart';
 
 class PreferencesService {
@@ -87,6 +88,50 @@ class PreferencesService {
   static Future<void> setThemeMode(AppThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_kThemeMode, mode.name);
+  }
+
+  // ── Last-used sessions ────────────────────────────────────────────────────
+  // Restored at launch and pushed to every new MPV instance, so the user's
+  // settings carry across app restarts and across videos. A decode failure
+  // (schema drift from an older build) must never block startup — we fall
+  // back to defaults rather than throwing.
+
+  static const String _kLastDspSession = 'last_dsp_session';
+
+  static Future<DspSession?> getLastDspSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_kLastDspSession);
+    if (jsonStr == null || jsonStr.isEmpty) return null;
+    try {
+      return DspSession.fromJson(jsonDecode(jsonStr) as Map<String, dynamic>);
+    } catch (e) {
+      print('Failed to load last DSP session, using defaults: $e');
+      return null;
+    }
+  }
+
+  static Future<void> saveLastDspSession(DspSession session) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kLastDspSession, jsonEncode(session.toJson()));
+  }
+
+  static const String _kLastVideoSession = 'last_video_session';
+
+  static Future<VideoSession?> getLastVideoSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    final jsonStr = prefs.getString(_kLastVideoSession);
+    if (jsonStr == null || jsonStr.isEmpty) return null;
+    try {
+      return VideoSession.fromJson(jsonDecode(jsonStr) as Map<String, dynamic>);
+    } catch (e) {
+      print('Failed to load last video session, using defaults: $e');
+      return null;
+    }
+  }
+
+  static Future<void> saveLastVideoSession(VideoSession session) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kLastVideoSession, jsonEncode(session.toJson()));
   }
 
   static const String _kDismissedUpdateVersion = 'dismissed_update_version';

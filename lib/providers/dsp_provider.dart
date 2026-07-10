@@ -10,6 +10,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../models/dsp_state.dart';
 import '../models/eq_band.dart';
 import '../models/preset.dart';
+import '../models/session.dart';
 import '../services/filter_builder.dart';
 import '../services/filter_parser.dart';
 import '../services/mpv_ipc_service.dart';
@@ -55,6 +56,13 @@ class DspProvider extends ChangeNotifier {
   bool _isPlayingTest = false;
   bool _prefsLoaded = false;
 
+  /// Guards session persistence until the saved session has been read back.
+  /// Without it, the notifyListeners() fired while preferences are still
+  /// loading would write default state over the user's saved session.
+  bool _sessionRestored = false;
+  Timer? _persistDebounce;
+  String? _lastPersistedJson;
+
   DspState get state => _state;
   String? get activePresetId => _activePresetId;
   List<Preset> get customPresets => List.unmodifiable(_customPresets);
@@ -83,6 +91,20 @@ class DspProvider extends ChangeNotifier {
   Future<void> _loadPreferences() async {
     _mpvExePath = await PreferencesService.getMpvExePath();
     _customPresets = await PreferencesService.getCustomPresets();
+
+    // Restore whatever the user was last listening with. This must happen
+    // before the auto-connect below, since connect() pushes the current state
+    // to MPV — restoring afterwards would leave MPV on the defaults.
+    final session = await PreferencesService.getLastDspSession();
+    if (session != null) {
+      _state = session.state;
+      _activePresetId = session.activePresetId;
+      _customFilterOverride = session.customFilter;
+      _autoApply = session.autoApply;
+      _rebuildPreview();
+    }
+    _sessionRestored = true;
+
     _prefsLoaded = true;
     notifyListeners();
     if (hasMpvExe) {
@@ -92,6 +114,32 @@ class DspProvider extends ChangeNotifier {
         await _ipc.disconnect();
       }
     }
+  }
+
+  /// Persist on every state change. Hooking notifyListeners() rather than each
+  /// of the setters means no mutation path can forget to save. Writes are
+  /// debounced (slider drags fire continuously) and skipped when the encoded
+  /// session is unchanged, so the log/connection notifications that don't
+  /// touch DSP state cost nothing.
+  @override
+  void notifyListeners() {
+    super.notifyListeners();
+    if (!_sessionRestored) return;
+    _persistDebounce?.cancel();
+    _persistDebounce = Timer(const Duration(milliseconds: 400), _persistSession);
+  }
+
+  void _persistSession() {
+    final session = DspSession(
+      state: _state,
+      activePresetId: _activePresetId,
+      customFilter: _customFilterOverride,
+      autoApply: _autoApply,
+    );
+    final encoded = jsonEncode(session.toJson());
+    if (encoded == _lastPersistedJson) return;
+    _lastPersistedJson = encoded;
+    unawaited(PreferencesService.saveLastDspSession(session));
   }
 
   /// Sends a raw JSON IPC command to MPV. Commands are queued and dispatched
@@ -542,6 +590,10 @@ class DspProvider extends ChangeNotifier {
   @override
   void dispose() {
     _debounce?.cancel();
+    // Flush any pending session write before the timer is discarded, so
+    // settings changed in the last 400ms aren't lost on quit.
+    if (_persistDebounce?.isActive ?? false) _persistSession();
+    _persistDebounce?.cancel();
     for (final item in _outbox) {
       item.completer.complete(false);
     }
