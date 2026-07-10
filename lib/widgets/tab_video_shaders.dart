@@ -51,7 +51,6 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
 
   void _startPolling() {
     _pollTimer?.cancel();
-    _stableHeightTime = null;
     _pollTimer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
       if (!mounted) return;
 
@@ -60,17 +59,17 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
 
       final currentHeight = video.currentVideoHeight;
 
-      // If height changed from what we displayed, restart countdown
-      if (currentHeight != _lastDisplayedHeight) {
+      // If height was detected and is different from what we displayed
+      if (currentHeight != null && currentHeight != _lastDisplayedHeight) {
         _lastDisplayedHeight = currentHeight;
-        _stableHeightTime = DateTime.now();
-      }
-
-      // Stop polling once height is stable for 500ms (enough for GUI to update)
-      if (_stableHeightTime != null &&
-          DateTime.now().difference(_stableHeightTime!).inMilliseconds >= 500) {
-        _pollTimer?.cancel();
-        _pollTimer = null;
+        // Let the UI rebuild with new height
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _pollTimer != null) {
+            // UI has updated, stop polling now
+            _pollTimer?.cancel();
+            _pollTimer = null;
+          }
+        });
       }
     });
   }
@@ -79,15 +78,6 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
   Widget build(BuildContext context) {
     return Consumer<VideoProvider>(
       builder: (context, video, child) {
-        // Restart polling if height changed but polling is stopped
-        if (_pollTimer == null && video.currentVideoHeight != _lastDisplayedHeight) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted && _pollTimer == null) {
-              _startPolling();
-            }
-          });
-        }
-
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
