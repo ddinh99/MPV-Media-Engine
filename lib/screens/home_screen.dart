@@ -272,15 +272,20 @@ class _AppHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Theme toggle
-              IconButton(
+              // Theme selector (Dark / Teal / Light)
+              PopupMenuButton<AppThemeMode>(
+                tooltip: 'Theme',
                 icon: Icon(
-                  themeProvider.isDark ? Icons.light_mode : Icons.dark_mode,
+                  _themeIcon(themeProvider.mode),
                   size: 16,
                   color: AppTheme.textMuted,
                 ),
-                tooltip: 'Toggle Theme',
-                onPressed: () => themeProvider.toggleTheme(),
+                onSelected: themeProvider.setMode,
+                itemBuilder: (context) => [
+                  _themeMenuItem(AppThemeMode.dark, 'Dark', themeProvider.mode),
+                  _themeMenuItem(AppThemeMode.teal, 'Teal', themeProvider.mode),
+                  _themeMenuItem(AppThemeMode.light, 'Light', themeProvider.mode),
+                ],
               ),
               // Settings button
               IconButton(
@@ -403,6 +408,40 @@ class _AppHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+IconData _themeIcon(AppThemeMode mode) => switch (mode) {
+      AppThemeMode.dark => Icons.dark_mode,
+      AppThemeMode.teal => Icons.eco,
+      AppThemeMode.light => Icons.light_mode,
+    };
+
+PopupMenuItem<AppThemeMode> _themeMenuItem(
+    AppThemeMode mode, String label, AppThemeMode active) {
+  final isActive = mode == active;
+  return PopupMenuItem(
+    value: mode,
+    child: Row(
+      children: [
+        Icon(_themeIcon(mode),
+            size: 16,
+            color: isActive ? AppTheme.primary : AppTheme.textSecondary),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+            color: isActive ? AppTheme.primary : AppTheme.textPrimary,
+          ),
+        ),
+        if (isActive) ...[
+          const Spacer(),
+          Icon(Icons.check, size: 16, color: AppTheme.primary),
+        ],
+      ],
+    ),
+  );
 }
 
 class _HelpStep extends StatelessWidget {

@@ -241,7 +241,7 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(
+                        borderSide: BorderSide(
                             color: AppTheme.primary, width: 1.5),
                       ),
                       contentPadding: const EdgeInsets.symmetric(

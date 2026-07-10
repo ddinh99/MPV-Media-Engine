@@ -11,7 +11,10 @@ class DspSlider extends StatelessWidget {
   final int? divisions;
   final String Function(double)? valueLabel;
   final ValueChanged<double> onChanged;
-  final Color accentColor;
+  /// Defaults to the theme's primary colour when null. Can't default to
+  /// `AppTheme.primary` directly — it's a theme-dependent getter now, not a
+  /// compile-time constant, so it can't be a const default parameter value.
+  final Color? accentColor;
   final String? unit;
 
   const DspSlider({
@@ -23,7 +26,7 @@ class DspSlider extends StatelessWidget {
     required this.onChanged,
     this.divisions,
     this.valueLabel,
-    this.accentColor = AppTheme.primary,
+    this.accentColor,
     this.unit,
   });
 
@@ -35,6 +38,7 @@ class DspSlider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = accentColor ?? AppTheme.primary;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
@@ -54,7 +58,7 @@ class DspSlider extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: accentColor.withOpacity(0.10),
+                  color: accent.withOpacity(0.10),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -62,7 +66,7 @@ class DspSlider extends StatelessWidget {
                   style: GoogleFonts.jetBrainsMono(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: accentColor,
+                    color: accent,
                   ),
                 ),
               ),
@@ -70,10 +74,10 @@ class DspSlider extends StatelessWidget {
           ),
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              activeTrackColor: accentColor,
-              thumbColor: accentColor,
-              inactiveTrackColor: accentColor.withOpacity(0.15),
-              overlayColor: accentColor.withOpacity(0.10),
+              activeTrackColor: accent,
+              thumbColor: accent,
+              inactiveTrackColor: accent.withOpacity(0.15),
+              overlayColor: accent.withOpacity(0.10),
               trackHeight: 3,
             ),
             child: Slider(
@@ -108,7 +112,8 @@ class DspToggleRow extends StatelessWidget {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChanged;
-  final Color accentColor;
+  /// See [DspSlider.accentColor] — null falls back to the theme primary.
+  final Color? accentColor;
 
   const DspToggleRow({
     super.key,
@@ -116,7 +121,7 @@ class DspToggleRow extends StatelessWidget {
     this.subtitle,
     required this.value,
     required this.onChanged,
-    this.accentColor = AppTheme.primary,
+    this.accentColor,
   });
 
   @override
@@ -150,7 +155,7 @@ class DspToggleRow extends StatelessWidget {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: accentColor,
+          activeColor: accentColor ?? AppTheme.primary,
         ),
       ],
     );

@@ -1,6 +1,7 @@
 // lib/services/preferences_service.dart
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/theme.dart';
 import '../models/preset.dart';
 import '../models/video_preset.dart';
 
@@ -64,16 +65,28 @@ class PreferencesService {
     await prefs.remove(_kMpvExePath);
   }
 
-  static const String _kIsDarkTheme = 'is_dark_theme';
+  static const String _kIsDarkTheme = 'is_dark_theme'; // legacy (pre-teal)
+  static const String _kThemeMode = 'theme_mode';
 
-  static Future<bool> getIsDarkTheme() async {
+  static Future<AppThemeMode> getThemeMode() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kIsDarkTheme) ?? true;
+    final stored = prefs.getString(_kThemeMode);
+    if (stored != null) {
+      return AppThemeMode.values.firstWhere(
+        (m) => m.name == stored,
+        orElse: () => AppThemeMode.dark,
+      );
+    }
+    // Migrate from the old boolean flag: an explicit `false` means the user
+    // had chosen light; anything else (including no saved value) defaults to
+    // dark, matching the current default.
+    final legacy = prefs.getBool(_kIsDarkTheme);
+    return legacy == false ? AppThemeMode.light : AppThemeMode.dark;
   }
 
-  static Future<void> setIsDarkTheme(bool isDark) async {
+  static Future<void> setThemeMode(AppThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kIsDarkTheme, isDark);
+    await prefs.setString(_kThemeMode, mode.name);
   }
 
   static const String _kDismissedUpdateVersion = 'dismissed_update_version';

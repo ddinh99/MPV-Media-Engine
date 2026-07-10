@@ -22,7 +22,7 @@ class MvpSoundEngineApp extends StatelessWidget {
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {
-          AppTheme.isDark = themeProvider.isDark;
+          AppTheme.mode = themeProvider.mode;
           return MaterialApp(
             title: 'MPV Media Engine',
             debugShowCheckedModeBanner: false,

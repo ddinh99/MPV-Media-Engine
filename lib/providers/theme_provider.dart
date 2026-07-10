@@ -3,24 +3,25 @@ import '../services/preferences_service.dart';
 import '../constants/theme.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  bool _isDark = true;
+  AppThemeMode _mode = AppThemeMode.dark;
 
-  bool get isDark => _isDark;
+  AppThemeMode get mode => _mode;
 
   ThemeProvider() {
     _loadTheme();
   }
 
   Future<void> _loadTheme() async {
-    _isDark = await PreferencesService.getIsDarkTheme();
-    AppTheme.isDark = _isDark;
+    _mode = await PreferencesService.getThemeMode();
+    AppTheme.mode = _mode;
     notifyListeners();
   }
 
-  void toggleTheme() {
-    _isDark = !_isDark;
-    AppTheme.isDark = _isDark;
-    PreferencesService.setIsDarkTheme(_isDark);
+  void setMode(AppThemeMode mode) {
+    if (mode == _mode) return;
+    _mode = mode;
+    AppTheme.mode = _mode;
+    PreferencesService.setThemeMode(_mode);
     notifyListeners();
   }
 }
