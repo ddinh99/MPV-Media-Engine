@@ -5,6 +5,7 @@ import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as path;
 import '../models/session.dart';
+import '../models/shader_metadata.dart';
 import '../models/video_preset.dart';
 import '../models/video_state.dart';
 import '../services/mpv_ipc_service.dart';
@@ -20,6 +21,7 @@ class VideoProvider extends ChangeNotifier {
   List<VideoPreset> _customPresets = [];
   Timer? _debounceTimer;
   num? _currentVideoHeight;
+  ResolutionTier? _lastAutoAppliedTier;
 
   /// Whether the next `applyPreset()` must send every property unconditionally
   /// instead of diffing against local state. Local state is only a shadow of
@@ -118,18 +120,72 @@ class VideoProvider extends ChangeNotifier {
   num? get currentVideoHeight => _currentVideoHeight;
 
   /// Fetches the current video's display height from MPV and updates internal state.
-  /// Used by the UI to show resolution-specific shader recommendations.
+  /// If the resolution tier changed, auto-applies shader recommendations for that tier.
   Future<void> updateVideoHeight() async {
     try {
       final info = await dspProvider.fetchVideoInfo();
       final height = info['dheight'] as num?;
       if (height != _currentVideoHeight) {
         _currentVideoHeight = height;
+
+        final newTier = getResolutionTier(height);
+        if (newTier != _lastAutoAppliedTier) {
+          _lastAutoAppliedTier = newTier;
+          _applyShaderRecommendations(newTier);
+        }
+
         notifyListeners();
       }
     } catch (e) {
       debugPrint('Error updating video height: $e');
     }
+  }
+
+  /// Auto-applies recommended shaders for the given resolution tier.
+  /// Updates activeShaders to match the tier's recommended set.
+  void _applyShaderRecommendations(ResolutionTier tier) {
+    final recommended = _getRecommendedShaders(tier);
+    if (recommended.isEmpty || recommended == _state.activeShaders) return;
+
+    _state = _state.copyWith(activeShaders: recommended);
+    _sendCommand('glsl-shaders', _buildShaderString(recommended));
+    notifyListeners();
+  }
+
+  /// Returns the recommended shaders for a given resolution tier.
+  List<String> _getRecommendedShaders(ResolutionTier tier) {
+    final recommendations = <String>[];
+    for (final shader in _availableShaders) {
+      final metadata = shaderMetadataMap[shader];
+      final tiers = metadata?.recommendedFor ?? [ResolutionTier.lowRes, ResolutionTier.highRes];
+
+      if (tiers.contains(tier)) {
+        // For low-res: prioritize upscalers and sharpening
+        // For high-res: keep it minimal to avoid degrading detail
+        if (tier == ResolutionTier.lowRes) {
+          if (shader.contains('FSRCNNX') || shader.contains('SSimSuperRes')) {
+            recommendations.add(shader);
+            break; // Take the first good upscaler
+          }
+        } else if (tier == ResolutionTier.highRes) {
+          // For high-res, only add if it's a very safe enhancement (chroma prediction)
+          if (shader.contains('CfL_Prediction') && shader.endsWith('.glsl')) {
+            recommendations.add(shader);
+            break;
+          }
+        }
+      }
+    }
+
+    return recommendations;
+  }
+
+  /// Builds the glsl-shaders property value from shader list.
+  String _buildShaderString(List<String> shaders) {
+    if (shaders.isEmpty) return '';
+    return shaders
+        .map((name) => '${_getShadersDirectory()}/$name')
+        .join(':');
   }
 
   Future<void> _loadCustomPresets() async {
