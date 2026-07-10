@@ -16,29 +16,11 @@ class TabVideoShaders extends StatefulWidget {
 }
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
-  Timer? _heightRefreshTimer;
-
   @override
   void initState() {
     super.initState();
-    _updateHeightAndScheduleRefresh();
-  }
-
-  @override
-  void dispose() {
-    _heightRefreshTimer?.cancel();
-    super.dispose();
-  }
-
-  void _updateHeightAndScheduleRefresh() {
+    // Fetch video height once when tab opens (in case a video was loaded before opening tab)
     context.read<VideoProvider>().updateVideoHeight();
-    // Refresh every 500ms while tab is visible to catch video changes
-    _heightRefreshTimer?.cancel();
-    _heightRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
-      if (mounted) {
-        context.read<VideoProvider>().updateVideoHeight();
-      }
-    });
   }
 
   @override

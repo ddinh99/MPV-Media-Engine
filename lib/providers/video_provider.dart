@@ -141,8 +141,7 @@ class VideoProvider extends ChangeNotifier {
   /// If the resolution tier changed, auto-applies the default preset for that tier.
   Future<void> updateVideoHeight() async {
     try {
-      final info = await dspProvider.fetchVideoInfo();
-      final height = info['dheight'] as num?;
+      final height = await dspProvider.getProperty('dheight') as num?;
       if (height != _currentVideoHeight) {
         _currentVideoHeight = height;
 
@@ -155,7 +154,7 @@ class VideoProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error updating video height: $e');
+      // Silent fail on property fetch errors — video isn't loaded yet or MPV is offline
     }
   }
 
