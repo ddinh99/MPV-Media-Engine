@@ -19,6 +19,7 @@ class VideoProvider extends ChangeNotifier {
   List<String> _availableShaders = [];
   List<VideoPreset> _customPresets = [];
   Timer? _debounceTimer;
+  num? _currentVideoHeight;
 
   /// Whether the next `applyPreset()` must send every property unconditionally
   /// instead of diffing against local state. Local state is only a shadow of
@@ -114,6 +115,22 @@ class VideoProvider extends ChangeNotifier {
   String? get activePresetId => _activePresetId;
   List<String> get availableShaders => List.unmodifiable(_availableShaders);
   List<VideoPreset> get customPresets => List.unmodifiable(_customPresets);
+  num? get currentVideoHeight => _currentVideoHeight;
+
+  /// Fetches the current video's display height from MPV and updates internal state.
+  /// Used by the UI to show resolution-specific shader recommendations.
+  Future<void> updateVideoHeight() async {
+    try {
+      final info = await dspProvider.fetchVideoInfo();
+      final height = info['dheight'] as num?;
+      if (height != _currentVideoHeight) {
+        _currentVideoHeight = height;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating video height: $e');
+    }
+  }
 
   Future<void> _loadCustomPresets() async {
     _customPresets = await PreferencesService.getCustomVideoPresets();

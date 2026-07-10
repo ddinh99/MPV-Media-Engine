@@ -1,13 +1,45 @@
 // lib/widgets/tab_video_shaders.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/theme.dart';
+import '../models/shader_metadata.dart';
 import '../providers/video_provider.dart';
 import 'video_controls_common.dart';
 
-class TabVideoShaders extends StatelessWidget {
+class TabVideoShaders extends StatefulWidget {
   const TabVideoShaders({super.key});
+
+  @override
+  State<TabVideoShaders> createState() => _TabVideoShadersState();
+}
+
+class _TabVideoShadersState extends State<TabVideoShaders> {
+  Timer? _heightRefreshTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateHeightAndScheduleRefresh();
+  }
+
+  @override
+  void dispose() {
+    _heightRefreshTimer?.cancel();
+    super.dispose();
+  }
+
+  void _updateHeightAndScheduleRefresh() {
+    context.read<VideoProvider>().updateVideoHeight();
+    // Refresh every 500ms while tab is visible to catch video changes
+    _heightRefreshTimer?.cancel();
+    _heightRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (mounted) {
+        context.read<VideoProvider>().updateVideoHeight();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,84 +87,243 @@ class TabVideoShaders extends StatelessWidget {
     }
 
     final activeShaders = video.state.activeShaders;
-    // Active shaders float to the front in their actual chain order, so the
-    // up/down arrows visibly move them — the grid used to render everything
-    // in the fixed `availableShaders` (file listing) order regardless of the
-    // active chain order, so reordering silently changed the mpv command
-    // but nothing ever appeared to move on screen.
-    final orderedShaders = <String>[
-      ...activeShaders,
-      ...video.availableShaders.where((s) => !activeShaders.contains(s)),
-    ];
+    final currentHeight = video.currentVideoHeight;
+    final currentTier = getResolutionTier(currentHeight);
 
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: videoCardDecoration(),
-      child: GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 3,
-          mainAxisExtent: 44,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 2,
-        ),
-        itemCount: orderedShaders.length,
-        itemBuilder: (context, index) {
-          final shaderName = orderedShaders[index];
-          final isActive = activeShaders.contains(shaderName);
-          // Reordering only makes sense among *active* shaders (only those
-          // are actually applied, in this order) — position within the full
-          // available-shaders list is unrelated and must not be used here.
-          final activeIndex = activeShaders.indexOf(shaderName);
+    // Group shaders by tier, preserving active-first ordering within each tier
+    final lowResTiers = <String>[];
+    final highResTiers = <String>[];
 
-          return Row(
-            children: [
-              Checkbox(
-                value: isActive,
-                onChanged: (val) => video.toggleShader(shaderName, val ?? false),
-                activeColor: AppTheme.primary,
-                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                visualDensity: VisualDensity.compact,
-              ),
-              Expanded(
-                child: Text(
-                  shaderName,
-                  overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.jetBrainsMono(
+    for (final shader in video.availableShaders) {
+      final metadata = shaderMetadataMap[shader];
+      final tiers = metadata?.recommendedFor ?? [ResolutionTier.lowRes, ResolutionTier.highRes];
+
+      if (tiers.contains(ResolutionTier.lowRes)) {
+        lowResTiers.add(shader);
+      }
+      if (tiers.contains(ResolutionTier.highRes)) {
+        highResTiers.add(shader);
+      }
+    }
+
+    // Sort within each tier: active shaders first (in chain order), then inactive
+    lowResTiers.sort((a, b) {
+      final aActive = activeShaders.contains(a);
+      final bActive = activeShaders.contains(b);
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      if (aActive && bActive) {
+        return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
+      }
+      return 0;
+    });
+
+    highResTiers.sort((a, b) {
+      final aActive = activeShaders.contains(a);
+      final bActive = activeShaders.contains(b);
+      if (aActive && !bActive) return -1;
+      if (!aActive && bActive) return 1;
+      if (aActive && bActive) {
+        return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
+      }
+      return 0;
+    });
+
+    return Column(
+      children: [
+        if (currentHeight != null)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppTheme.primary, size: 14),
+                const SizedBox(width: 8),
+                Text(
+                  'Current video: ${currentHeight.toInt()}p',
+                  style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    color: AppTheme.primary,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-              ),
-              if (isActive) ...[
-                IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_up, size: 18),
-                  tooltip: 'Move earlier in chain',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  color: AppTheme.textMuted,
-                  onPressed: activeIndex > 0
-                      ? () => video.reorderShaders(activeIndex, activeIndex - 1)
-                      : null,
-                ),
-                IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-                  tooltip: 'Move later in chain',
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                  color: AppTheme.textMuted,
-                  onPressed: activeIndex < activeShaders.length - 1
-                      ? () => video.reorderShaders(activeIndex, activeIndex + 2)
-                      : null,
-                ),
               ],
-            ],
-          );
-        },
+            ),
+          ),
+        if (currentHeight != null) const SizedBox(height: 16),
+        _buildShaderTier(
+          context,
+          video,
+          'For ≤1080p',
+          Icons.trending_up,
+          lowResTiers,
+          activeShaders,
+          currentTier == ResolutionTier.lowRes,
+        ),
+        const SizedBox(height: 16),
+        _buildShaderTier(
+          context,
+          video,
+          'For 1440p+',
+          Icons.hd,
+          highResTiers,
+          activeShaders,
+          currentTier == ResolutionTier.highRes,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildShaderTier(
+    BuildContext context,
+    VideoProvider video,
+    String tierName,
+    IconData icon,
+    List<String> shaders,
+    List<String> activeShaders,
+    bool isCurrentTier,
+  ) {
+    if (shaders.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceVariant,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          'No shaders for this category',
+          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+        ),
+      );
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: isCurrentTier ? AppTheme.primary.withOpacity(0.3) : AppTheme.surfaceVariant,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Icon(icon, size: 16, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  tierName,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                if (isCurrentTier)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '← Your video',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceVariant.withOpacity(0.5),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(8),
+                bottomRight: Radius.circular(8),
+              ),
+            ),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                mainAxisExtent: 44,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 2,
+              ),
+              itemCount: shaders.length,
+              itemBuilder: (context, index) {
+                final shaderName = shaders[index];
+                final isActive = activeShaders.contains(shaderName);
+                final activeIndex = activeShaders.indexOf(shaderName);
+
+                return Row(
+                  children: [
+                    Checkbox(
+                      value: isActive,
+                      onChanged: (val) => video.toggleShader(shaderName, val ?? false),
+                      activeColor: AppTheme.primary,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    Expanded(
+                      child: Tooltip(
+                        message: shaderMetadataMap[shaderName]?.description ?? shaderName,
+                        child: Text(
+                          shaderName,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 12,
+                            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (isActive) ...[
+                      IconButton(
+                        icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                        tooltip: 'Move earlier in chain',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        color: AppTheme.textMuted,
+                        onPressed: activeIndex > 0
+                            ? () => video.reorderShaders(activeIndex, activeIndex - 1)
+                            : null,
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                        tooltip: 'Move later in chain',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        color: AppTheme.textMuted,
+                        onPressed: activeIndex < activeShaders.length - 1
+                            ? () => video.reorderShaders(activeIndex, activeIndex + 2)
+                            : null,
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
