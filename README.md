@@ -29,7 +29,8 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 ## 🚀 Getting Started
 
 ### Download & Run (Recommended)
-1. Go to the [Releases page](https://github.com/ddinh99/MPV-Media-Engine/releases) and download the latest `MPV-Media-Engine-v1.3.zip`.
+1. Go to the [**latest release**](https://github.com/ddinh99/MPV-Media-Engine/releases/latest) and download the zip attached there.
+   *(If you grabbed a build before v1.3.1, please re-download — earlier versions could fail to connect to MPV on machines without Python installed.)*
 2. Extract the folder and double-click `MPV_Media_Engine.exe` to launch the GUI.
 *(Note: You do **not** need Flutter or any programming tools installed to run the pre-compiled application!)*
 
