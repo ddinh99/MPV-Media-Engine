@@ -75,4 +75,16 @@ class PreferencesService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_kIsDarkTheme, isDark);
   }
+
+  static const String _kDismissedUpdateVersion = 'dismissed_update_version';
+
+  static Future<String?> getDismissedUpdateVersion() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_kDismissedUpdateVersion);
+  }
+
+  static Future<void> setDismissedUpdateVersion(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_kDismissedUpdateVersion, version);
+  }
 }

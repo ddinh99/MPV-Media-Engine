@@ -1,5 +1,6 @@
 // lib/screens/home_screen.dart
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
 import '../providers/theme_provider.dart';
+import '../services/preferences_service.dart';
+import '../services/update_checker.dart';
 import '../widgets/connection_bar.dart';
 import '../widgets/first_run_setup.dart';
 import '../widgets/sound_settings_entry.dart';
@@ -16,6 +19,10 @@ import '../widgets/tab_video_grading.dart';
 import '../widgets/tab_video_hdr.dart';
 import '../widgets/tab_video_scaling.dart';
 import '../widgets/tab_video_shaders.dart';
+
+// dart:io is only used to open the release URL in the default browser
+// (desktop only). Guarded by kIsWeb everywhere it's used.
+import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   late TabController _tabController;
   bool _showLog = false;
   bool _setupDialogShown = false;
+  UpdateInfo? _updateInfo;
 
   // Video Engine is the app's main feature, so it gets four dedicated tabs
   // (matching the granularity Sound used to have all to itself). Sound is no
@@ -79,6 +87,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         dsp.addListener(tryShowSetup);
       }
     });
+
+    _checkForUpdate();
+  }
+
+  /// Best-effort startup check against GitHub Releases. Never surfaces an
+  /// error to the user — offline/rate-limited/malformed responses just mean
+  /// no banner shows, same as "already up to date".
+  Future<void> _checkForUpdate() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      final info = await checkForUpdate(packageInfo.version);
+      if (info == null || !mounted) return;
+      final dismissed = await PreferencesService.getDismissedUpdateVersion();
+      if (dismissed == info.version) return;
+      setState(() => _updateInfo = info);
+    } catch (_) {
+      // Ignore — update checks are non-essential.
+    }
+  }
+
+  Future<void> _dismissUpdate() async {
+    final info = _updateInfo;
+    if (info == null) return;
+    setState(() => _updateInfo = null);
+    await PreferencesService.setDismissedUpdateVersion(info.version);
+  }
+
+  void _openReleasePage(String url) {
+    if (kIsWeb) return;
+    try {
+      io.Process.start('explorer.exe', [url]);
+    } catch (_) {
+      // Best-effort — if this fails, the user can still read the URL from
+      // the banner text or the Releases page directly.
+    }
   }
 
   void _onTabChanged() {
@@ -106,6 +149,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: [
               // Title bar / app header
               _AppHeader(onToggleLog: () => setState(() => _showLog = !_showLog), showLog: _showLog),
+              // Update available banner (dismissible, shown once per version)
+              if (_updateInfo != null)
+                _UpdateBanner(
+                  info: _updateInfo!,
+                  onView: () => _openReleasePage(_updateInfo!.releaseUrl),
+                  onDismiss: _dismissUpdate,
+                ),
               // MPV connection bar
               ConnectionBar(),
               // Sound Settings entry + Video Presets — the app's main feature,
@@ -405,6 +455,54 @@ class _HelpStep extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _UpdateBanner extends StatelessWidget {
+  final UpdateInfo info;
+  final VoidCallback onView;
+  final VoidCallback onDismiss;
+
+  const _UpdateBanner({
+    required this.info,
+    required this.onView,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      color: AppTheme.warning.withOpacity(0.1),
+      child: Row(
+        children: [
+          Icon(Icons.new_releases_outlined, size: 16, color: AppTheme.warning),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'A new version (v${info.version}) is available.',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: onView,
+            child: Text('View Release', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700)),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16),
+            tooltip: 'Dismiss',
+            color: AppTheme.textMuted,
+            visualDensity: VisualDensity.compact,
+            onPressed: onDismiss,
+          ),
+        ],
+      ),
     );
   }
 }
