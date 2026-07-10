@@ -55,6 +55,15 @@ class TabVideoShaders extends StatelessWidget {
     }
 
     final activeShaders = video.state.activeShaders;
+    // Active shaders float to the front in their actual chain order, so the
+    // up/down arrows visibly move them — the grid used to render everything
+    // in the fixed `availableShaders` (file listing) order regardless of the
+    // active chain order, so reordering silently changed the mpv command
+    // but nothing ever appeared to move on screen.
+    final orderedShaders = <String>[
+      ...activeShaders,
+      ...video.availableShaders.where((s) => !activeShaders.contains(s)),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(8),
@@ -68,9 +77,9 @@ class TabVideoShaders extends StatelessWidget {
           crossAxisSpacing: 8,
           mainAxisSpacing: 2,
         ),
-        itemCount: video.availableShaders.length,
+        itemCount: orderedShaders.length,
         itemBuilder: (context, index) {
-          final shaderName = video.availableShaders[index];
+          final shaderName = orderedShaders[index];
           final isActive = activeShaders.contains(shaderName);
           // Reordering only makes sense among *active* shaders (only those
           // are actually applied, in this order) — position within the full
