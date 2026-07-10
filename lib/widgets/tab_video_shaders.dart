@@ -17,7 +17,8 @@ class TabVideoShaders extends StatefulWidget {
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
   Timer? _pollTimer;
-  String? _lastDetectedHeight;
+  num? _lastDisplayedHeight;
+  DateTime? _stableHeightTime;
 
   @override
   void initState() {
@@ -33,40 +34,43 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
 
   void _startPolling() {
     _pollTimer?.cancel();
+    _stableHeightTime = null;
     _pollTimer = Timer.periodic(const Duration(milliseconds: 300), (_) async {
       if (!mounted) return;
 
       final video = context.read<VideoProvider>();
       await video.updateVideoHeight();
 
-      // Stop polling once height is detected and GUI updated
-      final heightStr = video.currentVideoHeight?.toString();
-      if (heightStr != null && heightStr != _lastDetectedHeight) {
-        _lastDetectedHeight = heightStr;
-        // Give UI time to rebuild, then stop polling
-        Future.delayed(const Duration(milliseconds: 100), () {
-          if (mounted) {
-            _pollTimer?.cancel();
-            _pollTimer = null;
-          }
-        });
+      final currentHeight = video.currentVideoHeight;
+
+      // If height changed from what we displayed, restart countdown
+      if (currentHeight != _lastDisplayedHeight) {
+        _lastDisplayedHeight = currentHeight;
+        _stableHeightTime = DateTime.now();
+      }
+
+      // Stop polling once height is stable for 500ms (enough for GUI to update)
+      if (_stableHeightTime != null &&
+          DateTime.now().difference(_stableHeightTime!).inMilliseconds >= 500) {
+        _pollTimer?.cancel();
+        _pollTimer = null;
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // If polling stopped but no height detected, restart it (video might have loaded)
-    if (_pollTimer == null && _lastDetectedHeight == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _pollTimer == null) {
-          _startPolling();
-        }
-      });
-    }
-
     return Consumer<VideoProvider>(
       builder: (context, video, child) {
+        // Restart polling if height changed but polling is stopped
+        if (_pollTimer == null && video.currentVideoHeight != _lastDisplayedHeight) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _pollTimer == null) {
+              _startPolling();
+            }
+          });
+        }
+
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
