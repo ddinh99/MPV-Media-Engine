@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  static bool isDark = false;
+  static bool isDark = true;
 
   // Color palette
   static Color get background => isDark ? const Color(0xFF0F172A) : const Color(0xFFF8F9FA);

@@ -68,7 +68,7 @@ class PreferencesService {
 
   static Future<bool> getIsDarkTheme() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_kIsDarkTheme) ?? false;
+    return prefs.getBool(_kIsDarkTheme) ?? true;
   }
 
   static Future<void> setIsDarkTheme(bool isDark) async {

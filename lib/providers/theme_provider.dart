@@ -3,7 +3,7 @@ import '../services/preferences_service.dart';
 import '../constants/theme.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  bool _isDark = false;
+  bool _isDark = true;
 
   bool get isDark => _isDark;
 
