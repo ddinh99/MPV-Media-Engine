@@ -16,15 +16,30 @@ class TabVideoShaders extends StatefulWidget {
 }
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
+  DateTime? _lastHeightUpdate;
+
   @override
   void initState() {
     super.initState();
-    // Fetch video height once when tab opens (in case a video was loaded before opening tab)
-    context.read<VideoProvider>().updateVideoHeight();
+    _checkVideoHeight();
+  }
+
+  void _checkVideoHeight() {
+    final now = DateTime.now();
+    // Only update if 2+ seconds since last check (catch video changes, not excessive)
+    if (_lastHeightUpdate == null || now.difference(_lastHeightUpdate!).inSeconds >= 2) {
+      _lastHeightUpdate = now;
+      context.read<VideoProvider>().updateVideoHeight();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Check height when tab is visible (catches videos loaded while tab was closed)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _checkVideoHeight();
+    });
+
     return Consumer<VideoProvider>(
       builder: (context, video, child) {
         return SingleChildScrollView(
