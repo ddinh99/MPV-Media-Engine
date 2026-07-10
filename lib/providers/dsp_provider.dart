@@ -232,29 +232,19 @@ class DspProvider extends ChangeNotifier {
         bridgePs1Path = ps1File.path;
       } catch (_) {}
 
-      // 4c. Try starting Python bridge first
+      // 4c. Try starting PowerShell bridge first. Unlike the Python bridge
+      // (which only speaks TCP to mpv and can never connect — mpv's
+      // --input-ipc-server is always a named pipe on Windows, see
+      // CLAUDE.md), the PowerShell script tries the named pipe first, so
+      // it's the only one of the two that's actually compatible with how
+      // mpv is launched above. powershell.exe also ships on every Windows
+      // install, whereas relying on `python` being on PATH is unsafe: on a
+      // machine with no real Python, `python` silently resolves to the
+      // Windows Store "app execution alias" stub, which spawns without
+      // throwing and would falsely look like a successful bridge start.
       bool bridgeStarted = false;
-      if (bridgePyPath.isNotEmpty && io.File(bridgePyPath).existsSync()) {
-        _addLog('▶ Starting WebSocket bridge (Python)…');
-        try {
-          final bp = await io.Process.start(
-            'python',
-            [bridgePyPath],
-            mode: io.ProcessStartMode.detached,
-            environment: {'PYTHONUNBUFFERED': '1'},
-          );
-          _addLog('  Python bridge pid ${bp.pid} → ws://127.0.0.1:$sessionPort');
-          _ipc.setSocketPath('ws://127.0.0.1:$sessionPort');
-          bridgeStarted = true;
-          await Future.delayed(const Duration(milliseconds: 1000));
-        } catch (e) {
-          _addLog('  Python bridge start failed: $e');
-        }
-      }
-
-      // 4d. Fallback to PowerShell bridge if Python failed
-      if (!bridgeStarted && bridgePs1Path.isNotEmpty && io.File(bridgePs1Path).existsSync()) {
-        _addLog('▶ Starting WebSocket bridge (PowerShell Fallback)…');
+      if (bridgePs1Path.isNotEmpty && io.File(bridgePs1Path).existsSync()) {
+        _addLog('▶ Starting WebSocket bridge (PowerShell)…');
         try {
           final bp = await io.Process.start(
             'powershell.exe',
@@ -273,8 +263,29 @@ class DspProvider extends ChangeNotifier {
         }
       }
 
+      // 4d. Python bridge as a legacy fallback only. Note it can't actually
+      // reach an mpv started with a named pipe (see above), so this is only
+      // useful if a bridge is ever pointed at an mpv listening on real TCP.
+      if (!bridgeStarted && bridgePyPath.isNotEmpty && io.File(bridgePyPath).existsSync()) {
+        _addLog('▶ Starting WebSocket bridge (Python fallback)…');
+        try {
+          final bp = await io.Process.start(
+            'python',
+            [bridgePyPath],
+            mode: io.ProcessStartMode.detached,
+            environment: {'PYTHONUNBUFFERED': '1'},
+          );
+          _addLog('  Python bridge pid ${bp.pid} → ws://127.0.0.1:$sessionPort');
+          _ipc.setSocketPath('ws://127.0.0.1:$sessionPort');
+          bridgeStarted = true;
+          await Future.delayed(const Duration(milliseconds: 1000));
+        } catch (e) {
+          _addLog('  Python bridge start failed: $e');
+        }
+      }
+
       if (!bridgeStarted) {
-        _addLog('⚠ Both Python and PowerShell bridges failed to launch. Please run the bridge manually.');
+        _addLog('⚠ Both PowerShell and Python bridges failed to launch. Please run the bridge manually.');
       }
 
       // ── Step 5: auto-connect with retry ─────────────────────────────────
