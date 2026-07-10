@@ -23,6 +23,14 @@ class MpvIpcService {
   final StreamController<String> _responseController =
       StreamController<String>.broadcast();
 
+  /// Pending get_property requests keyed by the request_id we sent, so an
+  /// async reply arriving from MPV can be matched back to its caller. Works
+  /// over the WebSocket bridge (which relays MPV's replies — see
+  /// mpv_websocket_bridge.ps1) or a direct socket. mpv acks fire-and-forget
+  /// commands with request_id 0; our counter starts at 1 so those never match.
+  final Map<int, Completer<dynamic>> _pendingRequests = {};
+  int _requestIdCounter = 0;
+
   Stream<IpcConnectionState> get stateStream => _stateController.stream;
   Stream<String> get responseStream => _responseController.stream;
   IpcConnectionState get connectionState => _state;
@@ -85,7 +93,7 @@ class MpvIpcService {
         _connection = channel;
         _subscription = channel.stream.listen(
           (data) {
-            _responseController.add(data.toString());
+            _handleIncomingData(data.toString());
           },
           onError: (e) {
             _connection = null;
@@ -138,7 +146,7 @@ class MpvIpcService {
         _subscription = (_connection as io.Socket).listen(
           (data) {
             final response = utf8.decode(data);
-            _responseController.add(response);
+            _handleIncomingData(response);
           },
           onError: (e) {
             _connection = null;
@@ -161,6 +169,66 @@ class MpvIpcService {
         _lastError = 'TCP connection failed: $e';
         return false;
       }
+    }
+  }
+
+  /// Called with every raw chunk arriving from MPV (over either transport).
+  /// Forwards it verbatim to [responseStream] for the Command Log, and also
+  /// matches any `request_id` against a pending [getProperty] call. A single
+  /// chunk can hold several newline-delimited JSON messages (events + replies),
+  /// so each line is decoded independently.
+  void _handleIncomingData(String raw) {
+    _responseController.add(raw);
+    for (final line in raw.split('\n')) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+      Map<String, dynamic> obj;
+      try {
+        final decoded = jsonDecode(trimmed);
+        if (decoded is! Map<String, dynamic>) continue;
+        obj = decoded;
+      } catch (_) {
+        continue; // Partial line split across chunks, or a non-JSON line.
+      }
+      final requestId = obj['request_id'];
+      if (requestId is! int) continue;
+      final completer = _pendingRequests.remove(requestId);
+      if (completer == null || completer.isCompleted) continue;
+      if (obj['error'] == 'success') {
+        completer.complete(obj['data']);
+      } else {
+        completer.completeError(obj['error']?.toString() ?? 'mpv error');
+      }
+    }
+  }
+
+  /// Queries a single MPV property (e.g. `dwidth`, `video-params`) and
+  /// returns its decoded value, or null if MPV errored, the request timed
+  /// out, or nothing is connected.
+  Future<dynamic> getProperty(String property,
+      {Duration timeout = const Duration(seconds: 2)}) async {
+    if (_connection == null || _state != IpcConnectionState.connected) {
+      return null;
+    }
+    final id = ++_requestIdCounter;
+    final completer = Completer<dynamic>();
+    _pendingRequests[id] = completer;
+
+    final sent = await sendCommand(jsonEncode({
+      'command': ['get_property', property],
+      'request_id': id,
+    }));
+    if (!sent) {
+      _pendingRequests.remove(id);
+      return null;
+    }
+
+    try {
+      return await completer.future.timeout(timeout);
+    } catch (_) {
+      return null;
+    } finally {
+      _pendingRequests.remove(id);
     }
   }
 

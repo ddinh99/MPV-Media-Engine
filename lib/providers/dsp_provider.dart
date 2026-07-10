@@ -342,6 +342,32 @@ class DspProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Queries a single MPV property and returns its decoded value, or null on
+  /// error/timeout/disconnected. See [MpvIpcService.getProperty].
+  Future<dynamic> getProperty(String property) => _ipc.getProperty(property);
+
+  /// Gathers a snapshot of properties describing what MPV is currently
+  /// playing (resolution, codec, fps, filename). Missing/errored properties
+  /// are simply absent from the returned map rather than failing the whole
+  /// call, since e.g. `video-params` is null until a video is loaded.
+  Future<Map<String, dynamic>> fetchVideoInfo() async {
+    const properties = [
+      'filename',
+      'video-codec',
+      'dwidth',
+      'dheight',
+      'video-params',
+      'container-fps',
+      'estimated-vf-fps',
+    ];
+    final info = <String, dynamic>{};
+    for (final prop in properties) {
+      final value = await getProperty(prop);
+      if (value != null) info[prop] = value;
+    }
+    return info;
+  }
+
   // ── State mutation helpers ──────────────────────────────────────────────────
 
   void _update(DspState newState, {bool clearPreset = false}) {

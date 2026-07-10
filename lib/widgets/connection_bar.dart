@@ -6,6 +6,7 @@ import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
 import '../services/mpv_ipc_service.dart';
 import 'first_run_setup.dart';
+import 'video_info_dialog.dart';
 
 class ConnectionBar extends StatelessWidget {
   const ConnectionBar({super.key});
@@ -293,6 +294,15 @@ class ConnectionBar extends StatelessWidget {
                       visualDensity: VisualDensity.compact,
                       onPressed: isConnecting ? null : dsp.connect,
                     ),
+                  IconButton(
+                    icon: const Icon(Icons.info_outline_rounded, size: 16),
+                    tooltip: 'Video Information',
+                    color: isConnected ? AppTheme.primary : AppTheme.textMuted,
+                    visualDensity: VisualDensity.compact,
+                    onPressed: isConnected
+                        ? () => showVideoInfoDialog(context, dsp)
+                        : null,
+                  ),
                 ],
               ),
 
