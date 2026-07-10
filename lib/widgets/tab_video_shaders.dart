@@ -16,28 +16,19 @@ class TabVideoShaders extends StatefulWidget {
 }
 
 class _TabVideoShadersState extends State<TabVideoShaders> {
-  DateTime? _lastHeightUpdate;
-
   @override
   void initState() {
     super.initState();
-    _checkVideoHeight();
-  }
-
-  void _checkVideoHeight() {
-    final now = DateTime.now();
-    // Only update if 2+ seconds since last check (catch video changes, not excessive)
-    if (_lastHeightUpdate == null || now.difference(_lastHeightUpdate!).inSeconds >= 2) {
-      _lastHeightUpdate = now;
-      context.read<VideoProvider>().updateVideoHeight();
-    }
+    context.read<VideoProvider>().updateVideoHeight();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Check height when tab is visible (catches videos loaded while tab was closed)
+    // Always check height when tab rebuilds — only MPV IPC calls if height changed
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _checkVideoHeight();
+      if (mounted) {
+        context.read<VideoProvider>().updateVideoHeight();
+      }
     });
 
     return Consumer<VideoProvider>(
