@@ -68,7 +68,7 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
               videoSectionTitle('Shaders Engine', Icons.layers),
               const SizedBox(height: 8),
               Text(
-                'Check to enable. Active shaders apply in order — use the arrows to reorder them.',
+                'Listed in recommended order — enabling top-to-bottom gives the best default chain. Use the arrows to reorder active shaders.',
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
               ),
               const SizedBox(height: 12),
@@ -121,8 +121,10 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
       }
     }
 
-    // Sort within each tier: active shaders first (in chain order), then inactive
-    lowResTiers.sort((a, b) {
+    // Sort within each tier: active shaders first (in chain order), then
+    // inactive shaders in the recommended enable order — so a new user can
+    // just check boxes top-to-bottom and get a sensible chain.
+    int compareShaders(String a, String b) {
       final aActive = activeShaders.contains(a);
       final bActive = activeShaders.contains(b);
       if (aActive && !bActive) return -1;
@@ -130,19 +132,13 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
       if (aActive && bActive) {
         return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
       }
-      return 0;
-    });
+      final byOrder = shaderDefaultOrder(a).compareTo(shaderDefaultOrder(b));
+      if (byOrder != 0) return byOrder;
+      return a.compareTo(b);
+    }
 
-    highResTiers.sort((a, b) {
-      final aActive = activeShaders.contains(a);
-      final bActive = activeShaders.contains(b);
-      if (aActive && !bActive) return -1;
-      if (!aActive && bActive) return 1;
-      if (aActive && bActive) {
-        return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
-      }
-      return 0;
-    });
+    lowResTiers.sort(compareShaders);
+    highResTiers.sort(compareShaders);
 
     return Column(
       children: [
