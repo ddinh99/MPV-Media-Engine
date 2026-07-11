@@ -134,6 +134,31 @@ class PreferencesService {
     await prefs.setString(_kLastVideoSession, jsonEncode(session.toJson()));
   }
 
+  static const String _kLastRunVersion = 'last_run_version';
+
+  /// Called once at startup, before anything else reads saved sessions or
+  /// presets. Compares the version recorded on the previous run against
+  /// [currentVersion]; if they differ, clears the saved DSP/video sessions
+  /// and custom presets — the state most likely to carry a stale/incompatible
+  /// shape from an older build — then records [currentVersion] for next
+  /// time. Leaves the mpv.exe path, theme, dismissed-update-version, and
+  /// default-preset selections untouched, since those aren't versioned data
+  /// and wiping them would force first-run setup again on every update.
+  /// A fresh install (no stored version yet) just records the version
+  /// without clearing anything.
+  static Future<void> resetSessionDataIfVersionChanged(
+      String currentVersion) async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastRunVersion = prefs.getString(_kLastRunVersion);
+    if (lastRunVersion != null && lastRunVersion != currentVersion) {
+      await prefs.remove(_kLastDspSession);
+      await prefs.remove(_kLastVideoSession);
+      await prefs.remove(_kCustomPresets);
+      await prefs.remove(_kCustomVideoPresets);
+    }
+    await prefs.setString(_kLastRunVersion, currentVersion);
+  }
+
   static const String _kDismissedUpdateVersion = 'dismissed_update_version';
 
   static Future<String?> getDismissedUpdateVersion() async {
@@ -202,5 +227,15 @@ class PreferencesService {
   static Future<void> clearCurrentVideoInfo() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_kCurrentVideoInfo);
+  }
+
+  /// Wipes every stored preference — sessions, presets, mpv path, theme,
+  /// dismissed-update-version, defaults, the lot. A diagnostic/reset escape
+  /// hatch for when a stored value is stale, corrupt, or incompatible with a
+  /// new build. The app should be restarted afterwards so every provider
+  /// reloads from a clean slate (they only read prefs at startup).
+  static Future<void> clearAll() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 }
