@@ -136,16 +136,23 @@ class PreferencesService {
 
   static const String _kLastRunVersion = 'last_run_version';
 
-  /// Called once at startup, before anything else reads saved sessions or
-  /// presets. Compares the version recorded on the previous run against
-  /// [currentVersion]; if they differ, clears the saved DSP/video sessions
-  /// and custom presets — the state most likely to carry a stale/incompatible
-  /// shape from an older build — then records [currentVersion] for next
-  /// time. Leaves the mpv.exe path, theme, dismissed-update-version, and
-  /// default-preset selections untouched, since those aren't versioned data
-  /// and wiping them would force first-run setup again on every update.
-  /// A fresh install (no stored version yet) just records the version
-  /// without clearing anything.
+  /// Called once at startup, before anything else reads saved sessions.
+  /// Compares the version recorded on the previous run against
+  /// [currentVersion]; if they differ, clears the saved DSP/video sessions —
+  /// "what you had set last time", which is cheap to lose and which an older
+  /// build may have written with different semantics for a given property —
+  /// then records [currentVersion] for next time. A fresh install (no stored
+  /// version yet) just records the version without clearing anything.
+  ///
+  /// Deliberately does NOT touch custom presets: those are user-authored data
+  /// with no undo, and a malformed one is already handled — getCustomPresets /
+  /// getCustomVideoPresets fall back to an empty list on a decode failure, so
+  /// schema drift can't break startup and doesn't need a pre-emptive wipe.
+  /// The mpv.exe path, theme, dismissed-update-version, and default-preset
+  /// selections are likewise left alone; they aren't versioned data, and
+  /// clearing them would force first-run setup again on every update.
+  /// "Clear All App Data" in the Debug IPC tab remains the manual escape
+  /// hatch for wiping everything.
   static Future<void> resetSessionDataIfVersionChanged(
       String currentVersion) async {
     final prefs = await SharedPreferences.getInstance();
@@ -153,8 +160,6 @@ class PreferencesService {
     if (lastRunVersion != null && lastRunVersion != currentVersion) {
       await prefs.remove(_kLastDspSession);
       await prefs.remove(_kLastVideoSession);
-      await prefs.remove(_kCustomPresets);
-      await prefs.remove(_kCustomVideoPresets);
     }
     await prefs.setString(_kLastRunVersion, currentVersion);
   }
