@@ -22,6 +22,8 @@ class MpvIpcService {
       StreamController<IpcConnectionState>.broadcast();
   final StreamController<String> _responseController =
       StreamController<String>.broadcast();
+  final StreamController<String> _commandErrorController =
+      StreamController<String>.broadcast();
 
   /// Pending get_property requests keyed by the request_id we sent, so an
   /// async reply arriving from MPV can be matched back to its caller. Works
@@ -31,8 +33,30 @@ class MpvIpcService {
   final Map<int, Completer<dynamic>> _pendingRequests = {};
   int _requestIdCounter = 0;
 
+  /// Fire-and-forget commands we've sent, keyed by the request_id we stamped
+  /// on them, holding a human-readable description of what was sent. mpv
+  /// answers *every* command with an `error` field, but a command sent with no
+  /// request_id comes back as request_id 0 — indistinguishable from every other
+  /// one in flight. Stamping an id lets a rejection be traced to the exact
+  /// property that caused it. See [_kMaxInFlight] for the leak bound.
+  final Map<int, String> _inFlightCommands = {};
+
+  /// mpv replies to everything, so entries normally clear as fast as they're
+  /// added. Bounded anyway: a dropped connection mid-send (or a bridge that
+  /// swallows a reply) would otherwise leak an entry per command, forever.
+  static const int _kMaxInFlight = 128;
+
   Stream<IpcConnectionState> get stateStream => _stateController.stream;
   Stream<String> get responseStream => _responseController.stream;
+
+  /// Emits a formatted message whenever mpv *rejects* a command — a bad
+  /// property name, an invalid value, an unavailable property. Nothing else
+  /// surfaces these: a rejected set_property is silently ignored, so a typo'd
+  /// property name looks like "the slider does nothing" rather than an error.
+  /// (`hdr-output` was exactly this — it isn't a real mpv property, so the
+  /// toggle was a no-op for months.)
+  Stream<String> get commandErrorStream => _commandErrorController.stream;
+
   IpcConnectionState get connectionState => _state;
   String get socketPath => _socketPath;
   String? get lastError => _lastError;
@@ -192,6 +216,15 @@ class MpvIpcService {
       }
       final requestId = obj['request_id'];
       if (requestId is! int) continue;
+
+      // A rejected fire-and-forget command: nothing is awaiting it, so without
+      // this it would vanish silently. Report it against the command we sent.
+      final sentCommand = _inFlightCommands.remove(requestId);
+      if (sentCommand != null && obj['error'] != 'success') {
+        final reason = obj['error']?.toString() ?? 'unknown error';
+        _commandErrorController.add('$sentCommand → $reason');
+      }
+
       final completer = _pendingRequests.remove(requestId);
       if (completer == null || completer.isCompleted) continue;
       if (obj['error'] == 'success') {
@@ -200,6 +233,19 @@ class MpvIpcService {
         completer.completeError(obj['error']?.toString() ?? 'mpv error');
       }
     }
+  }
+
+  /// Renders a command payload (`["set_property", "target-peak", 400]`) as a
+  /// short label for the error log: `set_property target-peak = 400`.
+  static String _describeCommand(dynamic command) {
+    if (command is! List || command.isEmpty) return 'command';
+    final verb = command[0].toString();
+    if (command.length == 1) return verb;
+    final target = command[1].toString();
+    if (command.length == 2) return '$verb $target';
+    final value = command.sublist(2).map((e) => e.toString()).join(' ');
+    final label = '$verb $target = $value';
+    return label.length > 120 ? '${label.substring(0, 117)}…' : label;
   }
 
   /// Queries a single MPV property (e.g. `dwidth`, `video-params`) and
@@ -236,11 +282,32 @@ class MpvIpcService {
     if (_connection == null || _state != IpcConnectionState.connected) {
       return false;
     }
+
+    // Stamp a request_id on anything that doesn't already carry one (i.e. every
+    // fire-and-forget set_property), so mpv's reply can be traced back to it and
+    // a rejection reported against the exact property. getProperty supplies its
+    // own id and is left alone.
+    var payload = jsonCommand;
+    try {
+      final decoded = jsonDecode(jsonCommand);
+      if (decoded is Map<String, dynamic> && decoded['request_id'] == null) {
+        final id = ++_requestIdCounter;
+        decoded['request_id'] = id;
+        if (_inFlightCommands.length >= _kMaxInFlight) {
+          _inFlightCommands.remove(_inFlightCommands.keys.first);
+        }
+        _inFlightCommands[id] = _describeCommand(decoded['command']);
+        payload = jsonEncode(decoded);
+      }
+    } catch (_) {
+      // Not JSON we can parse — send it untouched rather than dropping it.
+    }
+
     try {
       if (_connection is WebSocketChannel) {
-        (_connection as WebSocketChannel).sink.add(jsonCommand);
+        (_connection as WebSocketChannel).sink.add(payload);
       } else {
-        (_connection as io.Socket).write('$jsonCommand\n');
+        (_connection as io.Socket).write('$payload\n');
         await (_connection as io.Socket).flush();
       }
       return true;
@@ -301,5 +368,6 @@ class MpvIpcService {
     }
     _stateController.close();
     _responseController.close();
+    _commandErrorController.close();
   }
 }

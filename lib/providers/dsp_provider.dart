@@ -51,6 +51,11 @@ class DspProvider extends ChangeNotifier {
   Timer? _debounce;
   List<String> _log = [];
 
+  /// Commands mpv rejected (bad property name, invalid value, unavailable),
+  /// newest first. Kept apart from [_log] so the Debug tab can show them
+  /// prominently instead of letting them scroll past in the raw traffic.
+  List<String> _commandErrors = [];
+
   /// Path to the mpv.exe binary, loaded from shared_preferences.
   String? _mpvExePath;
   bool _isPlayingTest = false;
@@ -73,6 +78,7 @@ class DspProvider extends ChangeNotifier {
   String get socketPath => _ipc.socketPath;
   String? get lastError => _ipc.lastError;
   List<String> get log => List.unmodifiable(_log);
+  List<String> get commandErrors => List.unmodifiable(_commandErrors);
   String? get mpvExePath => _mpvExePath;
   bool get isPlayingTest => _isPlayingTest;
   bool get hasMpvExe => _mpvExePath != null && _mpvExePath!.isNotEmpty;
@@ -84,8 +90,26 @@ class DspProvider extends ChangeNotifier {
     _ipc.responseStream.listen((msg) {
       _addLog('MPV: ${msg.trim()}');
     });
+    _ipc.commandErrorStream.listen((msg) {
+      // mpv rejected a command. These used to disappear into the raw response
+      // log, which is why a bogus property name (hdr-output) presented as "the
+      // toggle does nothing" instead of an error. Keep them in a separate list
+      // the Debug tab can surface on its own.
+      _addLog('❌ mpv REJECTED: $msg');
+      _commandErrors = [
+        '[${DateTime.now().toIso8601String().substring(11, 19)}] $msg',
+        ..._commandErrors.take(19),
+      ];
+      notifyListeners();
+    });
     _rebuildPreview();
     _loadPreferences();
+  }
+
+  /// Clears the rejected-command list (the Debug tab's "Clear" button).
+  void clearCommandErrors() {
+    _commandErrors = [];
+    notifyListeners();
   }
 
   Future<void> _loadPreferences() async {
