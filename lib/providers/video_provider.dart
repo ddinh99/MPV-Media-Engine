@@ -303,6 +303,78 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
+  // ── Display-sync verification ──────────────────────────────────────────────
+  //
+  // Interpolation requires a display-* video-sync mode, and `display-resample`
+  // retimes video against `estimated-display-fps` — mpv's *measured* refresh,
+  // not the nominal one. When that measurement runs away (measured at 347 and
+  // 2817 against a real 60Hz panel), mpv faithfully sprints the video to chase
+  // it: audio keeps normal speed, video runs several times too fast, and A/V
+  // desync grows without bound (-14s within 4s of playback).
+  //
+  // mpv accepts `display-resample` unconditionally and only *then* misbehaves,
+  // so no rejection is ever emitted and the Debug IPC panel stays silent. The
+  // only way to catch it is to stop trusting the write and read the measurement
+  // back — and to refuse display sync when it isn't credible, rather than let
+  // playback be silently, badly wrong.
+  static const Duration _kDisplaySyncSettle = Duration(seconds: 3);
+
+  /// Set when we've had to force interpolation off; surfaced by the UI.
+  String? _displaySyncWarning;
+  String? get displaySyncWarning => _displaySyncWarning;
+
+  /// Invalidates an in-flight check if the user changes their mind mid-settle.
+  int _displaySyncCheckToken = 0;
+
+  void dismissDisplaySyncWarning() {
+    if (_displaySyncWarning == null) return;
+    _displaySyncWarning = null;
+    notifyListeners();
+  }
+
+  Future<void> _verifyDisplaySync() async {
+    final token = ++_displaySyncCheckToken;
+    // mpv needs a few frames of playback before it has measured anything.
+    await Future.delayed(_kDisplaySyncSettle);
+    if (token != _displaySyncCheckToken || !_state.interpolation) return;
+
+    final nominal = (await dspProvider.getProperty('display-fps') as num?)?.toDouble();
+    final estimated =
+        (await dspProvider.getProperty('estimated-display-fps') as num?)?.toDouble();
+    if (token != _displaySyncCheckToken || !_state.interpolation) return;
+
+    // No measurement means display sync isn't actually running yet (usually
+    // nothing is playing). Say nothing — the next playback re-checks.
+    if (estimated == null || estimated <= 0) return;
+
+    // Generous headroom: high-refresh panels are real and the measurement is
+    // noisy. We are catching a runaway, not a few Hz of drift.
+    final ceiling = (nominal != null && nominal > 0) ? nominal * 1.5 : 200.0;
+    if (estimated <= ceiling) {
+      if (_displaySyncWarning != null) {
+        _displaySyncWarning = null;
+        notifyListeners();
+      }
+      return;
+    }
+
+    // Not credible. Fall back to video-sync=audio, which measured correct in
+    // every configuration tested, including vsync off.
+    _activePresetId = null;
+    _state = _state.copyWith(interpolation: false, videoSync: 'audio');
+    final panel = nominal != null && nominal > 0
+        ? ' (your display reports ${nominal.toStringAsFixed(0)} Hz)'
+        : '';
+    _displaySyncWarning =
+        'Interpolation was turned back off. mpv measures the display refresh at '
+        '${estimated.toStringAsFixed(0)} Hz$panel, and interpolation needs display '
+        'sync — which would race the video ahead of the audio. Enable V-Sync for '
+        'this mpv.exe in your GPU control panel, then try again.';
+    notifyListeners();
+    _sendCommand('interpolation', 'no');
+    _sendCommand('video-sync', 'audio');
+  }
+
   void applyPreset(VideoPreset preset) {
     // Snapshot the outgoing state so we only send properties that actually
     // changed — resending unchanged scale/shader/interpolation properties
@@ -323,6 +395,14 @@ class VideoProvider extends ChangeNotifier {
 
     // 2. Enqueue only what changed; the outbox queue paces delivery to MPV.
     _sendCommandQueue(_buildStateCommands(old, next, forceAll: forceAll));
+
+    // 3. A preset that enables interpolation drags display sync in with it, so
+    //    it needs the same verification as the manual toggle.
+    if (next.interpolation) {
+      _verifyDisplaySync();
+    } else if (_displaySyncWarning != null) {
+      _displaySyncWarning = null;
+    }
   }
 
   /// Test-only door onto [_buildStateCommands]. Exists so a test can assert
@@ -646,9 +726,14 @@ class VideoProvider extends ChangeNotifier {
       interpolation: val,
       videoSync: val ? 'display-resample' : 'audio',
     );
+    _displaySyncWarning = null;
     notifyListeners();
     _sendCommand('interpolation', val ? 'yes' : 'no');
     _sendCommand('video-sync', _state.videoSync);
+
+    // Turning this on silently switches mpv to display sync. Confirm mpv can
+    // actually measure the display before leaving it that way.
+    if (val) _verifyDisplaySync();
   }
 
   void setTScale(String algo) {

@@ -6,6 +6,58 @@ import '../constants/theme.dart';
 import '../providers/video_provider.dart';
 import 'video_controls_common.dart';
 
+/// Shown when the app has had to force interpolation back off because mpv could
+/// not measure the display refresh. Silently reverting would be its own
+/// invisible failure — the user needs to know the control didn't stick, and why.
+Widget _displaySyncWarningCard(VideoProvider video) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppTheme.warning.withOpacity(0.07),
+      border: Border.all(color: AppTheme.warning.withOpacity(0.35)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.sync_problem_rounded, size: 18, color: AppTheme.warning),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Display sync unavailable',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(height: 5),
+              SelectableText(
+                video.displaySyncWarning!,
+                style: GoogleFonts.inter(
+                  fontSize: 11.5,
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        IconButton(
+          icon: Icon(Icons.close_rounded, size: 16, color: AppTheme.textMuted),
+          tooltip: 'Dismiss',
+          onPressed: video.dismissDisplaySyncWarning,
+        ),
+      ],
+    ),
+  );
+}
+
 class TabVideoScaling extends StatelessWidget {
   const TabVideoScaling({super.key});
 
@@ -24,6 +76,10 @@ class TabVideoScaling extends StatelessWidget {
                   children: [
                     videoSectionTitle('High Performance Mode', Icons.speed),
                     const SizedBox(height: 12),
+                    if (video.displaySyncWarning != null) ...[
+                      _displaySyncWarningCard(video),
+                      const SizedBox(height: 12),
+                    ],
                     _buildVectorMotionInterpolation(context, video),
                   ],
                 ),
