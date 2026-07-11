@@ -325,6 +325,20 @@ class VideoProvider extends ChangeNotifier {
     _sendCommandQueue(_buildStateCommands(old, next, forceAll: forceAll));
   }
 
+  /// Test-only door onto [_buildStateCommands]. Exists so a test can assert
+  /// that every persisted VideoState field actually reaches mpv — a field with
+  /// no corresponding `addIfChanged` emits nothing, which is invisible at
+  /// runtime (the GUI shows the setting as active while mpv never hears about
+  /// it). `inverseToneMapping` shipped exactly that way. Delegates only; no
+  /// behaviour of its own.
+  @visibleForTesting
+  List<Map<String, dynamic>> buildStateCommandsForTest(
+    VideoState old,
+    VideoState next, {
+    required bool forceAll,
+  }) =>
+      _buildStateCommands(old, next, forceAll: forceAll);
+
   /// Builds the ordered IPC command list that takes MPV from [old] to [next],
   /// skipping any property whose value is unchanged. With [forceAll] every
   /// property is emitted regardless of the diff — used for a full resync,
