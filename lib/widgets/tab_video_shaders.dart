@@ -18,16 +18,21 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
   String? _lastPlayedFile;
   bool _isCheckingFile = false;
 
+  // Held directly so the listener/dispose path never has to touch `context` —
+  // both can run while this element is deactivated but not yet unmounted.
+  late final VideoProvider _video;
+
   @override
   void initState() {
     super.initState();
     // Listen to DspProvider to detect new video plays and cache info
-    context.read<VideoProvider>().dspProvider.addListener(_onVideoProviderChanged);
+    _video = context.read<VideoProvider>();
+    _video.dspProvider.addListener(_onVideoProviderChanged);
   }
 
   @override
   void dispose() {
-    context.read<VideoProvider>().dspProvider.removeListener(_onVideoProviderChanged);
+    _video.dspProvider.removeListener(_onVideoProviderChanged);
     super.dispose();
   }
 
@@ -43,12 +48,11 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
       }
 
       try {
-        final video = context.read<VideoProvider>();
-        final currentFile = await video.dspProvider.getProperty('filename') as String?;
+        final currentFile = await _video.dspProvider.getProperty('filename') as String?;
         if (currentFile != null && currentFile != _lastPlayedFile) {
           _lastPlayedFile = currentFile;
           // Fetch and cache video info (resolution, codec, fps, etc.)
-          await video.cacheCurrentVideoInfo();
+          await _video.cacheCurrentVideoInfo();
         }
       } finally {
         _isCheckingFile = false;
