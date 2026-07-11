@@ -97,12 +97,56 @@ class VideoProvider extends ChangeNotifier {
   }
 
   void _onDspProviderChanged() {
+    _checkMpvBinaryChanged();
+
     final current = dspProvider.connectionState;
     if (current == IpcConnectionState.connected &&
         _lastKnownConnectionState != IpcConnectionState.connected) {
       _resyncAll();
     }
     _lastKnownConnectionState = current;
+  }
+
+  /// The mpv binary we last saw. Null until the saved path has been read back —
+  /// the first sighting is prefs loading, not the user choosing a new binary.
+  String? _lastKnownMpvPath;
+  bool _sawMpvPath = false;
+
+  /// Switching to a different mpv.exe drops interpolation.
+  ///
+  /// GPU driver settings are keyed to the *executable path* — an NVIDIA
+  /// per-application V-Sync override for one mpv.exe does not follow you to
+  /// another one, even on the same machine. Display sync working on the old
+  /// binary therefore says nothing about the new one, and carrying
+  /// `interpolation: true` across silently pushes display-resample to an
+  /// unverified display. Start from the safe mode and let the user re-enable,
+  /// which re-runs the check against the binary they actually chose.
+  void _checkMpvBinaryChanged() {
+    final path = dspProvider.mpvExePath;
+    if (path == null || path.isEmpty) return;
+
+    if (!_sawMpvPath) {
+      // First sighting is prefs loading at startup, not a user change.
+      _sawMpvPath = true;
+      _lastKnownMpvPath = path;
+      return;
+    }
+    if (path == _lastKnownMpvPath) return;
+    _lastKnownMpvPath = path;
+
+    if (!_state.interpolation) return;
+
+    _displaySyncCheckToken++; // cancel any check against the previous binary
+    _activePresetId = null;
+    _state = _state.copyWith(interpolation: false, videoSync: 'audio');
+    _displaySyncWarning =
+        'Interpolation was turned off because you switched to a different '
+        'mpv.exe. GPU settings like V-Sync are tied to the executable path, so '
+        'display sync has to be re-checked against the new binary. Turn '
+        'interpolation back on to re-check it.';
+    notifyListeners();
+    _sendCommand('interpolation', 'no');
+    _sendCommand('video-sync', 'audio');
   }
 
   /// Pushes the entire current [VideoState] to a freshly connected MPV.
@@ -117,6 +161,13 @@ class VideoProvider extends ChangeNotifier {
     _sendCommandQueue(_buildStateCommands(_state, _state, forceAll: true));
     // We just sent everything, so a subsequent applyPreset() can safely diff.
     _needsFullResync = false;
+
+    // A resync pushes persisted state to an mpv we have never measured. If that
+    // state has interpolation on, we have just enabled display sync on an
+    // unknown display — exactly the situation _verifyDisplaySync() exists for.
+    // Without this, a saved `interpolation: true` reaches a new mpv and is never
+    // checked, so the video races indefinitely rather than for one settle window.
+    if (_state.interpolation) _verifyDisplaySync();
   }
 
   VideoState get state => _state;
@@ -332,7 +383,13 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _verifyDisplaySync() async {
+  /// Attempts before giving up. A resync fires on *connect*, which can land
+  /// before playback starts — mpv has measured nothing yet and reports no
+  /// estimate. One shot would silently skip the check in exactly the case that
+  /// matters most (persisted `interpolation: true` reaching a brand-new mpv).
+  static const int _kDisplaySyncAttempts = 3;
+
+  Future<void> _verifyDisplaySync({int attempt = 1}) async {
     final token = ++_displaySyncCheckToken;
     // mpv needs a few frames of playback before it has measured anything.
     await Future.delayed(_kDisplaySyncSettle);
@@ -343,9 +400,14 @@ class VideoProvider extends ChangeNotifier {
         (await dspProvider.getProperty('estimated-display-fps') as num?)?.toDouble();
     if (token != _displaySyncCheckToken || !_state.interpolation) return;
 
-    // No measurement means display sync isn't actually running yet (usually
-    // nothing is playing). Say nothing — the next playback re-checks.
-    if (estimated == null || estimated <= 0) return;
+    // No measurement yet — display sync isn't running, usually because nothing
+    // is playing. Come back rather than assume it's fine.
+    if (estimated == null || estimated <= 0) {
+      if (attempt < _kDisplaySyncAttempts) {
+        return _verifyDisplaySync(attempt: attempt + 1);
+      }
+      return;
+    }
 
     // Generous headroom: high-refresh panels are real and the measurement is
     // noisy. We are catching a runaway, not a few Hz of drift.

@@ -25,7 +25,19 @@ class _FakeDsp extends DspProvider {
   final double? estimated;
   final sent = <List<dynamic>>[];
 
-  _FakeDsp({this.nominal, this.estimated});
+  String? _fakePath;
+
+  _FakeDsp({this.nominal, this.estimated, String? mpvPath})
+      : _fakePath = mpvPath;
+
+  @override
+  String? get mpvExePath => _fakePath;
+
+  /// Mimics the user picking a different mpv.exe.
+  void switchMpvBinary(String path) {
+    _fakePath = path;
+    notifyListeners();
+  }
 
   @override
   Future<dynamic> getProperty(String property) async {
@@ -123,6 +135,55 @@ void main() {
     await _awaitVerification();
 
     expect(video.state.interpolation, isTrue);
+    expect(video.displaySyncWarning, isNull);
+  });
+
+  // The path that actually bit in the field: interpolation is saved as ON, the
+  // user points the app at a different mpv.exe with no V-Sync profile, and
+  // _resyncAll() pushes display-resample to it. Nothing re-enabled it, so
+  // neither setInterpolation() nor applyPreset() runs — the verifier has to be
+  // reachable from the resync too, or the video races indefinitely.
+  test('switching to a different mpv.exe drops interpolation', () async {
+    final dsp = _FakeDsp(
+      nominal: 60,
+      estimated: 60,
+      mpvPath: r'C:\Program Files\mpv\mpv.exe',
+    );
+    final video = VideoProvider(dsp);
+
+    video.setInterpolation(true);
+    await _awaitVerification();
+    expect(video.state.interpolation, isTrue,
+        reason: 'sanity: display sync is fine on the original binary');
+
+    // A different binary = a different driver environment. V-Sync profiles are
+    // keyed to the executable path and do not follow.
+    dsp.switchMpvBinary(r'F:\MPV\mpv.exe');
+
+    expect(video.state.interpolation, isFalse,
+        reason: 'display sync working on the old mpv.exe says nothing about a '
+            'new one — it must not be carried across unverified');
+    expect(video.state.videoSync, 'audio');
+    expect(dsp.lastSent('video-sync'), 'audio');
+    expect(video.displaySyncWarning, isNotNull);
+  });
+
+  test('loading the saved mpv path at startup is not treated as a switch',
+      () async {
+    // Prefs load late, so the first sighting of a path must not be mistaken for
+    // the user picking a new binary — that would reset interpolation on every
+    // single launch.
+    final dsp = _FakeDsp(nominal: 60, estimated: 60);
+    final video = VideoProvider(dsp);
+
+    video.setInterpolation(true);
+    await _awaitVerification();
+    expect(video.state.interpolation, isTrue);
+
+    dsp.switchMpvBinary(r'C:\Program Files\mpv\mpv.exe'); // first ever sighting
+
+    expect(video.state.interpolation, isTrue,
+        reason: 'prefs loading a saved path is not a binary switch');
     expect(video.displaySyncWarning, isNull);
   });
 
