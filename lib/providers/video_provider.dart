@@ -212,8 +212,11 @@ class VideoProvider extends ChangeNotifier {
         toneMappingAlgorithm: 'none',
         hdrComputePeak: false,
         hdrOutput: true,
+        // Every field below must match what setHdrOutput(true) does, or the
+        // auto-detected passthrough would differ from the toggled one.
+        inverseToneMapping: true,
         targetColorspaceHint: true,
-        targetTrc: 'pq', // matches setHdrOutput(true)'s forced-passthrough value
+        targetTrc: 'pq',
       );
       notifyListeners();
     }
@@ -348,6 +351,7 @@ class VideoProvider extends ChangeNotifier {
     // via target-trc/target-colorspace-hint below, which presets set directly.
 
     // Colorspace
+    addIfChanged('inverse-tone-mapping', old.inverseToneMapping ? 'yes' : 'no', next.inverseToneMapping ? 'yes' : 'no');
     addIfChanged('target-colorspace-hint', old.targetColorspaceHint ? 'yes' : 'no', next.targetColorspaceHint ? 'yes' : 'no');
     if (next.targetColorspaceHint) {
       addIfChanged('target-prim', old.targetPrim, next.targetPrim);
@@ -516,6 +520,7 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(
       hdrOutput: val,
+      inverseToneMapping: val,
       targetColorspaceHint: val ? true : _state.targetColorspaceHint,
       targetTrc: val ? 'pq' : 'auto',
       visualizeToneMapping: val ? _state.visualizeToneMapping : false,

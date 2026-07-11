@@ -8,7 +8,14 @@ class VideoState {
   bool visualizeToneMapping;
   bool hdrComputePeak;
   bool hdrOutput;
-  
+
+  /// Mirrors mpv's `inverse-tone-mapping`. Held in state (rather than only
+  /// being fired off inside setHdrOutput) so it takes part in the property
+  /// diff — a reconnect/resync must re-push it, or HDR Output would come back
+  /// half-applied: colorspace hint and PQ restored, but mpv still refusing to
+  /// expand dynamic range.
+  bool inverseToneMapping;
+
   bool targetColorspaceHint;
   String targetPrim;
   String targetGamut;
@@ -43,6 +50,7 @@ class VideoState {
     this.visualizeToneMapping = false,
     this.hdrComputePeak = true,
     this.hdrOutput = false,
+    this.inverseToneMapping = false,
     this.targetColorspaceHint = false,
     this.targetPrim = 'auto',
     this.targetGamut = 'auto',
@@ -74,6 +82,7 @@ class VideoState {
     bool? visualizeToneMapping,
     bool? hdrComputePeak,
     bool? hdrOutput,
+    bool? inverseToneMapping,
     bool? targetColorspaceHint,
     String? targetPrim,
     String? targetGamut,
@@ -104,6 +113,7 @@ class VideoState {
       visualizeToneMapping: visualizeToneMapping ?? this.visualizeToneMapping,
       hdrComputePeak: hdrComputePeak ?? this.hdrComputePeak,
       hdrOutput: hdrOutput ?? this.hdrOutput,
+      inverseToneMapping: inverseToneMapping ?? this.inverseToneMapping,
       targetColorspaceHint: targetColorspaceHint ?? this.targetColorspaceHint,
       targetPrim: targetPrim ?? this.targetPrim,
       targetGamut: targetGamut ?? this.targetGamut,
@@ -135,6 +145,8 @@ class VideoState {
     'contrastRecovery': contrastRecovery,
     'visualizeToneMapping': visualizeToneMapping,
     'hdrComputePeak': hdrComputePeak,
+    'hdrOutput': hdrOutput,
+    'inverseToneMapping': inverseToneMapping,
     'targetColorspaceHint': targetColorspaceHint,
     'targetPrim': targetPrim,
     'targetGamut': targetGamut,
@@ -165,6 +177,8 @@ class VideoState {
     contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
     visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
     hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
+    hdrOutput: json['hdrOutput'] as bool? ?? false,
+    inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
     targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
     targetPrim: json['targetPrim'] as String? ?? 'auto',
     targetGamut: json['targetGamut'] as String? ?? 'auto',
