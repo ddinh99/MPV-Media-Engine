@@ -15,20 +15,24 @@ class Directory {
   final String path;
   Directory(this.path);
   static Directory get systemTemp => Directory('');
+  bool existsSync() => false;
+  Stream<dynamic> list({bool recursive = false, bool followLinks = true}) =>
+      const Stream.empty();
 }
 
 class Platform {
   static String get pathSeparator => '/';
   static const bool isWindows = false;
+  static Map<String, String> get environment => const {};
 }
 
 class Process {
   final int pid;
   final Stream<List<int>> stdout;
   final Stream<List<int>> stderr;
-  
-  Process(this.pid) 
-      : stdout = const Stream.empty(), 
+
+  Process(this.pid)
+      : stdout = const Stream.empty(),
         stderr = const Stream.empty();
 
   static Future<Process> start(
@@ -40,11 +44,28 @@ class Process {
   }) async {
     return Process(0);
   }
+
+  static Future<ProcessResult> run(
+    String executable,
+    List<String> arguments, {
+    String? workingDirectory,
+    Map<String, String>? environment,
+  }) async {
+    return ProcessResult(0, exitCode: 1);
+  }
 }
 
 class ProcessResult {
   final int pid;
-  ProcessResult(this.pid);
+  final int exitCode;
+  final dynamic stdout;
+  final dynamic stderr;
+  ProcessResult(
+    this.pid, {
+    this.exitCode = 0,
+    this.stdout = '',
+    this.stderr = '',
+  });
 }
 
 class ProcessStartMode {

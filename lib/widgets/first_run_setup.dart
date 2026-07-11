@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/theme.dart';
 import '../providers/dsp_provider.dart';
+import '../services/mpv_locator.dart';
 
 /// Shows the first-run setup dialog if the provider says it's needed.
 void showFirstRunSetupIfNeeded(BuildContext context, DspProvider dsp, {bool force = false}) {
@@ -29,18 +30,39 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
   String? _pickedPath;
   late final TextEditingController _pathCtrl;
 
+  /// Auto-detection state. [_scanning] is true only for the fraction of a
+  /// second MpvLocator takes; [_autoDetected] is the path it found, and null
+  /// once the scan is done means "couldn't find it" — never "you don't have it".
+  bool _scanning = !kIsWeb;
+  String? _autoDetected;
+
   DspProvider get dsp => widget.dsp;
 
   @override
   void initState() {
     super.initState();
     _pathCtrl = TextEditingController();
+    _scanForMpv();
   }
 
   @override
   void dispose() {
     _pathCtrl.dispose();
     super.dispose();
+  }
+
+  /// Look for an mpv the user already has, so the common case is a single
+  /// confirming click. Hard-capped inside MpvLocator, so this can't hang the
+  /// dialog.
+  Future<void> _scanForMpv() async {
+    if (kIsWeb) return;
+    final found = await MpvLocator.locate();
+    if (!mounted) return;
+    setState(() {
+      _scanning = false;
+      _autoDetected = found;
+    });
+    if (found != null) _updatePath(found, updateTextField: true);
   }
 
   void _updatePath(String path, {bool updateTextField = false}) {
@@ -84,6 +106,83 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
     if (path.isEmpty) return;
     await dsp.setMpvExePath(path);
     if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Scanning → found → not-found. The not-found copy deliberately says we
+  /// couldn't *find* mpv rather than that the user doesn't *have* it: the scan
+  /// never walks the disk, so a portable build in an odd folder can slip past
+  /// it, and telling such a user to go download mpv would be plainly wrong.
+  Widget _detectionBanner() {
+    if (_scanning) {
+      return _Banner(
+        color: AppTheme.textMuted,
+        leading: SizedBox(
+          width: 15,
+          height: 15,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppTheme.textMuted,
+          ),
+        ),
+        title: 'Looking for mpv on this PC…',
+      );
+    }
+
+    if (_autoDetected != null) {
+      return _Banner(
+        color: AppTheme.success,
+        leading: Icon(Icons.check_circle, size: 16, color: AppTheme.success),
+        title: 'Found mpv on this PC',
+        body: Text(
+          _autoDetected!,
+          style: GoogleFonts.jetBrainsMono(
+            fontSize: 11,
+            color: AppTheme.textSecondary,
+            height: 1.4,
+          ),
+        ),
+        footnote: 'Not the one you want? Browse for a different mpv.exe below.',
+      );
+    }
+
+    return _Banner(
+      color: AppTheme.warning,
+      leading: Icon(Icons.search_off_rounded, size: 16, color: AppTheme.warning),
+      title: "Couldn't find mpv automatically",
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'If you already have mpv, use Browse below to point at mpv.exe — '
+            'a portable copy in an unusual folder can slip past the search.',
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              color: AppTheme.textSecondary,
+              height: 1.45,
+            ),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.download_rounded, size: 15),
+            label: const Text("Don't have it? Get mpv"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppTheme.warning,
+              side: BorderSide(color: AppTheme.warning.withOpacity(0.5)),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              textStyle: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: MpvLocator.openDownloadPage,
+          ),
+        ],
+      ),
+      footnote: MpvLocator.downloadUrl,
+    );
   }
 
   @override
@@ -141,7 +240,7 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'MVP Sound Engine',
+                            'MPV Media Engine',
                             style: GoogleFonts.inter(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
@@ -187,6 +286,13 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                     subtitle: 'The MPV media player executable.',
                   ),
                   const SizedBox(height: 10),
+
+                  // Auto-detection result — a found path is pre-filled below, so
+                  // the common case is one confirming click.
+                  if (!kIsWeb) ...[
+                    _detectionBanner(),
+                    const SizedBox(height: 10),
+                  ],
 
                   // Path text field (type/paste or use Browse button below)
 
@@ -375,6 +481,73 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+/// Tinted status box used for the three auto-detection states.
+class _Banner extends StatelessWidget {
+  final Color color;
+  final Widget leading;
+  final String title;
+  final Widget? body;
+  final String? footnote;
+
+  const _Banner({
+    required this.color,
+    required this.leading,
+    required this.title,
+    this.body,
+    this.footnote,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.06),
+        border: Border.all(color: color.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 16, height: 16, child: Center(child: leading)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+                if (body != null) ...[
+                  const SizedBox(height: 6),
+                  body!,
+                ],
+                if (footnote != null) ...[
+                  const SizedBox(height: 6),
+                  SelectableText(
+                    footnote!,
+                    style: GoogleFonts.inter(
+                      fontSize: 10.5,
+                      color: AppTheme.textMuted,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _StepRow extends StatelessWidget {
   final String number;
