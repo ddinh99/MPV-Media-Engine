@@ -17,6 +17,7 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 - **Resolution-Aware Shader Recommendations**: The Shaders tab reads your video's live resolution, groups shaders into Low-Res/High-Res tiers, and lists them in a sensible enable order (upscale → refine → chroma → sharpen) so you can just check boxes top-to-bottom and get a solid default chain.
 - **High Performance Mode**: Native temporal motion interpolation targeting high-refresh-rate displays. Fine-tune your `tscale` kernel (Box, Spline64, Mitchell) and windowing functions (Sphinx, Hann) for buttery smooth, ghost-free panning.
 - **HDR to SDR Tone Mapping**: Instantly switch between tone mapping algorithms (bt.2446a, mobius, spline) and push target peak brightness for viewing dark HDR movies in bright rooms.
+- **Automatic Windows HDR Detection**: On startup, the app checks if Windows HDR is currently enabled and auto-defaults to full HDR passthrough — no manual setup needed.
 - **SDR to HDR Expansion**: Manually force `target-colorspace-hint` and dynamically target specific Primaries, Gamuts, and TRCs (like `bt.2020` or `pq`) to perfectly map content to your high-end HDR monitor.
 - **Hardware Grading & Deband**: Fix color banding on low-bitrate anime or adjust raw brightness/contrast sliders on the fly.
 - **Smart & Custom Presets**: One-click curated setups for Anime, Live Action, and HDR. You can also save and load your own tailored **Custom Video Presets**. Includes a handy "Bypass (Default)" panic button to instantly reset the engine if you push settings too far.
@@ -31,6 +32,8 @@ Normally, adjusting video shaders, scalers, or complex audio DSP filters (like d
 - **Persistent Sessions**: The app remembers your last-used sound and video settings across launches, so you don't have to reapply your setup every time.
 - **In-App Update Checker**: A dismissible banner lets you know right in the app when a new release is available on GitHub.
 - **Themes**: Choose between Dark, Teal, and Light interface themes.
+- **Resilient IPC Connection**: Every command is funneled through a single paced queue to prevent mpv/libplacebo from freezing under a burst of changes, with automatic full-state resync if mpv reconnects mid-session.
+- **Debug IPC Console**: A dedicated tab shows the raw JSON IPC traffic to and from mpv, for troubleshooting connection issues.
 
 ## 🚀 Getting Started
 
