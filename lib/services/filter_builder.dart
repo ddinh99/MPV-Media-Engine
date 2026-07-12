@@ -104,7 +104,7 @@ class FilterBuilder {
       'acompressor='
       'threshold=${thresholdAmp.toStringAsFixed(4)}'
       ':ratio=${c.ratio.toStringAsFixed(1)}'
-      ':attack=${c.attack.toStringAsFixed(0)}'
+      ':attack=${c.attack.toStringAsFixed(2)}'
       ':release=${c.release.toStringAsFixed(0)}'
       ':makeup=${makeupAmp.toStringAsFixed(4)}',
     );

@@ -165,9 +165,11 @@ class TabAmbience extends StatelessWidget {
                       DspSlider(
                         label: 'Feedback (echo tail)',
                         value: a.echoFeedback,
-                        min: 0.0,
+                        // aecho's decay parameter is (0, 1] - strictly greater
+                        // than zero - not [0, 1]; 0.0 kills the whole chain.
+                        min: 0.01,
                         max: 0.9,
-                        divisions: 90,
+                        divisions: 89,
                         accentColor: color,
                         onChanged: dsp.setEchoFeedback,
                       ),
