@@ -4,6 +4,12 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://github.com/ddinh99/MPV-Media-Engine)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
+![Screenshot 1](screenshots/MPVME1.jpg)
+![Screenshot 2](screenshots/MPVSE1.jpg)
+![Screenshot 3](screenshots/MPVSE2.jpg)
+![Screenshot 4](screenshots/MPVSE3.jpg)
+![Screenshot 5](screenshots/MPVSE4.jpg)
+
 A real-time external **master control surface**, **companion GUI**, and **graphic equalizer** built specifically for the **[MPV media player](https://mpv.io/)**. 
 
 Normally, adjusting video shaders, scalers, or complex audio DSP filters (like dynamic range compression and parametric EQ) in MPV requires writing tedious commands in text config files. **MPV Media Engine** provides a beautiful, real-time control panel GUI that injects these changes directly into your active MPV instance over WebSockets/IPC without ever having to restart your video.
