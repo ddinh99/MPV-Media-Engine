@@ -9,7 +9,8 @@ import 'video_controls_common.dart';
 
 /// Shaders Engine tab. Each resolution tier owns an independent shader list,
 /// and only the list matching the current video's tier is live — the other
-/// section is disabled so what's checked always equals what mpv is running.
+/// section is badged "Not applied" but stays editable, so a stale chain for
+/// the other tier can always be fixed *before* a matching video makes it live.
 /// New-video detection lives in VideoProvider (not here): this tab is inside
 /// a TabBarView, so it's disposed whenever another tab is showing.
 class TabVideoShaders extends StatelessWidget {
@@ -27,8 +28,8 @@ class TabVideoShaders extends StatelessWidget {
               videoSectionTitle('Shaders Engine', Icons.layers),
               const SizedBox(height: 8),
               Text(
-                'Each list only applies to videos in its resolution range — playing a '
-                'video activates the matching list and disables the other. Listed in '
+                'Each list only applies to videos in its resolution range — the badge '
+                'shows which one your current video uses. Both stay editable. Listed in '
                 'recommended order; use the arrows to reorder active shaders.',
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
               ),
@@ -182,12 +183,17 @@ class TabVideoShaders extends StatelessWidget {
       );
     }
 
-    final enabled = !videoDetected || isCurrentTier;
+    // The inactive tier is marked, not locked: disabling its checkboxes
+    // shipped briefly and meant you couldn't clear shaders for 1080p videos
+    // while a 4K one was playing — the stale list then sprang back to life on
+    // the next 1080p video. Edits here only change stored state; setShaders
+    // refuses to send the non-live tier to mpv.
+    final isActiveSection = videoDetected && isCurrentTier;
 
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
-          color: (videoDetected && isCurrentTier)
+          color: isActiveSection
               ? AppTheme.primary.withOpacity(0.3)
               : AppTheme.surfaceVariant,
           width: 1,
@@ -202,14 +208,16 @@ class TabVideoShaders extends StatelessWidget {
             child: Row(
               children: [
                 Icon(icon, size: 16,
-                    color: enabled ? AppTheme.primary : AppTheme.textMuted),
+                    color: isActiveSection || !videoDetected
+                        ? AppTheme.primary
+                        : AppTheme.textMuted),
                 const SizedBox(width: 8),
                 Text(
                   tierName,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
                 if (videoDetected)
@@ -226,7 +234,7 @@ class TabVideoShaders extends StatelessWidget {
                       child: Text(
                         isCurrentTier
                             ? '● Active — your video'
-                            : 'Disabled — doesn\'t match this video',
+                            : 'Not applied to this video',
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
@@ -239,7 +247,8 @@ class TabVideoShaders extends StatelessWidget {
             ),
           ),
           Opacity(
-            opacity: enabled ? 1.0 : 0.5,
+            // Softened, not locked out: the section is still editable.
+            opacity: !videoDetected || isCurrentTier ? 1.0 : 0.75,
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
@@ -268,9 +277,8 @@ class TabVideoShaders extends StatelessWidget {
                     children: [
                       Checkbox(
                         value: isActive,
-                        onChanged: enabled
-                            ? (val) => video.toggleShader(tier, shaderName, val ?? false)
-                            : null,
+                        onChanged: (val) =>
+                            video.toggleShader(tier, shaderName, val ?? false),
                         activeColor: AppTheme.primary,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         visualDensity: VisualDensity.compact,
@@ -289,7 +297,7 @@ class TabVideoShaders extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (isActive && enabled) ...[
+                      if (isActive) ...[
                         IconButton(
                           icon: const Icon(Icons.keyboard_arrow_up, size: 18),
                           tooltip: 'Move earlier in chain',
