@@ -42,6 +42,7 @@ If you are looking for an **MPV GUI controller**, **MPV shader manager**, or **M
 *   **Dynamic Loudness Normalization (Night Mode):** Toggle the FFmpeg `DynAudNorm` filter to compress wide cinematic dynamic ranges. Hear whispered dialog clearly without getting deafened by explosions.
 *   **Audiophile Profile Curves:** Quick-select target EQ curves for popular headphone/speaker brands (Sony, Bose, Sennheiser, Klipsch) and TV/soundbar setups.
 *   **Spatial Up/Downmixing:** Dynamically control the MPV audio channel pan matrix to downmix 5.1/7.1 surround sound tracks to clear stereo.
+*   **Per-Layout Channel Configs (Stereo / 5.1 / 7.1):** Switch the pan output layout on the fly from the Channels & Stereo tab. Each layout remembers its own pan matrix, and saved Favorites are tagged with the layout they were tuned for — no restrictions, so you can audition any preset on any speaker setup.
 
 ### ⚙️ Quality of Life & Architecture
 *   **Persistent Sessions:** Remembers your exact equalizer bands, active shaders, and preset states across launches so you never have to reconfigure your player.
@@ -62,7 +63,7 @@ As you drag sliders, the app translates your inputs into raw MPV properties (lik
 
 ### Method A: Download the Executable (Recommended)
 1. Go to the [**Latest GitHub Releases**](https://github.com/ddinh99/MPV-Media-Engine/releases/latest).
-2. Download the `MPV-Media-Engine-vX.Y.Z.zip` file.
+2. Download the `MPV_Media_Engine_vX.Y.Z.zip` file.
 3. Extract the folder and run `MPV_Media_Engine.exe`. No Flutter development environment is required to use the app!
 
 ### Method B: Build from Source
