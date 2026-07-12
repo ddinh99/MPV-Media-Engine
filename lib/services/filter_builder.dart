@@ -42,8 +42,17 @@ class FilterBuilder {
     if (p.frsr.abs() > 0.001) frParts.add('${fmtCoeff(p.frsr)}*SR');
     if (p.frlfe.abs() > 0.001) frParts.add('${fmtCoeff(p.frlfe)}*LFE');
 
-    final flStr = flParts.join('').replaceFirst('+', '');
-    final frStr = frParts.join('').replaceFirst('+', '');
+    // Strip only a *leading* '+' (a first term from fmtCoeff); a mid-string
+    // '+' is a term separator ffmpeg requires — removing it is a syntax error.
+    // An empty expression (all coefficients 0) is also rejected; emit 0*ch.
+    String joinTerms(List<String> terms, String silentCh) {
+      if (terms.isEmpty) return '0*$silentCh';
+      final joined = terms.join('');
+      return joined.startsWith('+') ? joined.substring(1) : joined;
+    }
+
+    final flStr = joinTerms(flParts, 'FL');
+    final frStr = joinTerms(frParts, 'FR');
     parts.add('pan=${state.channelConfig}|FL=$flStr|FR=$frStr');
 
     // 3. Ambience path (split chain)
