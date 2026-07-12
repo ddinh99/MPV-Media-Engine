@@ -50,7 +50,7 @@ List<Preset> get builtinPresets => [
     description: 'Dialog-first cinematic mix',
     state: DspState(
       dynaudnormEnabled: true,
-      dynaudnorm: DynAudNormSettings(frameLength: 420, gain: 3.3, peak: 0.5, maxGain: 3.0),
+      dynaudnorm: DynAudNormSettings(frameLength: 420, gaussSize: 31, peak: 0.5, maxGain: 3.0),
       panMatrix: PanMatrix(),
       ambience: AmbienceSettings(enabled: true),
       extraStereo: 0.08,
@@ -67,7 +67,7 @@ List<Preset> get builtinPresets => [
     description: 'Lighter compression, wider dynamics',
     state: DspState(
       dynaudnormEnabled: true,
-      dynaudnorm: DynAudNormSettings(frameLength: 420, gain: 2.5, peak: 0.6, maxGain: 3.0),
+      dynaudnorm: DynAudNormSettings(frameLength: 420, gaussSize: 31, peak: 0.6, maxGain: 3.0),
       panMatrix: PanMatrix(flfc: 0.45, frfc: 0.45),
       ambience: AmbienceSettings(enabled: true, mixWeight: 0.25),
       extraStereo: 0.05,
@@ -92,7 +92,7 @@ List<Preset> get builtinPresets => [
     description: 'Compressed dynamics, reduced peaks',
     state: DspState(
       dynaudnormEnabled: true,
-      dynaudnorm: DynAudNormSettings(frameLength: 420, gain: 4.0, peak: 0.4, maxGain: 3.0),
+      dynaudnorm: DynAudNormSettings(frameLength: 420, gaussSize: 31, peak: 0.4, maxGain: 3.0),
       panMatrix: PanMatrix(flfc: 0.60, frfc: 0.60),
       ambience: AmbienceSettings(enabled: false),
       extraStereo: 0.04,

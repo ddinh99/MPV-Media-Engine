@@ -15,7 +15,7 @@ class FilterBuilder {
       final d = state.dynaudnorm;
       parts.add(
         'dynaudnorm=f=${d.frameLength}'
-        ':g=${d.gain.toStringAsFixed(1)}'
+        ':g=${d.gaussSize}'
         ':p=${d.peak.toStringAsFixed(1)}'
         ':m=${d.maxGain.toStringAsFixed(1)}',
       );

@@ -50,13 +50,13 @@ class TabLoudness extends StatelessWidget {
                       onChanged: dsp.setDynAudNormFrameLength,
                     ),
                     DspSlider(
-                      label: 'Target Gain (g)',
-                      value: dn.gain,
-                      min: 1.0,
-                      max: 20.0,
-                      divisions: 190,
+                      label: 'Smoothing Window (g)',
+                      value: dn.gaussSize.toDouble(),
+                      min: 3.0,
+                      max: 301.0,
+                      divisions: 149,
                       accentColor: color,
-                      onChanged: dsp.setDynAudNormGain,
+                      onChanged: dsp.setDynAudNormGaussSize,
                     ),
                     DspSlider(
                       label: 'Peak Detection (p)',
@@ -78,7 +78,8 @@ class TabLoudness extends StatelessWidget {
                     ),
                     _InfoBox(
                       text: 'dynaudnorm automatically levels audio loudness frame-by-frame. '
-                          'Higher g = more aggressive normalization. '
+                          'Smaller g reacts faster (more aggressive leveling); larger g smooths '
+                          'gain changes over more frames. '
                           'p controls peak vs. RMS normalization.',
                     ),
                   ],

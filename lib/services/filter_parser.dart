@@ -34,7 +34,7 @@ class FilterParser {
         if (kv.length == 2) {
           final val = double.tryParse(kv[1]) ?? 0;
           if (kv[0] == 'f') state.dynaudnorm.frameLength = val.toInt();
-          if (kv[0] == 'g') state.dynaudnorm.gain = val;
+          if (kv[0] == 'g') state.dynaudnorm.gaussSize = val.round();
           if (kv[0] == 'p') state.dynaudnorm.peak = val;
           if (kv[0] == 'm') state.dynaudnorm.maxGain = val;
         }

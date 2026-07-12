@@ -59,23 +59,35 @@ class PanMatrix {
 
 class DynAudNormSettings {
   int frameLength;   // f: frame length in ms (10-8000)
-  double gain;       // g: target gain (1.0-100.0)
+  int _gaussSize;    // g: Gaussian smoothing window size, odd integer (3-301)
   double peak;       // p: peak normalization (0.0-1.0)
   double maxGain;    // m: max gain factor (1.0-100.0)
 
+  int get gaussSize => _gaussSize;
+  set gaussSize(int v) => _gaussSize = _clampGaussSize(v);
+
+  // ffmpeg rejects even/out-of-range values outright, killing the whole
+  // filter graph, so every entry point (constructor, copyWith, parser,
+  // json) must funnel through this.
+  static int _clampGaussSize(int v) {
+    var g = v.clamp(3, 301);
+    if (g.isEven) g += 1;
+    return g;
+  }
+
   DynAudNormSettings({
     this.frameLength = 420,
-    this.gain = 3.3,
+    int gaussSize = 31,
     this.peak = 0.5,
     this.maxGain = 3.0,
-  });
+  }) : _gaussSize = _clampGaussSize(gaussSize);
 
   DynAudNormSettings copyWith({
-    int? frameLength, double? gain, double? peak, double? maxGain,
+    int? frameLength, int? gaussSize, double? peak, double? maxGain,
   }) {
     return DynAudNormSettings(
       frameLength: frameLength ?? this.frameLength,
-      gain: gain ?? this.gain,
+      gaussSize: gaussSize ?? this.gaussSize,
       peak: peak ?? this.peak,
       maxGain: maxGain ?? this.maxGain,
     );
@@ -83,14 +95,16 @@ class DynAudNormSettings {
 
   Map<String, dynamic> toJson() => {
     'frameLength': frameLength,
-    'gain': gain,
+    'gaussSize': gaussSize,
     'peak': peak,
     'maxGain': maxGain,
   };
 
   factory DynAudNormSettings.fromJson(Map<String, dynamic> json) => DynAudNormSettings(
     frameLength: json['frameLength'] as int? ?? 420,
-    gain: (json['gain'] as num?)?.toDouble() ?? 3.3,
+    // 'gain' is the pre-fix (broken) key name; still read it so old saved
+    // presets migrate instead of silently reverting to the default.
+    gaussSize: (json['gaussSize'] as num?)?.round() ?? (json['gain'] as num?)?.round() ?? 31,
     peak: (json['peak'] as num?)?.toDouble() ?? 0.5,
     maxGain: (json['maxGain'] as num?)?.toDouble() ?? 3.0,
   );

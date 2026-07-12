@@ -536,8 +536,8 @@ class DspProvider extends ChangeNotifier {
         _state.copyWith(dynaudnorm: _state.dynaudnorm.copyWith(frameLength: v.round())),
         clearPreset: true);
 
-  void setDynAudNormGain(double v) => _update(
-        _state.copyWith(dynaudnorm: _state.dynaudnorm.copyWith(gain: v)),
+  void setDynAudNormGaussSize(double v) => _update(
+        _state.copyWith(dynaudnorm: _state.dynaudnorm.copyWith(gaussSize: v.round())),
         clearPreset: true);
 
   void setDynAudNormPeak(double v) => _update(
