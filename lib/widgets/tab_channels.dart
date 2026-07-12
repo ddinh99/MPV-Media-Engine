@@ -121,54 +121,64 @@ class _MatrixTable extends StatelessWidget {
     final flValues = [matrix.flfl, matrix.flfc, matrix.flbl, matrix.flsl, matrix.fllfe];
     final frValues = [matrix.frfr, matrix.frfc, matrix.frbr, matrix.frsr, matrix.frlfe];
 
-    return Table(
-      border: TableBorder.all(color: AppTheme.border, borderRadius: BorderRadius.circular(8)),
-      columnWidths: const {
-        0: FixedColumnWidth(90),
-        1: FlexColumnWidth(),
-        2: FlexColumnWidth(),
-        3: FlexColumnWidth(),
-        4: FlexColumnWidth(),
-        5: FlexColumnWidth(),
-      },
-      children: [
-        TableRow(
-          decoration: BoxDecoration(color: AppTheme.surfaceVariant),
-          children: headers.map((h) => _TableHeader(h)).toList(),
-        ),
-        _matrixRow('FL out', flValues, accentColor, (i, v) {
-          final vals = [matrix.flfl, matrix.flfc, matrix.flbl, matrix.flsl, matrix.fllfe];
-          vals[i] = v;
-          dsp.setPanMatrix(matrix.copyWith(
-            flfl: vals[0], flfc: vals[1], flbl: vals[2], flsl: vals[3], fllfe: vals[4],
-          ));
-        }),
-        _matrixRow('FR out', frValues, accentColor, (i, v) {
-          final vals = [matrix.frfr, matrix.frfc, matrix.frbr, matrix.frsr, matrix.frlfe];
-          vals[i] = v;
-          dsp.setPanMatrix(matrix.copyWith(
-            frfr: vals[0], frfc: vals[1], frbr: vals[2], frsr: vals[3], frlfe: vals[4],
-          ));
-        }),
-      ],
-    );
-  }
-
-  TableRow _matrixRow(String label, List<double> values, Color color, Function(int, double) onChanged) {
-    return TableRow(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(8),
-          child: Text(label,
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)),
-        ),
-        ...List.generate(values.length, (i) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            child: _CoeffCell(value: values[i], color: color, onChanged: (v) => onChanged(i, v)),
-          );
-        }),
-      ],
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppTheme.border),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Container(
+            color: AppTheme.surfaceVariant,
+            child: Row(
+              children: [
+                SizedBox(width: 90, child: _TableHeader(headers[0])),
+                ...headers.skip(1).map((h) => Expanded(child: _TableHeader(h))).toList(),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: AppTheme.border),
+          Row(
+            children: [
+              SizedBox(width: 90, child: Padding(padding: const EdgeInsets.all(8), child: Text('FL out', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)))),
+              ...List.generate(flValues.length, (i) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: _CoeffCell(value: flValues[i], color: accentColor, onChanged: (v) {
+                      final vals = [matrix.flfl, matrix.flfc, matrix.flbl, matrix.flsl, matrix.fllfe];
+                      vals[i] = v;
+                      dsp.setPanMatrix(matrix.copyWith(
+                        flfl: vals[0], flfc: vals[1], flbl: vals[2], flsl: vals[3], fllfe: vals[4],
+                      ));
+                    }),
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+          Divider(height: 1, color: AppTheme.border),
+          Row(
+            children: [
+              SizedBox(width: 90, child: Padding(padding: const EdgeInsets.all(8), child: Text('FR out', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textPrimary)))),
+              ...List.generate(frValues.length, (i) {
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: _CoeffCell(value: frValues[i], color: accentColor, onChanged: (v) {
+                      final vals = [matrix.frfr, matrix.frfc, matrix.frbr, matrix.frsr, matrix.frlfe];
+                      vals[i] = v;
+                      dsp.setPanMatrix(matrix.copyWith(
+                        frfr: vals[0], frfc: vals[1], frbr: vals[2], frsr: vals[3], frlfe: vals[4],
+                      ));
+                    }),
+                  ),
+                );
+              }).toList(),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -205,6 +215,7 @@ class _CoeffCell extends StatelessWidget {
               trackHeight: 2,
             ),
             child: Slider(
+              key: ValueKey(value),
               value: value.clamp(-0.5, 1.0),
               min: -0.5,
               max: 1.0,

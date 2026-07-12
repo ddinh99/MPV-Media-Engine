@@ -60,6 +60,7 @@ class TabEq extends StatelessWidget {
                                           trackHeight: 3,
                                         ),
                                         child: Slider(
+                                          key: ValueKey(i),
                                           value: band.gain.clamp(-12.0, 12.0),
                                           min: -12.0,
                                           max: 12.0,

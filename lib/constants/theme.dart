@@ -115,14 +115,6 @@ class AppTheme {
         labelColor: primary,
         unselectedLabelColor: textSecondary,
         indicatorColor: primary,
-        labelStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-        unselectedLabelStyle: GoogleFonts.inter(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
       ),
       sliderTheme: const SliderThemeData(
         trackHeight: 4,
@@ -133,7 +125,6 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: border),
         ),
       ),
     );
