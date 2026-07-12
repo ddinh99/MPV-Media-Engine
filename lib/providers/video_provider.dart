@@ -105,6 +105,39 @@ class VideoProvider extends ChangeNotifier {
       _resyncAll();
     }
     _lastKnownConnectionState = current;
+
+    _maybeRefreshVideoInfo();
+  }
+
+  String? _lastSeenFilename;
+  bool _checkingCurrentFile = false;
+
+  /// Watches for a new file starting to play and refreshes the cached video
+  /// info (resolution → tier) when it does. This used to live inside the
+  /// Shaders tab widget, but TabBarView disposes off-screen tabs — so tier
+  /// detection silently stopped whenever the user was on another tab. Which
+  /// shader list actually applies is decided by the tier, so detection has to
+  /// be alive for the whole app session, not just while that tab is visible.
+  void _maybeRefreshVideoInfo() {
+    if (_checkingCurrentFile) return;
+    if (dspProvider.connectionState != IpcConnectionState.connected) return;
+    _checkingCurrentFile = true;
+    () async {
+      try {
+        final file = await dspProvider.getProperty('filename') as String?;
+        if (file != null && file != _lastSeenFilename) {
+          // Only mark the file as seen once its resolution was readable —
+          // right after load mpv hasn't populated dheight yet, and giving up
+          // there would leave the tier stuck on the previous video's until
+          // the *next* file change. Unresolved, the next notify retries.
+          if (await cacheCurrentVideoInfo()) {
+            _lastSeenFilename = file;
+          }
+        }
+      } finally {
+        _checkingCurrentFile = false;
+      }
+    }();
   }
 
   /// The mpv binary we last saw. Null until the saved path has been read back —
@@ -179,6 +212,12 @@ class VideoProvider extends ChangeNotifier {
   String? get defaultPresetIdHighRes => _defaultPresetIdHighRes;
   Map<String, dynamic>? get cachedVideoInfo => _cachedVideoInfo;
 
+  /// The resolution tier of the video mpv is (believed to be) playing, which
+  /// decides which of the two shader lists is live. No cached info means no
+  /// evidence either way; getResolutionTier treats that as lowRes.
+  ResolutionTier get currentTier =>
+      getResolutionTier(_cachedVideoInfo?['dheight'] as num?);
+
   Future<void> setDefaultPresetForLowRes(String? presetId) async {
     _defaultPresetIdLowRes = presetId;
     await PreferencesService.setDefaultPresetIdForLowRes(presetId);
@@ -192,29 +231,46 @@ class VideoProvider extends ChangeNotifier {
   }
 
   /// Fetches current video info (resolution, codec, fps) and caches it.
-  /// Called when a new video is loaded. Updates GUI and auto-applies tier default.
-  Future<void> cacheCurrentVideoInfo() async {
+  /// Called when a new video is loaded. Updates GUI, swaps the live shader
+  /// list if the resolution tier changed, and auto-applies the tier default.
+  /// Returns true once the video's resolution was actually readable — a
+  /// missing dheight means the file hasn't finished loading, not that the
+  /// video is low-res, and acting on it would flip the tier (and the live
+  /// shader list) based on nothing.
+  Future<bool> cacheCurrentVideoInfo() async {
     try {
       final info = await dspProvider.fetchVideoInfo();
-      if (info.isNotEmpty) {
-        _cachedVideoInfo = info;
-        await PreferencesService.saveCurrentVideoInfo(info);
+      final height = info['dheight'] as num?;
+      if (height == null) return false;
 
-        final height = info['dheight'] as num?;
-        if (height != _currentVideoHeight) {
-          _currentVideoHeight = height;
+      final oldTier = currentTier;
+      _cachedVideoInfo = info;
+      await PreferencesService.saveCurrentVideoInfo(info);
 
-          final newTier = getResolutionTier(height);
-          if (newTier != _lastAutoAppliedTier) {
-            _lastAutoAppliedTier = newTier;
-            _applyDefaultPresetForTier(newTier);
-          }
+      if (height != _currentVideoHeight) {
+        _currentVideoHeight = height;
+
+        final newTier = getResolutionTier(height);
+        // Crossing the tier boundary swaps which shader list is live, so
+        // the chain mpv is holding (built for the old tier) is now wrong —
+        // push the new tier's list before any tier-default preset diffs
+        // against it. Skipped when both tiers resolve to the same chain,
+        // since a redundant glsl-shaders set forces a pipeline rebuild.
+        if (newTier != oldTier &&
+            !listEquals(_state.shadersFor(oldTier), _state.shadersFor(newTier))) {
+          _sendGlslShaders(_state.shadersFor(newTier));
         }
-
-        notifyListeners();
+        if (newTier != _lastAutoAppliedTier) {
+          _lastAutoAppliedTier = newTier;
+          _applyDefaultPresetForTier(newTier);
+        }
       }
+
+      notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('Error caching video info: $e');
+      return false;
     }
   }
 
@@ -478,18 +534,23 @@ class VideoProvider extends ChangeNotifier {
     VideoState old,
     VideoState next, {
     required bool forceAll,
+    ResolutionTier? tier,
   }) =>
-      _buildStateCommands(old, next, forceAll: forceAll);
+      _buildStateCommands(old, next, forceAll: forceAll, tier: tier);
 
   /// Builds the ordered IPC command list that takes MPV from [old] to [next],
   /// skipping any property whose value is unchanged. With [forceAll] every
   /// property is emitted regardless of the diff — used for a full resync,
   /// where local state can't be trusted as a proxy for MPV's live properties.
+  /// [tier] selects which per-tier shader list is the live one (defaults to
+  /// the current video's tier); only that list is compared and sent.
   List<Map<String, dynamic>> _buildStateCommands(
     VideoState old,
     VideoState next, {
     required bool forceAll,
+    ResolutionTier? tier,
   }) {
+    final shaderTier = tier ?? currentTier;
     final commands = <Map<String, dynamic>>[];
     void addIfChanged(String property, dynamic oldValue, dynamic newValue) {
       if (forceAll || oldValue != newValue) {
@@ -543,8 +604,10 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('hidpi-window-scale', old.hidpiWindowScale ? 'yes' : 'no', next.hidpiWindowScale ? 'yes' : 'no');
 
     if (!kIsWeb) {
-      final oldShaders = old.activeShaders;
-      final newShaders = next.activeShaders;
+      // Only the current tier's list is live; the other tier's list changing
+      // doesn't alter what mpv should be running.
+      final oldShaders = old.shadersFor(shaderTier);
+      final newShaders = next.shadersFor(shaderTier);
       final shadersChanged = forceAll ||
           oldShaders.length != newShaders.length ||
           !oldShaders.asMap().entries.every((e) => newShaders[e.key] == e.value);
@@ -577,45 +640,51 @@ class VideoProvider extends ChangeNotifier {
   }
 
   // --- Module A: Shaders Engine ---
-  
-  void setShaders(List<String> shaderFiles) {
-    _activePresetId = null; // Clear preset when manually adjusted
-    _state = _state.copyWith(activeShaders: shaderFiles);
-    notifyListeners();
 
-    // Resolve absolute paths for mpv
-    if (!kIsWeb) {
-      if (shaderFiles.isEmpty) {
-        // Send empty string to clear all shaders
-        _sendCommand('glsl-shaders', '', debounce: false);
-      } else {
-        final shaderDir = _getShadersDirectory();
-        final absolutePaths = shaderFiles
-            .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
-            .toList();
-        _sendCommand('glsl-shaders', absolutePaths, debounce: false);
-      }
+  /// Sends a shader chain to mpv, resolving files to absolute paths (or the
+  /// empty string to clear). Callers are responsible for only passing the
+  /// chain that's live for the current video's tier.
+  void _sendGlslShaders(List<String> shaderFiles) {
+    if (kIsWeb) return;
+    if (shaderFiles.isEmpty) {
+      _sendCommand('glsl-shaders', '', debounce: false);
+    } else {
+      final shaderDir = _getShadersDirectory();
+      final absolutePaths = shaderFiles
+          .map((sf) => path.join(shaderDir, sf).replaceAll('\\', '/'))
+          .toList();
+      _sendCommand('glsl-shaders', absolutePaths, debounce: false);
     }
   }
 
-  void toggleShader(String shaderFile, bool enable) {
-    final current = List<String>.from(_state.activeShaders);
+  void setShaders(ResolutionTier tier, List<String> shaderFiles) {
+    _activePresetId = null; // Clear preset when manually adjusted
+    _state = tier == ResolutionTier.lowRes
+        ? _state.copyWith(shadersLowRes: shaderFiles)
+        : _state.copyWith(shadersHighRes: shaderFiles);
+    notifyListeners();
+
+    // Editing the tier that isn't live only changes stored state — mpv keeps
+    // running the current video's chain untouched.
+    if (tier != currentTier) return;
+    _sendGlslShaders(shaderFiles);
+  }
+
+  void toggleShader(ResolutionTier tier, String shaderFile, bool enable) {
+    final current = List<String>.from(_state.shadersFor(tier));
     if (enable && !current.contains(shaderFile)) {
       current.add(shaderFile);
     } else if (!enable && current.contains(shaderFile)) {
       current.remove(shaderFile);
     }
-    setShaders(current);
+    setShaders(tier, current);
   }
 
-  void reorderShaders(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    final current = List<String>.from(_state.activeShaders);
+  void reorderShaders(ResolutionTier tier, int oldIndex, int newIndex) {
+    final current = List<String>.from(_state.shadersFor(tier));
     final item = current.removeAt(oldIndex);
     current.insert(newIndex, item);
-    setShaders(current);
+    setShaders(tier, current);
   }
 
   // --- Module B: HDR Tone Mapping ---

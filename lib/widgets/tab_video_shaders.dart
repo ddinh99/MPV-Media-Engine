@@ -7,58 +7,13 @@ import '../models/shader_metadata.dart';
 import '../providers/video_provider.dart';
 import 'video_controls_common.dart';
 
-class TabVideoShaders extends StatefulWidget {
+/// Shaders Engine tab. Each resolution tier owns an independent shader list,
+/// and only the list matching the current video's tier is live — the other
+/// section is disabled so what's checked always equals what mpv is running.
+/// New-video detection lives in VideoProvider (not here): this tab is inside
+/// a TabBarView, so it's disposed whenever another tab is showing.
+class TabVideoShaders extends StatelessWidget {
   const TabVideoShaders({super.key});
-
-  @override
-  State<TabVideoShaders> createState() => _TabVideoShadersState();
-}
-
-class _TabVideoShadersState extends State<TabVideoShaders> {
-  String? _lastPlayedFile;
-  bool _isCheckingFile = false;
-
-  // Held directly so the listener/dispose path never has to touch `context` —
-  // both can run while this element is deactivated but not yet unmounted.
-  late final VideoProvider _video;
-
-  @override
-  void initState() {
-    super.initState();
-    // Listen to DspProvider to detect new video plays and cache info
-    _video = context.read<VideoProvider>();
-    _video.dspProvider.addListener(_onVideoProviderChanged);
-  }
-
-  @override
-  void dispose() {
-    _video.dspProvider.removeListener(_onVideoProviderChanged);
-    super.dispose();
-  }
-
-  void _onVideoProviderChanged() {
-    // Debounce: only check file if not already checking (prevent rapid repeated checks)
-    if (_isCheckingFile) return;
-
-    _isCheckingFile = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) {
-        _isCheckingFile = false;
-        return;
-      }
-
-      try {
-        final currentFile = await _video.dspProvider.getProperty('filename') as String?;
-        if (currentFile != null && currentFile != _lastPlayedFile) {
-          _lastPlayedFile = currentFile;
-          // Fetch and cache video info (resolution, codec, fps, etc.)
-          await _video.cacheCurrentVideoInfo();
-        }
-      } finally {
-        _isCheckingFile = false;
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +27,9 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
               videoSectionTitle('Shaders Engine', Icons.layers),
               const SizedBox(height: 8),
               Text(
-                'Listed in recommended order — enabling top-to-bottom gives the best default chain. Use the arrows to reorder active shaders.',
+                'Each list only applies to videos in its resolution range — playing a '
+                'video activates the matching list and disables the other. Listed in '
+                'recommended order; use the arrows to reorder active shaders.',
                 style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
               ),
               const SizedBox(height: 12),
@@ -105,11 +62,10 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
       );
     }
 
-    final activeShaders = video.state.activeShaders;
     final currentHeight = (video.cachedVideoInfo?['dheight'] as num?);
-    final currentTier = getResolutionTier(currentHeight);
+    final currentTier = video.currentTier;
 
-    // Group shaders by tier, preserving active-first ordering within each tier
+    // Group the available shader files by the tier(s) they're recommended for.
     final lowResTiers = <String>[];
     final highResTiers = <String>[];
 
@@ -128,21 +84,23 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
     // Sort within each tier: active shaders first (in chain order), then
     // inactive shaders in the recommended enable order — so a new user can
     // just check boxes top-to-bottom and get a sensible chain.
-    int compareShaders(String a, String b) {
-      final aActive = activeShaders.contains(a);
-      final bActive = activeShaders.contains(b);
-      if (aActive && !bActive) return -1;
-      if (!aActive && bActive) return 1;
-      if (aActive && bActive) {
-        return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
-      }
-      final byOrder = shaderDefaultOrder(a).compareTo(shaderDefaultOrder(b));
-      if (byOrder != 0) return byOrder;
-      return a.compareTo(b);
+    void sortForTier(List<String> shaders, List<String> activeShaders) {
+      shaders.sort((a, b) {
+        final aActive = activeShaders.contains(a);
+        final bActive = activeShaders.contains(b);
+        if (aActive && !bActive) return -1;
+        if (!aActive && bActive) return 1;
+        if (aActive && bActive) {
+          return activeShaders.indexOf(a).compareTo(activeShaders.indexOf(b));
+        }
+        final byOrder = shaderDefaultOrder(a).compareTo(shaderDefaultOrder(b));
+        if (byOrder != 0) return byOrder;
+        return a.compareTo(b);
+      });
     }
 
-    lowResTiers.sort(compareShaders);
-    highResTiers.sort(compareShaders);
+    sortForTier(lowResTiers, video.state.shadersLowRes);
+    sortForTier(highResTiers, video.state.shadersHighRes);
 
     return Column(
       children: [
@@ -158,7 +116,8 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
                 Icon(Icons.info_outline, color: AppTheme.primary, size: 14),
                 const SizedBox(width: 8),
                 Text(
-                  'Current video: ${currentHeight.toInt()}p',
+                  'Current video: ${currentHeight.toInt()}p — using the '
+                  '${resolutionTierLabel(currentTier)} list',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppTheme.primary,
@@ -174,9 +133,13 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
           video,
           'For ≤1080p',
           Icons.trending_up,
+          ResolutionTier.lowRes,
           lowResTiers,
-          activeShaders,
-          currentTier == ResolutionTier.lowRes,
+          video.state.shadersLowRes,
+          // With no video detected there's nothing to gate on, so both lists
+          // stay editable; the lowRes list is what a fresh mpv would get.
+          videoDetected: currentHeight != null,
+          isCurrentTier: currentTier == ResolutionTier.lowRes,
         ),
         const SizedBox(height: 16),
         _buildShaderTier(
@@ -184,9 +147,11 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
           video,
           'For 1440p+',
           Icons.hd,
+          ResolutionTier.highRes,
           highResTiers,
-          activeShaders,
-          currentTier == ResolutionTier.highRes,
+          video.state.shadersHighRes,
+          videoDetected: currentHeight != null,
+          isCurrentTier: currentTier == ResolutionTier.highRes,
         ),
       ],
     );
@@ -197,10 +162,12 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
     VideoProvider video,
     String tierName,
     IconData icon,
+    ResolutionTier tier,
     List<String> shaders,
-    List<String> activeShaders,
-    bool isCurrentTier,
-  ) {
+    List<String> activeShaders, {
+    required bool videoDetected,
+    required bool isCurrentTier,
+  }) {
     if (shaders.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(12),
@@ -215,10 +182,14 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
       );
     }
 
+    final enabled = !videoDetected || isCurrentTier;
+
     return Container(
       decoration: BoxDecoration(
         border: Border.all(
-          color: isCurrentTier ? AppTheme.primary.withOpacity(0.3) : AppTheme.surfaceVariant,
+          color: (videoDetected && isCurrentTier)
+              ? AppTheme.primary.withOpacity(0.3)
+              : AppTheme.surfaceVariant,
           width: 1,
         ),
         borderRadius: BorderRadius.circular(8),
@@ -230,31 +201,36 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Icon(icon, size: 16, color: AppTheme.primary),
+                Icon(icon, size: 16,
+                    color: enabled ? AppTheme.primary : AppTheme.textMuted),
                 const SizedBox(width: 8),
                 Text(
                   tierName,
                   style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
+                    color: enabled ? AppTheme.textPrimary : AppTheme.textMuted,
                   ),
                 ),
-                if (isCurrentTier)
+                if (videoDetected)
                   Padding(
                     padding: const EdgeInsets.only(left: 8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppTheme.primary.withOpacity(0.2),
+                        color: isCurrentTier
+                            ? AppTheme.primary.withOpacity(0.2)
+                            : AppTheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        '← Your video',
+                        isCurrentTier
+                            ? '● Active — your video'
+                            : 'Disabled — doesn\'t match this video',
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.primary,
+                          color: isCurrentTier ? AppTheme.primary : AppTheme.textMuted,
                         ),
                       ),
                     ),
@@ -262,80 +238,85 @@ class _TabVideoShadersState extends State<TabVideoShaders> {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant.withOpacity(0.5),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(8),
-                bottomRight: Radius.circular(8),
+          Opacity(
+            opacity: enabled ? 1.0 : 0.5,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant.withOpacity(0.5),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                ),
               ),
-            ),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisExtent: 44,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 2,
-              ),
-              itemCount: shaders.length,
-              itemBuilder: (context, index) {
-                final shaderName = shaders[index];
-                final isActive = activeShaders.contains(shaderName);
-                final activeIndex = activeShaders.indexOf(shaderName);
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisExtent: 44,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 2,
+                ),
+                itemCount: shaders.length,
+                itemBuilder: (context, index) {
+                  final shaderName = shaders[index];
+                  final isActive = activeShaders.contains(shaderName);
+                  final activeIndex = activeShaders.indexOf(shaderName);
 
-                return Row(
-                  children: [
-                    Checkbox(
-                      value: isActive,
-                      onChanged: (val) => video.toggleShader(shaderName, val ?? false),
-                      activeColor: AppTheme.primary,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    Expanded(
-                      child: Tooltip(
-                        message: shaderMetadataMap[shaderName]?.description ?? shaderName,
-                        child: Text(
-                          shaderName,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.jetBrainsMono(
-                            fontSize: 12,
-                            color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  return Row(
+                    children: [
+                      Checkbox(
+                        value: isActive,
+                        onChanged: enabled
+                            ? (val) => video.toggleShader(tier, shaderName, val ?? false)
+                            : null,
+                        activeColor: AppTheme.primary,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      Expanded(
+                        child: Tooltip(
+                          message: shaderMetadataMap[shaderName]?.description ?? shaderName,
+                          child: Text(
+                            shaderName,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.jetBrainsMono(
+                              fontSize: 12,
+                              color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (isActive) ...[
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_up, size: 18),
-                        tooltip: 'Move earlier in chain',
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        color: AppTheme.textMuted,
-                        onPressed: activeIndex > 0
-                            ? () => video.reorderShaders(activeIndex, activeIndex - 1)
-                            : null,
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.keyboard_arrow_down, size: 18),
-                        tooltip: 'Move later in chain',
-                        visualDensity: VisualDensity.compact,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
-                        color: AppTheme.textMuted,
-                        onPressed: activeIndex < activeShaders.length - 1
-                            ? () => video.reorderShaders(activeIndex, activeIndex + 2)
-                            : null,
-                      ),
+                      if (isActive && enabled) ...[
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_up, size: 18),
+                          tooltip: 'Move earlier in chain',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          color: AppTheme.textMuted,
+                          onPressed: activeIndex > 0
+                              ? () => video.reorderShaders(tier, activeIndex, activeIndex - 1)
+                              : null,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                          tooltip: 'Move later in chain',
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                          color: AppTheme.textMuted,
+                          onPressed: activeIndex < activeShaders.length - 1
+                              ? () => video.reorderShaders(tier, activeIndex, activeIndex + 1)
+                              : null,
+                        ),
+                      ],
                     ],
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
         ],

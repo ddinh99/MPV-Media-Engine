@@ -18,6 +18,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mvp_sound_engine/models/shader_metadata.dart';
 import 'package:mvp_sound_engine/models/video_state.dart';
 import 'package:mvp_sound_engine/providers/dsp_provider.dart';
 import 'package:mvp_sound_engine/providers/video_provider.dart';
@@ -83,13 +84,15 @@ void main() {
       );
 
       final next = VideoState.fromJson(mutatedJson);
-      final commands = provider.buildStateCommandsForTest(
-        baseline,
-        next,
-        forceAll: false,
-      );
+      // The per-tier shader lists are tier-gated by design: only the list
+      // matching the current video's tier is ever sent. A field is covered
+      // if it reaches mpv under *some* tier — a field reaching mpv under
+      // neither is the bug this test exists to catch.
+      final covered = ResolutionTier.values.any((tier) => provider
+          .buildStateCommandsForTest(baseline, next, forceAll: false, tier: tier)
+          .isNotEmpty);
 
-      if (commands.isEmpty) uncovered.add(key);
+      if (!covered) uncovered.add(key);
     }
 
     expect(
@@ -109,7 +112,8 @@ void main() {
     // fromJson (or vice versa) silently resets to its default on every launch,
     // which is exactly how HDR Output failed to persist.
     final original = VideoState(
-      activeShaders: ['CAS.glsl', 'adaptive-sharpen.glsl'],
+      shadersLowRes: ['CAS.glsl', 'adaptive-sharpen.glsl'],
+      shadersHighRes: ['CfL_Prediction.glsl'],
       toneMappingAlgorithm: 'bt.2390',
       targetPeak: 400.0,
       contrastRecovery: 0.5,
@@ -183,10 +187,13 @@ void main() {
         .map((c) => (c['command'] as List)[1] as String)
         .toSet();
 
-    // Every non-GUI-only persisted field must have pushed something.
+    // Every non-GUI-only persisted field must have pushed something. The two
+    // per-tier shader lists share the single glsl-shaders property (only the
+    // live tier's list is sent), so they count as one property, not two.
     final expectedCount = state.toJson().keys
-        .where((k) => !_guiOnlyFields.containsKey(k))
-        .length;
+            .where((k) => !_guiOnlyFields.containsKey(k))
+            .length -
+        1;
 
     expect(
       sentProperties.length,

@@ -1,7 +1,14 @@
 // lib/models/video_state.dart
+import 'shader_metadata.dart';
 
 class VideoState {
-  List<String> activeShaders;
+  /// Shader chains are kept per resolution tier and are independent: only the
+  /// list matching the *current video's* tier is ever sent to mpv as
+  /// `glsl-shaders` (see VideoProvider). Keeping one flat list looked simpler
+  /// but meant shaders enabled for ≤1080p content silently applied to 4K too.
+  List<String> shadersLowRes;
+  List<String> shadersHighRes;
+
   String toneMappingAlgorithm;
   double targetPeak;
   double contrastRecovery;
@@ -20,11 +27,11 @@ class VideoState {
   String targetPrim;
   String targetGamut;
   String targetTrc;
-  
+
   int brightness;
   int contrast;
   int gamma;
-  
+
   bool deband;
   int debandIterations;
   int debandThreshold;
@@ -43,7 +50,8 @@ class VideoState {
   bool hidpiWindowScale;
 
   VideoState({
-    this.activeShaders = const [],
+    this.shadersLowRes = const [],
+    this.shadersHighRes = const [],
     this.toneMappingAlgorithm = 'auto',
     this.targetPeak = 100.0,
     this.contrastRecovery = 0.0,
@@ -74,8 +82,13 @@ class VideoState {
     this.hidpiWindowScale = false,
   });
 
+  /// The shader chain that applies to a video of the given tier.
+  List<String> shadersFor(ResolutionTier tier) =>
+      tier == ResolutionTier.lowRes ? shadersLowRes : shadersHighRes;
+
   VideoState copyWith({
-    List<String>? activeShaders,
+    List<String>? shadersLowRes,
+    List<String>? shadersHighRes,
     String? toneMappingAlgorithm,
     double? targetPeak,
     double? contrastRecovery,
@@ -106,7 +119,8 @@ class VideoState {
     bool? hidpiWindowScale,
   }) {
     return VideoState(
-      activeShaders: activeShaders ?? this.activeShaders,
+      shadersLowRes: shadersLowRes ?? this.shadersLowRes,
+      shadersHighRes: shadersHighRes ?? this.shadersHighRes,
       toneMappingAlgorithm: toneMappingAlgorithm ?? this.toneMappingAlgorithm,
       targetPeak: targetPeak ?? this.targetPeak,
       contrastRecovery: contrastRecovery ?? this.contrastRecovery,
@@ -139,7 +153,8 @@ class VideoState {
   }
 
   Map<String, dynamic> toJson() => {
-    'activeShaders': activeShaders,
+    'shadersLowRes': shadersLowRes,
+    'shadersHighRes': shadersHighRes,
     'toneMappingAlgorithm': toneMappingAlgorithm,
     'targetPeak': targetPeak,
     'contrastRecovery': contrastRecovery,
@@ -170,35 +185,62 @@ class VideoState {
     'hidpiWindowScale': hidpiWindowScale,
   };
 
-  factory VideoState.fromJson(Map<String, dynamic> json) => VideoState(
-    activeShaders: (json['activeShaders'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
-    toneMappingAlgorithm: json['toneMappingAlgorithm'] as String? ?? 'auto',
-    targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 100.0,
-    contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
-    visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
-    hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
-    hdrOutput: json['hdrOutput'] as bool? ?? false,
-    inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
-    targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
-    targetPrim: json['targetPrim'] as String? ?? 'auto',
-    targetGamut: json['targetGamut'] as String? ?? 'auto',
-    targetTrc: json['targetTrc'] as String? ?? 'auto',
-    brightness: json['brightness'] as int? ?? 0,
-    contrast: json['contrast'] as int? ?? 0,
-    gamma: json['gamma'] as int? ?? 0,
-    deband: json['deband'] as bool? ?? false,
-    debandIterations: json['debandIterations'] as int? ?? 1,
-    debandThreshold: json['debandThreshold'] as int? ?? 0,
-    interpolation: json['interpolation'] as bool? ?? false,
-    videoSync: json['videoSync'] as String? ?? 'audio',
-    tscale: json['tscale'] as String? ?? 'oversample',
-    tscaleWindow: json['tscaleWindow'] as String? ?? 'sphinx',
-    tscaleRadius: (json['tscaleRadius'] as num?)?.toDouble() ?? 0.95,
-    tscaleBlur: (json['tscaleBlur'] as num?)?.toDouble() ?? 0.01,
-    tscaleClamp: (json['tscaleClamp'] as num?)?.toDouble() ?? 0.0,
-    scale: json['scale'] as String? ?? 'bilinear',
-    cscale: json['cscale'] as String? ?? 'bilinear',
-    dscale: json['dscale'] as String? ?? 'bilinear',
-    hidpiWindowScale: json['hidpiWindowScale'] as bool? ?? false,
-  );
+  static List<String>? _stringList(dynamic v) =>
+      (v as List<dynamic>?)?.map((e) => e.toString()).toList();
+
+  factory VideoState.fromJson(Map<String, dynamic> json) {
+    var low = _stringList(json['shadersLowRes']);
+    var high = _stringList(json['shadersHighRes']);
+
+    // Migration: sessions/presets saved before the per-tier split carry one
+    // flat 'activeShaders' list. Split it by each shader's recommended tier
+    // (unknown shaders go in both) so an existing setup keeps working instead
+    // of silently losing its shaders on first launch after the update.
+    if (low == null && high == null) {
+      final legacy = _stringList(json['activeShaders']);
+      if (legacy != null) {
+        low = <String>[];
+        high = <String>[];
+        for (final shader in legacy) {
+          final tiers = shaderMetadataMap[shader]?.recommendedFor ??
+              const [ResolutionTier.lowRes, ResolutionTier.highRes];
+          if (tiers.contains(ResolutionTier.lowRes)) low.add(shader);
+          if (tiers.contains(ResolutionTier.highRes)) high.add(shader);
+        }
+      }
+    }
+
+    return VideoState(
+      shadersLowRes: low ?? [],
+      shadersHighRes: high ?? [],
+      toneMappingAlgorithm: json['toneMappingAlgorithm'] as String? ?? 'auto',
+      targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 100.0,
+      contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
+      visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
+      hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
+      hdrOutput: json['hdrOutput'] as bool? ?? false,
+      inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
+      targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
+      targetPrim: json['targetPrim'] as String? ?? 'auto',
+      targetGamut: json['targetGamut'] as String? ?? 'auto',
+      targetTrc: json['targetTrc'] as String? ?? 'auto',
+      brightness: json['brightness'] as int? ?? 0,
+      contrast: json['contrast'] as int? ?? 0,
+      gamma: json['gamma'] as int? ?? 0,
+      deband: json['deband'] as bool? ?? false,
+      debandIterations: json['debandIterations'] as int? ?? 1,
+      debandThreshold: json['debandThreshold'] as int? ?? 0,
+      interpolation: json['interpolation'] as bool? ?? false,
+      videoSync: json['videoSync'] as String? ?? 'audio',
+      tscale: json['tscale'] as String? ?? 'oversample',
+      tscaleWindow: json['tscaleWindow'] as String? ?? 'sphinx',
+      tscaleRadius: (json['tscaleRadius'] as num?)?.toDouble() ?? 0.95,
+      tscaleBlur: (json['tscaleBlur'] as num?)?.toDouble() ?? 0.01,
+      tscaleClamp: (json['tscaleClamp'] as num?)?.toDouble() ?? 0.0,
+      scale: json['scale'] as String? ?? 'bilinear',
+      cscale: json['cscale'] as String? ?? 'bilinear',
+      dscale: json['dscale'] as String? ?? 'bilinear',
+      hidpiWindowScale: json['hidpiWindowScale'] as bool? ?? false,
+    );
+  }
 }

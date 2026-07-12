@@ -74,7 +74,8 @@ void main() {
       final second = VideoProvider(DspProvider());
       await Future.delayed(_afterInit);
       expect(second.activePresetId, 'anime_cartoon');
-      expect(second.state.activeShaders, anime.state.activeShaders);
+      expect(second.state.shadersLowRes, anime.state.shadersLowRes);
+      expect(second.state.shadersHighRes, anime.state.shadersHighRes);
       expect(second.state.deband, anime.state.deband);
     });
 

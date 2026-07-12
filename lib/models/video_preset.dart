@@ -40,7 +40,8 @@ List<VideoPreset> get builtinVideoPresets => [
     emoji: '🌸',
     description: 'Anime4K upscale with medium debanding',
     state: VideoState(
-      activeShaders: ['Anime4K_Restore_CNN_M.glsl'],
+      shadersLowRes: ['Anime4K_Restore_CNN_M.glsl'],
+      shadersHighRes: [],
       toneMappingAlgorithm: 'auto',
       targetPeak: 100.0,
       contrastRecovery: 0.0,
@@ -75,7 +76,10 @@ List<VideoPreset> get builtinVideoPresets => [
     emoji: '🎬',
     description: 'FSRCNNX and CAS for sharp upscaling',
     state: VideoState(
-      activeShaders: ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS.glsl'],
+      // Upscaling only helps detail-starved sources, so FSRCNNX is ≤1080p
+      // only; CAS sharpening is worthwhile at any resolution.
+      shadersLowRes: ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS.glsl'],
+      shadersHighRes: ['CAS.glsl'],
       toneMappingAlgorithm: 'auto',
       targetPeak: 100.0,
       contrastRecovery: 0.0,
@@ -110,7 +114,8 @@ List<VideoPreset> get builtinVideoPresets => [
     emoji: '☀️',
     description: 'High peak brightness for bright rooms',
     state: VideoState(
-      activeShaders: [],
+      shadersLowRes: [],
+      shadersHighRes: [],
       toneMappingAlgorithm: 'bt.2446a',
       targetPeak: 400.0,
       contrastRecovery: 0.35,
@@ -145,7 +150,8 @@ List<VideoPreset> get builtinVideoPresets => [
     emoji: '🔇',
     description: 'Reset all settings and disable shaders',
     state: VideoState(
-      activeShaders: [],
+      shadersLowRes: [],
+      shadersHighRes: [],
       toneMappingAlgorithm: 'auto',
       targetPeak: 100.0,
       contrastRecovery: 0.0,
