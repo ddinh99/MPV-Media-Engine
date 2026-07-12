@@ -95,4 +95,26 @@ void main() {
       expect(restored.shadersHighRes, isEmpty);
     });
   });
+
+  group('shader mutual exclusion in toggleShader', () {
+    test('enabling CfL_Prediction_Lite disables CfL_Prediction', () {
+      final provider = VideoProvider(DspProvider());
+      provider.toggleShader(ResolutionTier.highRes, 'CfL_Prediction.glsl', true);
+      expect(provider.state.shadersHighRes, contains('CfL_Prediction.glsl'));
+
+      provider.toggleShader(ResolutionTier.highRes, 'CfL_Prediction_Lite.glsl', true);
+      expect(provider.state.shadersHighRes, contains('CfL_Prediction_Lite.glsl'));
+      expect(provider.state.shadersHighRes, isNot(contains('CfL_Prediction.glsl')));
+    });
+
+    test('enabling CAS disables adaptive-sharpen', () {
+      final provider = VideoProvider(DspProvider());
+      provider.toggleShader(ResolutionTier.lowRes, 'adaptive-sharpen.glsl', true);
+      expect(provider.state.shadersLowRes, contains('adaptive-sharpen.glsl'));
+
+      provider.toggleShader(ResolutionTier.lowRes, 'CAS.glsl', true);
+      expect(provider.state.shadersLowRes, contains('CAS.glsl'));
+      expect(provider.state.shadersLowRes, isNot(contains('adaptive-sharpen.glsl')));
+    });
+  });
 }

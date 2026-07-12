@@ -111,7 +111,7 @@ class AppTheme {
         ),
         iconTheme: IconThemeData(color: textPrimary),
       ),
-      tabBarTheme: TabBarTheme(
+      tabBarTheme: TabBarThemeData(
         labelColor: primary,
         unselectedLabelColor: textSecondary,
         indicatorColor: primary,
@@ -128,7 +128,7 @@ class AppTheme {
         trackHeight: 4,
       ),
       dividerColor: border,
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 0,
         shape: RoundedRectangleBorder(

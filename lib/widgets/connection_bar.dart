@@ -64,12 +64,15 @@ class ConnectionBar extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              Text(
-                                'MPV Player',
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
+                              Expanded(
+                                child: Text(
+                                  'MPV Player',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.textPrimary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                               const SizedBox(width: 6),

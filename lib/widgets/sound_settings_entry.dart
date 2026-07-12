@@ -26,12 +26,15 @@ class SoundSettingsEntry extends StatelessWidget {
             children: [
               Icon(Icons.graphic_eq, size: 18, color: AppTheme.primary),
               const SizedBox(width: 8),
-              Text(
-                'Sound Settings',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
+              Expanded(
+                child: Text(
+                  'Sound Settings',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],

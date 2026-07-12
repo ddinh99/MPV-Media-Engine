@@ -673,6 +673,22 @@ class VideoProvider extends ChangeNotifier {
   void toggleShader(ResolutionTier tier, String shaderFile, bool enable) {
     final current = List<String>.from(_state.shadersFor(tier));
     if (enable && !current.contains(shaderFile)) {
+      // Mutually exclusive groups of shaders
+      const exclusionGroups = [
+        ['CfL_Prediction.glsl', 'CfL_Prediction_Lite.glsl', 'KrigBilateral.glsl'],
+        ['CAS.glsl', 'adaptive-sharpen.glsl'],
+        ['FSRCNNX_x2_16-0-4-1.glsl', 'ArtCNN_C4F16.glsl'],
+      ];
+
+      for (final group in exclusionGroups) {
+        if (group.contains(shaderFile)) {
+          for (final otherShader in group) {
+            if (otherShader != shaderFile) {
+              current.remove(otherShader);
+            }
+          }
+        }
+      }
       current.add(shaderFile);
     } else if (!enable && current.contains(shaderFile)) {
       current.remove(shaderFile);

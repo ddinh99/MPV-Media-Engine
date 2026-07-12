@@ -39,7 +39,7 @@ class VideoPresetSelector extends StatelessWidget {
                 const Spacer(),
                 TextButton.icon(
                   icon: const Icon(Icons.bookmark_add, size: 16),
-                  label: Text('Save Current Settings', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
+                  label: Text('Save Preset', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
                   style: TextButton.styleFrom(
                     foregroundColor: AppTheme.primary,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
