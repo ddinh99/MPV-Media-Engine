@@ -33,17 +33,79 @@ class VideoPreset {
   );
 }
 
+// Preset value choices are cross-checked against a real mpv 0.41 binary's
+// --list-options defaults (see CLAUDE.md's "Verified mpv property gotchas"):
+//   scale=lanczos, dscale=hermite, target-peak=auto (≈203 for SDR),
+//   deband-threshold=48, hdr-contrast-recovery=0, video-sync=audio.
+// Two rules every preset follows:
+//   - target-peak 203 = SDR reference white, the neutral value. Anything
+//     below dims/compresses even SDR content; HDR-to-SDR deliberately goes
+//     *lower* (not higher!) to brighten — raising target-peak darkens.
+//   - No preset enables interpolation. It drags in video-sync=display-resample,
+//     which misbehaves on any machine whose driver isn't actually vsyncing
+//     (see the display-resample gotcha); users opt in via the toggle, which
+//     runs the display-sync verifier.
 List<VideoPreset> get builtinVideoPresets => [
+  VideoPreset(
+    id: 'best_quality',
+    name: 'Best Quality',
+    emoji: '💎',
+    description: 'Full shader chain and high-quality scalers — needs a capable GPU',
+    state: VideoState(
+      // The recommended chain per tier, in metadata order: upscale → refine →
+      // chroma → sharpen for low-res sources; chroma reconstruction + sharpen
+      // for high-res (which needs no upscaling).
+      shadersLowRes: [
+        'FSRCNNX_x2_16-0-4-1.glsl',
+        'SSimSuperRes.glsl',
+        'KrigBilateral.glsl',
+        'CAS.glsl',
+      ],
+      shadersHighRes: ['CfL_Prediction.glsl', 'CAS.glsl'],
+      toneMappingAlgorithm: 'auto',
+      targetPeak: 203.0,
+      // Matches mpv's own high-quality profile (0.30).
+      contrastRecovery: 0.3,
+      visualizeToneMapping: false,
+      hdrComputePeak: true,
+      hdrOutput: false,
+      targetColorspaceHint: false,
+      targetPrim: 'auto',
+      targetGamut: 'auto',
+      targetTrc: 'auto',
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      deband: true,
+      debandIterations: 1,
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      tscaleWindow: 'sphinx',
+      tscaleRadius: 0.95,
+      tscaleBlur: 0.01,
+      tscaleClamp: 0.0,
+      scale: 'ewa_lanczossharp',
+      // Krig/CfL take over chroma upscaling anyway; spline36 covers the rest
+      // without ewa_lanczossharp's cost for no visible gain on chroma.
+      cscale: 'spline36',
+      dscale: 'mitchell',
+    ),
+  ),
   VideoPreset(
     id: 'anime_cartoon',
     name: 'Anime/Cartoon',
     emoji: '🌸',
-    description: 'Anime4K upscale with medium debanding',
+    // "Restoration", not "upscale": Anime4K_Restore_CNN_M deblurs/denoises
+    // but does not scale — the Anime4K upscaler shaders aren't shipped.
+    // Actual upscaling is spline36.
+    description: 'Anime4K restoration with medium debanding',
     state: VideoState(
       shadersLowRes: ['Anime4K_Restore_CNN_M.glsl'],
-      shadersHighRes: [],
+      shadersHighRes: ['CfL_Prediction.glsl'],
       toneMappingAlgorithm: 'auto',
-      targetPeak: 100.0,
+      targetPeak: 203.0,
       contrastRecovery: 0.0,
       visualizeToneMapping: false,
       hdrComputePeak: true,
@@ -55,6 +117,7 @@ List<VideoPreset> get builtinVideoPresets => [
       brightness: 0,
       contrast: 0,
       gamma: 0,
+      // "Medium": mpv's default strength (48) but two passes.
       deband: true,
       debandIterations: 2,
       debandThreshold: 48,
@@ -81,7 +144,7 @@ List<VideoPreset> get builtinVideoPresets => [
       shadersLowRes: ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS.glsl'],
       shadersHighRes: ['CAS.glsl'],
       toneMappingAlgorithm: 'auto',
-      targetPeak: 100.0,
+      targetPeak: 203.0,
       contrastRecovery: 0.0,
       visualizeToneMapping: false,
       hdrComputePeak: true,
@@ -95,16 +158,16 @@ List<VideoPreset> get builtinVideoPresets => [
       gamma: 0,
       deband: false,
       debandIterations: 1,
-      debandThreshold: 0,
-      interpolation: true,
-      videoSync: 'display-resample',
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
       tscale: 'oversample',
       tscaleWindow: 'sphinx',
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
       scale: 'ewa_lanczossharp',
-      cscale: 'ewa_lanczossharp',
+      cscale: 'spline36',
       dscale: 'mitchell',
     ),
   ),
@@ -112,12 +175,18 @@ List<VideoPreset> get builtinVideoPresets => [
     id: 'hdr_bright',
     name: 'HDR to SDR',
     emoji: '☀️',
-    description: 'High peak brightness for bright rooms',
+    description: 'Brightened HDR-to-SDR tone mapping for well-lit rooms',
     state: VideoState(
       shadersLowRes: [],
       shadersHighRes: [],
+      // Purpose-built HDR→SDR curve.
       toneMappingAlgorithm: 'bt.2446a',
-      targetPeak: 400.0,
+      // *Below* the 203 reference on purpose: a lower target-peak compresses
+      // the tone map harder and pushes midtones up — that's what "brighter"
+      // means here. The old value of 400 did the opposite (darkened the
+      // image on a typical SDR panel), which the old brightness/contrast +5
+      // offsets then tried to claw back; both hacks are gone.
+      targetPeak: 150.0,
       contrastRecovery: 0.35,
       visualizeToneMapping: false,
       hdrComputePeak: true,
@@ -126,12 +195,13 @@ List<VideoPreset> get builtinVideoPresets => [
       targetPrim: 'auto',
       targetGamut: 'auto',
       targetTrc: 'auto',
-      brightness: 5,
-      contrast: 5,
+      brightness: 0,
+      contrast: 0,
       gamma: 0,
-      deband: false,
+      // Tone-mapped skies/gradients band easily; default-strength deband.
+      deband: true,
       debandIterations: 1,
-      debandThreshold: 0,
+      debandThreshold: 48,
       interpolation: false,
       videoSync: 'audio',
       tscale: 'oversample',
@@ -139,21 +209,21 @@ List<VideoPreset> get builtinVideoPresets => [
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
-      scale: 'bilinear',
-      cscale: 'bilinear',
-      dscale: 'bilinear',
+      scale: 'spline36',
+      cscale: 'spline36',
+      dscale: 'hermite',
     ),
   ),
   VideoPreset(
     id: 'bypass',
     name: 'Bypass (Default)',
     emoji: '🔇',
-    description: 'Reset all settings and disable shaders',
+    description: 'Stock mpv defaults — no shaders, no tweaks',
     state: VideoState(
       shadersLowRes: [],
       shadersHighRes: [],
       toneMappingAlgorithm: 'auto',
-      targetPeak: 100.0,
+      targetPeak: 203.0,
       contrastRecovery: 0.0,
       visualizeToneMapping: false,
       hdrComputePeak: true,
@@ -167,7 +237,7 @@ List<VideoPreset> get builtinVideoPresets => [
       gamma: 0,
       deband: false,
       debandIterations: 1,
-      debandThreshold: 0,
+      debandThreshold: 48,
       interpolation: false,
       videoSync: 'audio',
       tscale: 'oversample',
@@ -175,9 +245,12 @@ List<VideoPreset> get builtinVideoPresets => [
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
-      scale: 'bilinear',
-      cscale: 'bilinear',
-      dscale: 'bilinear',
+      // Stock mpv, verified against 0.41: scale=lanczos, dscale=hermite,
+      // cscale unset (follows scale). The old bilinear/bilinear/bilinear was
+      // *below* stock — "Bypass" rendered worse than a clean mpv install.
+      scale: 'lanczos',
+      cscale: 'lanczos',
+      dscale: 'hermite',
     ),
   ),
 ];

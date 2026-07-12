@@ -53,7 +53,12 @@ class VideoState {
     this.shadersLowRes = const [],
     this.shadersHighRes = const [],
     this.toneMappingAlgorithm = 'auto',
-    this.targetPeak = 100.0,
+    // 203 nits = SDR reference white, what mpv's target-peak=auto assumes for
+    // an SDR display. The old default of 100 sat *below* reference, which
+    // engages tone mapping even on plain SDR content — dimming everything
+    // relative to a stock mpv. (The state can't express "auto"; 203 is the
+    // neutral equivalent.)
+    this.targetPeak = 203.0,
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
     this.hdrComputePeak = true,
@@ -68,7 +73,10 @@ class VideoState {
     this.gamma = 0,
     this.deband = false,
     this.debandIterations = 1,
-    this.debandThreshold = 0,
+    // mpv's own default strength. At the old default of 0 the deband filter
+    // is a visual no-op, so flipping the Deband switch did nothing until the
+    // user also discovered the threshold slider — a dead control by default.
+    this.debandThreshold = 48,
     this.interpolation = false,
     this.videoSync = 'audio',
     this.tscale = 'oversample',
@@ -214,7 +222,7 @@ class VideoState {
       shadersLowRes: low ?? [],
       shadersHighRes: high ?? [],
       toneMappingAlgorithm: json['toneMappingAlgorithm'] as String? ?? 'auto',
-      targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 100.0,
+      targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 203.0,
       contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
       visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
       hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
@@ -229,7 +237,7 @@ class VideoState {
       gamma: json['gamma'] as int? ?? 0,
       deband: json['deband'] as bool? ?? false,
       debandIterations: json['debandIterations'] as int? ?? 1,
-      debandThreshold: json['debandThreshold'] as int? ?? 0,
+      debandThreshold: json['debandThreshold'] as int? ?? 48,
       interpolation: json['interpolation'] as bool? ?? false,
       videoSync: json['videoSync'] as String? ?? 'audio',
       tscale: json['tscale'] as String? ?? 'oversample',

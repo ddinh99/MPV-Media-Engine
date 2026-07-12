@@ -111,7 +111,10 @@ class TabVideoHdr extends StatelessWidget {
             value: video.state.targetPeak,
             min: 100,
             max: 4000,
-            divisions: (4000 - 100) ~/ 50,
+            // 1-nit steps: the neutral default is 203 (SDR reference white),
+            // which the old 50-nit steps couldn't land on — one drag and the
+            // user could never get back to it.
+            divisions: 4000 - 100,
             onChanged: video.setTargetPeak,
           ),
           const SizedBox(height: 16),
