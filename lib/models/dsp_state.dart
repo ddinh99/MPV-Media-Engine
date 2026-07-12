@@ -264,6 +264,7 @@ class DspState {
   bool dynaudnormEnabled;
   DynAudNormSettings dynaudnorm;
   PanMatrix panMatrix;
+  Map<String, PanMatrix> panMatrices; // Per-config pan matrices
   AmbienceSettings ambience;
   double extraStereo;   // 0.0 - 0.5
   List<EqBand> eqBands;
@@ -271,11 +272,13 @@ class DspState {
   CompressorSettings compressor;
   LimiterSettings limiter;
   bool bypass; // sends af clr
+  String channelConfig; // 'stereo', '5.1', '7.1'
 
   DspState({
     this.dynaudnormEnabled = true,
     DynAudNormSettings? dynaudnorm,
     PanMatrix? panMatrix,
+    Map<String, PanMatrix>? panMatrices,
     AmbienceSettings? ambience,
     this.extraStereo = 0.08,
     List<EqBand>? eqBands,
@@ -283,8 +286,14 @@ class DspState {
     CompressorSettings? compressor,
     LimiterSettings? limiter,
     this.bypass = false,
+    this.channelConfig = 'stereo',
   })  : dynaudnorm = dynaudnorm ?? DynAudNormSettings(),
         panMatrix = panMatrix ?? PanMatrix(),
+        panMatrices = panMatrices ?? {
+          'stereo': PanMatrix(),
+          '5.1': PanMatrix(),
+          '7.1': PanMatrix(),
+        },
         ambience = ambience ?? AmbienceSettings(),
         eqBands = eqBands ?? defaultEqBands(),
         highShelf = highShelf ?? HighShelfSettings(),
@@ -295,6 +304,7 @@ class DspState {
     bool? dynaudnormEnabled,
     DynAudNormSettings? dynaudnorm,
     PanMatrix? panMatrix,
+    Map<String, PanMatrix>? panMatrices,
     AmbienceSettings? ambience,
     double? extraStereo,
     List<EqBand>? eqBands,
@@ -302,11 +312,13 @@ class DspState {
     CompressorSettings? compressor,
     LimiterSettings? limiter,
     bool? bypass,
+    String? channelConfig,
   }) {
     return DspState(
       dynaudnormEnabled: dynaudnormEnabled ?? this.dynaudnormEnabled,
       dynaudnorm: dynaudnorm ?? this.dynaudnorm,
       panMatrix: panMatrix ?? this.panMatrix,
+      panMatrices: panMatrices ?? this.panMatrices,
       ambience: ambience ?? this.ambience,
       extraStereo: extraStereo ?? this.extraStereo,
       eqBands: eqBands ?? List.from(this.eqBands),
@@ -314,6 +326,7 @@ class DspState {
       compressor: compressor ?? this.compressor,
       limiter: limiter ?? this.limiter,
       bypass: bypass ?? this.bypass,
+      channelConfig: channelConfig ?? this.channelConfig,
     );
   }
 
@@ -321,6 +334,7 @@ class DspState {
     'dynaudnormEnabled': dynaudnormEnabled,
     'dynaudnorm': dynaudnorm.toJson(),
     'panMatrix': panMatrix.toJson(),
+    'panMatrices': panMatrices.map((k, v) => MapEntry(k, v.toJson())),
     'ambience': ambience.toJson(),
     'extraStereo': extraStereo,
     'eqBands': eqBands.map((e) => e.toJson()).toList(),
@@ -328,20 +342,30 @@ class DspState {
     'compressor': compressor.toJson(),
     'limiter': limiter.toJson(),
     'bypass': bypass,
+    'channelConfig': channelConfig,
   };
 
-  factory DspState.fromJson(Map<String, dynamic> json) => DspState(
-    dynaudnormEnabled: json['dynaudnormEnabled'] as bool? ?? true,
-    dynaudnorm: json['dynaudnorm'] != null ? DynAudNormSettings.fromJson(json['dynaudnorm']) : null,
-    panMatrix: json['panMatrix'] != null ? PanMatrix.fromJson(json['panMatrix']) : null,
-    ambience: json['ambience'] != null ? AmbienceSettings.fromJson(json['ambience']) : null,
-    extraStereo: (json['extraStereo'] as num?)?.toDouble() ?? 0.08,
-    eqBands: json['eqBands'] != null
-        ? (json['eqBands'] as List).map((e) => EqBand.fromJson(e as Map<String, dynamic>)).toList()
-        : null,
-    highShelf: json['highShelf'] != null ? HighShelfSettings.fromJson(json['highShelf']) : null,
-    compressor: json['compressor'] != null ? CompressorSettings.fromJson(json['compressor']) : null,
-    limiter: json['limiter'] != null ? LimiterSettings.fromJson(json['limiter']) : null,
-    bypass: json['bypass'] as bool? ?? false,
-  );
+  factory DspState.fromJson(Map<String, dynamic> json) {
+    Map<String, PanMatrix>? panMatrices;
+    if (json['panMatrices'] != null) {
+      final pm = json['panMatrices'] as Map<String, dynamic>;
+      panMatrices = pm.map((k, v) => MapEntry(k, PanMatrix.fromJson(v as Map<String, dynamic>)));
+    }
+    return DspState(
+      dynaudnormEnabled: json['dynaudnormEnabled'] as bool? ?? true,
+      dynaudnorm: json['dynaudnorm'] != null ? DynAudNormSettings.fromJson(json['dynaudnorm']) : null,
+      panMatrix: json['panMatrix'] != null ? PanMatrix.fromJson(json['panMatrix']) : null,
+      panMatrices: panMatrices,
+      ambience: json['ambience'] != null ? AmbienceSettings.fromJson(json['ambience']) : null,
+      extraStereo: (json['extraStereo'] as num?)?.toDouble() ?? 0.08,
+      eqBands: json['eqBands'] != null
+          ? (json['eqBands'] as List).map((e) => EqBand.fromJson(e as Map<String, dynamic>)).toList()
+          : null,
+      highShelf: json['highShelf'] != null ? HighShelfSettings.fromJson(json['highShelf']) : null,
+      compressor: json['compressor'] != null ? CompressorSettings.fromJson(json['compressor']) : null,
+      limiter: json['limiter'] != null ? LimiterSettings.fromJson(json['limiter']) : null,
+      bypass: json['bypass'] as bool? ?? false,
+      channelConfig: json['channelConfig'] as String? ?? 'stereo',
+    );
+  }
 }

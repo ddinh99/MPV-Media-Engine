@@ -9,6 +9,7 @@ class Preset {
   final String description;
   final DspState state;
   final String? customFilter;
+  final String channelConfig;
 
   const Preset({
     required this.id,
@@ -17,6 +18,7 @@ class Preset {
     required this.description,
     required this.state,
     this.customFilter,
+    this.channelConfig = 'stereo',
   });
 
   Map<String, dynamic> toJson() => {
@@ -26,6 +28,7 @@ class Preset {
     'description': description,
     'state': state.toJson(),
     'customFilter': customFilter,
+    'channelConfig': channelConfig,
   };
 
   factory Preset.fromJson(Map<String, dynamic> json) => Preset(
@@ -35,6 +38,7 @@ class Preset {
     description: json['description'] as String,
     state: DspState.fromJson(json['state'] as Map<String, dynamic>),
     customFilter: json['customFilter'] as String?,
+    channelConfig: json['channelConfig'] as String? ?? 'stereo',
   );
 }
 

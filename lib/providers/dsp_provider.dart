@@ -84,6 +84,7 @@ class DspProvider extends ChangeNotifier {
   bool get hasMpvExe => _mpvExePath != null && _mpvExePath!.isNotEmpty;
   /// True once preferences are loaded AND no mpv.exe path is saved yet.
   bool get needsFirstTimeSetup => _prefsLoaded && !hasMpvExe;
+  String get selectedChannelConfig => _state.channelConfig;
 
   DspProvider() {
     _ipc.stateStream.listen((_) => notifyListeners());
@@ -220,6 +221,23 @@ class DspProvider extends ChangeNotifier {
     } finally {
       _isDrainingOutbox = false;
     }
+  }
+
+  void setSelectedChannelConfig(String config) {
+    if (_state.channelConfig == config) return;
+    // Stash the current config's matrix, then swap in the target config's.
+    _state.panMatrices[_state.channelConfig] = _state.panMatrix;
+    // Route through _update like every other setter — it clears
+    // _customFilterOverride, without which _applyNow keeps resending the
+    // favorite's stored raw filter string (frozen at pan=stereo) instead of
+    // rebuilding from state.
+    _update(
+      _state.copyWith(
+        channelConfig: config,
+        panMatrix: _state.panMatrices[config],
+      ),
+      clearPreset: true,
+    );
   }
 
   /// Save the mpv.exe path to preferences.
@@ -466,7 +484,7 @@ class DspProvider extends ChangeNotifier {
   void applyCustomFilter(String name, String filterString) {
     _activePresetId = name;
     _customFilterOverride = filterString;
-    
+
     // Attempt to parse the raw string back into the GUI state so sliders update!
     try {
       _state = FilterParser.parse(filterString);
@@ -489,6 +507,7 @@ class DspProvider extends ChangeNotifier {
       description: 'Personal preset',
       state: _state.copyWith(),
       customFilter: _customFilterOverride,
+      channelConfig: _state.channelConfig,
     );
     _customPresets.add(newPreset);
     _activePresetId = id;

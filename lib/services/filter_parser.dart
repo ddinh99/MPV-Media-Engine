@@ -42,11 +42,12 @@ class FilterParser {
     }
 
     // Pan Matrix
-    final panReg = RegExp(r'pan=(stereo|5\.1)\|([^,]+)');
+    final panReg = RegExp(r'pan=(stereo|5\.1|7\.1)\|([^,]+)');
     final panMatch = panReg.firstMatch(s);
     if (panMatch != null) {
       final layout = panMatch.group(1);
       final rules = panMatch.group(2)!.split('|');
+      state.channelConfig = layout!;
       
       // Reset matrix
       state.panMatrix = PanMatrix(

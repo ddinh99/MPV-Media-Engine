@@ -16,13 +16,38 @@ class TabChannels extends StatelessWidget {
       builder: (context, dsp, _) {
         final p = dsp.state.panMatrix;
         final color = AppTheme.accentChannels;
+        final configs = ['stereo', '5.1', '7.1'];
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-                      // Quick controls
+              // Channel config selector
+              Row(
+                children: [
+                  Text(
+                    'Config:',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                  ),
+                  const SizedBox(width: 12),
+                  ...configs.map((config) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: FilterChip(
+                      label: Text(config),
+                      selected: dsp.selectedChannelConfig == config,
+                      onSelected: (_) => dsp.setSelectedChannelConfig(config),
+                      side: BorderSide(
+                        color: dsp.selectedChannelConfig == config ? color : AppTheme.border,
+                      ),
+                      backgroundColor: Colors.transparent,
+                      selectedColor: color.withOpacity(0.15),
+                    ),
+                  )).toList(),
+                ],
+              ),
+              const SizedBox(height: 24),
+              // Quick controls
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

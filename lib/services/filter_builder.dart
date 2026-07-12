@@ -44,7 +44,7 @@ class FilterBuilder {
 
     final flStr = flParts.join('').replaceFirst('+', '');
     final frStr = frParts.join('').replaceFirst('+', '');
-    parts.add('pan=stereo|FL=$flStr|FR=$frStr');
+    parts.add('pan=${state.channelConfig}|FL=$flStr|FR=$frStr');
 
     // 3. Ambience path (split chain)
     if (state.ambience.enabled) {
