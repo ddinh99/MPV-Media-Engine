@@ -124,7 +124,9 @@ class DspProvider extends ChangeNotifier {
     if (session != null) {
       _state = session.state;
       _activePresetId = session.activePresetId;
-      _customFilterOverride = session.customFilter;
+      _customFilterOverride = session.customFilter == null
+          ? null
+          : FilterParser.sanitizeDynaudnormG(session.customFilter!);
       _autoApply = session.autoApply;
       _rebuildPreview();
     }
@@ -473,7 +475,9 @@ class DspProvider extends ChangeNotifier {
 
   void loadPreset(Preset preset) {
     _activePresetId = preset.id;
-    _customFilterOverride = preset.customFilter;
+    _customFilterOverride = preset.customFilter == null
+        ? null
+        : FilterParser.sanitizeDynaudnormG(preset.customFilter!);
     _state = preset.state.copyWith();
     _rebuildPreview();
     notifyListeners();
@@ -483,7 +487,7 @@ class DspProvider extends ChangeNotifier {
 
   void applyCustomFilter(String name, String filterString) {
     _activePresetId = name;
-    _customFilterOverride = filterString;
+    _customFilterOverride = FilterParser.sanitizeDynaudnormG(filterString);
 
     // Attempt to parse the raw string back into the GUI state so sliders update!
     try {

@@ -3,6 +3,25 @@ import '../models/dsp_state.dart';
 import '../models/eq_band.dart';
 
 class FilterParser {
+  /// Repairs a raw dynaudnorm 'g' value in-place within a raw filter string.
+  ///
+  /// Raw customFilter strings (hardcoded Favorites, saved personal presets,
+  /// the last-used session) bypass DynAudNormSettings entirely and are sent
+  /// to mpv verbatim, so DynAudNormSettings' own clamping can't protect
+  /// them. ffmpeg's dynaudnorm 'g' must be an odd integer in [3, 301]; any
+  /// other value (e.g. a fractional "gain" from before that bug was fixed)
+  /// kills the whole filter graph.
+  static String sanitizeDynaudnormG(String filter) {
+    return filter.replaceAllMapped(
+      RegExp(r'(dynaudnorm=[^,\]]*?:g=)(-?[\d.]+)'),
+      (m) {
+        var g = (double.tryParse(m.group(2)!) ?? 31).round().clamp(3, 301);
+        if (g.isEven) g += 1;
+        return '${m.group(1)}$g';
+      },
+    );
+  }
+
   static DspState parse(String rawFilter) {
     final state = DspState();
     
