@@ -5,6 +5,11 @@ class ShaderMetadata {
   final List<ResolutionTier> recommendedFor;
   final String? description;
 
+  /// Small caution rendered under the shader's name inside a specific tier's
+  /// section — for shaders that are *offered* in a tier without being the
+  /// recommended pick there (e.g. CfL_Prediction at ≤1080p).
+  final Map<ResolutionTier, String> tierNotes;
+
   /// Position in the recommended enable order within a tier (lower = earlier).
   /// The GUI lists shaders by this, so a new user enabling top-to-bottom gets
   /// a sensible chain: upscale → refine → chroma → sharpen, with situational
@@ -16,6 +21,7 @@ class ShaderMetadata {
     required this.recommendedFor,
     this.description,
     this.defaultOrder = 999,
+    this.tierNotes = const {},
   });
 }
 
@@ -44,17 +50,24 @@ const Map<String, ShaderMetadata> shaderMetadataMap = {
     description: 'Refines the upscale result — pairs well with FSRCNNX',
     defaultOrder: 20,
   ),
-  // 1440p+: chroma reconstruction is the main win at high res.
+  // Chroma reconstruction is the main win at 1440p+ (nothing else to
+  // upscale there), but CfL works at any resolution — offered in both
+  // tiers so it can replace Krig for whoever prefers it.
   'CfL_Prediction.glsl': ShaderMetadata(
     name: 'CfL_Prediction',
-    recommendedFor: [ResolutionTier.highRes],
-    description: 'Chroma upsampling — sharper color detail; enable first',
+    recommendedFor: [ResolutionTier.lowRes, ResolutionTier.highRes],
+    description: 'Chroma upsampling — sharper color detail; '
+        'use instead of KrigBilateral, not with it',
     defaultOrder: 25,
+    tierNotes: {
+      ResolutionTier.lowRes: 'Alternative to KrigBilateral — pick one',
+    },
   ),
   'KrigBilateral.glsl': ShaderMetadata(
     name: 'KrigBilateral',
     recommendedFor: [ResolutionTier.lowRes],
-    description: 'Luma-guided chroma refinement — cleaner color edges',
+    description: 'Luma-guided chroma refinement — cleaner color edges; '
+        'use instead of CfL_Prediction, not with it',
     defaultOrder: 30,
   ),
   // Sharpeners run last (OUTPUT hook). CAS is the lighter default;

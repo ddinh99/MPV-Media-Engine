@@ -72,7 +72,7 @@ void main() {
       final restored = VideoState.fromJson({
         'activeShaders': [
           'FSRCNNX_x2_16-0-4-1.glsl', // lowRes only
-          'CfL_Prediction.glsl', // highRes only
+          'CfL_Prediction_Lite.glsl', // highRes only
           'CAS.glsl', // both tiers
           'SomeUnknownShader.glsl', // no metadata → both, to be safe
         ],
@@ -81,7 +81,7 @@ void main() {
       expect(restored.shadersLowRes,
           ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS.glsl', 'SomeUnknownShader.glsl']);
       expect(restored.shadersHighRes,
-          ['CfL_Prediction.glsl', 'CAS.glsl', 'SomeUnknownShader.glsl']);
+          ['CfL_Prediction_Lite.glsl', 'CAS.glsl', 'SomeUnknownShader.glsl']);
     });
 
     test('new-format keys win and are not re-migrated', () {

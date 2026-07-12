@@ -272,6 +272,8 @@ class TabVideoShaders extends StatelessWidget {
                   final shaderName = shaders[index];
                   final isActive = activeShaders.contains(shaderName);
                   final activeIndex = activeShaders.indexOf(shaderName);
+                  final tierNote =
+                      shaderMetadataMap[shaderName]?.tierNotes[tier];
 
                   return Row(
                     children: [
@@ -286,14 +288,29 @@ class TabVideoShaders extends StatelessWidget {
                       Expanded(
                         child: Tooltip(
                           message: shaderMetadataMap[shaderName]?.description ?? shaderName,
-                          child: Text(
-                            shaderName,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.jetBrainsMono(
-                              fontSize: 12,
-                              color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
-                              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                            ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                shaderName,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.jetBrainsMono(
+                                  fontSize: 12,
+                                  color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                                ),
+                              ),
+                              if (tierNote != null)
+                                Text(
+                                  tierNote,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 9,
+                                    color: AppTheme.textMuted,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
                       ),
