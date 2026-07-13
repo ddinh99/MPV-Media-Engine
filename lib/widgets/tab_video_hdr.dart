@@ -6,6 +6,58 @@ import '../constants/theme.dart';
 import '../providers/video_provider.dart';
 import 'video_controls_common.dart';
 
+/// Shown when HDR passthrough is on but Windows HDR isn't — mpv accepts the
+/// PQ output without error, so without this the picture just silently looks
+/// flat/oversaturated with nothing pointing at why.
+Widget _hdrOutputWarningCard(VideoProvider video) {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: AppTheme.warning.withOpacity(0.07),
+      border: Border.all(color: AppTheme.warning.withOpacity(0.35)),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(Icons.hdr_off_rounded, size: 18, color: AppTheme.warning),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Windows HDR is off',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.warning,
+                ),
+              ),
+              const SizedBox(height: 5),
+              SelectableText(
+                video.hdrOutputWarning!,
+                style: GoogleFonts.inter(
+                  fontSize: 11.5,
+                  color: AppTheme.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 6),
+        IconButton(
+          icon: Icon(Icons.close_rounded, size: 16, color: AppTheme.textMuted),
+          tooltip: 'Dismiss',
+          onPressed: video.dismissHdrOutputWarning,
+        ),
+      ],
+    ),
+  );
+}
+
 class TabVideoHdr extends StatelessWidget {
   const TabVideoHdr({super.key});
 
@@ -20,6 +72,10 @@ class TabVideoHdr extends StatelessWidget {
             children: [
               videoSectionTitle('HDR / Tone Mapping', Icons.hdr_on),
               const SizedBox(height: 12),
+              if (video.hdrOutputWarning != null) ...[
+                _hdrOutputWarningCard(video),
+                const SizedBox(height: 12),
+              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

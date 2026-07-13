@@ -439,6 +439,37 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Set when HDR passthrough gets enabled while Windows HDR is off; surfaced
+  /// by the HDR tab. mpv accepts PQ output to an SDR display without error —
+  /// the image just silently looks flat and oversaturated, the same
+  /// invisible-failure class as the display-sync runaway.
+  String? _hdrOutputWarning;
+  String? get hdrOutputWarning => _hdrOutputWarning;
+
+  void dismissHdrOutputWarning() {
+    if (_hdrOutputWarning == null) return;
+    _hdrOutputWarning = null;
+    notifyListeners();
+  }
+
+  Future<void> _checkHdrOutputSupported() async {
+    final hdrOn = await PlatformService.isWindowsHdrEnabled();
+    if (!_state.hdrOutput) return; // Turned back off while we were checking.
+    if (hdrOn) {
+      if (_hdrOutputWarning != null) {
+        _hdrOutputWarning = null;
+        notifyListeners();
+      }
+      return;
+    }
+    _hdrOutputWarning =
+        'Windows HDR looks like it\'s off, so HDR passthrough is sending an HDR '
+        'signal to an SDR display — colors will look flat or oversaturated. '
+        'Turn on HDR in Windows Display settings (Settings > System > Display), '
+        'or switch HDR Output off.';
+    notifyListeners();
+  }
+
   /// Attempts before giving up. A resync fires on *connect*, which can land
   /// before playback starts — mpv has measured nothing yet and reports no
   /// estimate. One shot would silently skip the check in exactly the case that
@@ -520,6 +551,14 @@ class VideoProvider extends ChangeNotifier {
       _verifyDisplaySync();
     } else if (_displaySyncWarning != null) {
       _displaySyncWarning = null;
+    }
+
+    // 4. A preset that enables HDR passthrough (e.g. HDR Punch) needs the same
+    //    Windows-HDR check as the manual HDR Output toggle.
+    if (next.hdrOutput) {
+      _checkHdrOutputSupported();
+    } else if (_hdrOutputWarning != null) {
+      _hdrOutputWarning = null;
     }
   }
 
@@ -776,11 +815,15 @@ class VideoProvider extends ChangeNotifier {
       // to HDR"), so the Algorithm dropdown would silently do nothing
       // whenever the loaded content is SDR and HDR Output is on.
       _sendCommand('inverse-tone-mapping', 'yes');
+      _checkHdrOutputSupported();
     } else {
       _sendCommand('target-trc', 'auto');
       _sendCommand('inverse-tone-mapping', 'no');
       if (wasVisualizing) {
         _sendCommand('tone-mapping-visualize', false);
+      }
+      if (_hdrOutputWarning != null) {
+        _hdrOutputWarning = null;
       }
     }
   }

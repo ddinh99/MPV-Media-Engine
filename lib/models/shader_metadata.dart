@@ -78,6 +78,13 @@ const Map<String, ShaderMetadata> shaderMetadataMap = {
     description: 'Contrast-Adaptive Sharpening — light, safe default sharpen',
     defaultOrder: 40,
   ),
+  'CAS-vivid.glsl': ShaderMetadata(
+    name: 'CAS-vivid',
+    recommendedFor: [ResolutionTier.lowRes, ResolutionTier.highRes],
+    description: 'CAS with a micro-contrast boost (CONTRAST 0.3) — the HDR '
+        'Punch sharpener; use instead of CAS/adaptive-sharpen, not with them',
+    defaultOrder: 45,
+  ),
   'adaptive-sharpen.glsl': ShaderMetadata(
     name: 'adaptive-sharpen',
     recommendedFor: [ResolutionTier.lowRes, ResolutionTier.highRes],

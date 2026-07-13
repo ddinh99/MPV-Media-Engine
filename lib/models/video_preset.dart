@@ -265,6 +265,56 @@ List<VideoPreset> get builtinVideoPresets => [
     ),
   ),
   VideoPreset(
+    id: 'hdr_punch',
+    name: 'HDR Punch',
+    emoji: '💥',
+    description: 'Full HDR passthrough with the hottest grade — for HDR displays '
+        '(Windows HDR must be on)',
+    state: VideoState(
+      // The "3D pop" preset: real dynamic range does the heavy lifting, the
+      // grade and sharpener sit on top. CAS-vivid = stock CAS with CONTRAST
+      // 0.3 for micro-contrast (one sharpener only — never stacked with CAS
+      // or adaptive-sharpen); CfL handles chroma at high res like Best
+      // Quality does.
+      shadersLowRes: ['FSRCNNX_x2_16-0-4-1.glsl', 'CAS-vivid.glsl'],
+      shadersHighRes: ['CfL_Prediction.glsl', 'CAS-vivid.glsl'],
+      // Passthrough block: must exactly match setHdrOutput(true) /
+      // _checkWindowsHdr's auto-detect state, or applying this preset would
+      // differ from toggling HDR Output on.
+      toneMappingAlgorithm: 'none',
+      hdrComputePeak: false,
+      hdrOutput: true,
+      inverseToneMapping: true,
+      targetColorspaceHint: true,
+      targetTrc: 'pq',
+      targetPeak: 203.0,
+      contrastRecovery: 0.3,
+      visualizeToneMapping: false,
+      targetPrim: 'auto',
+      targetGamut: 'auto',
+      brightness: 0,
+      // Gloss level 5 — the grade documented as "only looks right with HDR
+      // Output on" (inverse tone mapping stretches the range and absorbs
+      // it). Keep in sync with _glossLevels in tab_video_grading.dart.
+      contrast: 10,
+      gamma: -5,
+      saturation: 15,
+      deband: true,
+      debandIterations: 1,
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      tscaleWindow: 'sphinx',
+      tscaleRadius: 0.95,
+      tscaleBlur: 0.01,
+      tscaleClamp: 0.0,
+      scale: 'ewa_lanczossharp',
+      cscale: 'spline36',
+      dscale: 'mitchell',
+    ),
+  ),
+  VideoPreset(
     id: 'bypass',
     name: 'Bypass (Default)',
     emoji: '🔇',

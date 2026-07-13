@@ -18,6 +18,7 @@ Full credit and profound thanks go to the original authors.
 - **Original Algorithm**: AMD (FidelityFX)
 - **MPV GLSL Port**: Various community contributors
 - **License**: MIT License (AMD FidelityFX)
+- **Note**: `CAS-vivid.glsl` is this same port with the `CONTRAST` define raised to 0.3 (MPV Media Engine variant for the HDR Punch preset).
 
 ### SSimSuperRes & KrigBilateral
 - **Author**: igv
