@@ -1,4 +1,5 @@
 // lib/widgets/video_preset_selector.dart
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,8 +7,26 @@ import '../constants/theme.dart';
 import '../models/video_preset.dart';
 import '../providers/video_provider.dart';
 
-class VideoPresetSelector extends StatelessWidget {
+class VideoPresetSelector extends StatefulWidget {
   const VideoPresetSelector({super.key});
+
+  @override
+  State<VideoPresetSelector> createState() => _VideoPresetSelectorState();
+}
+
+class _VideoPresetSelectorState extends State<VideoPresetSelector> {
+  /// The preset strip has always been horizontally scrollable, but on desktop
+  /// that was invisible: no scrollbar, and the mouse wheel doesn't drive
+  /// horizontal lists — so on a narrow window it just looked like the cards
+  /// were cut off. The controller feeds an always-visible scrollbar and a
+  /// wheel-to-horizontal listener.
+  final ScrollController _scrollCtrl = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,11 +96,29 @@ class VideoPresetSelector extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             SizedBox(
-              height: 90,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: allPresets.length,
-                itemBuilder: (context, index) {
+              // 90 for the cards + a lane below them for the scrollbar.
+              height: 102,
+              child: Listener(
+                // A plain vertical wheel only pans vertical scrollables;
+                // translate it so hovering the strip and scrolling just works
+                // (shift+wheel / drag already worked natively).
+                onPointerSignal: (event) {
+                  if (event is PointerScrollEvent && _scrollCtrl.hasClients) {
+                    final delta = event.scrollDelta.dy != 0
+                        ? event.scrollDelta.dy
+                        : event.scrollDelta.dx;
+                    _scrollCtrl.position.moveTo(_scrollCtrl.offset + delta);
+                  }
+                },
+                child: Scrollbar(
+                  controller: _scrollCtrl,
+                  thumbVisibility: true,
+                  child: ListView.builder(
+                    controller: _scrollCtrl,
+                    padding: const EdgeInsets.only(bottom: 12),
+                    scrollDirection: Axis.horizontal,
+                    itemCount: allPresets.length,
+                    itemBuilder: (context, index) {
                   final preset = allPresets[index];
                   final isActive = provider.activePresetId == preset.id;
                   final isCustom = preset.id.startsWith('custom_');
@@ -186,7 +223,9 @@ class VideoPresetSelector extends StatelessWidget {
                       ),
                     ),
                   );
-                },
+                    },
+                  ),
+                ),
               ),
             ),
           ],

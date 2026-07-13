@@ -205,9 +205,16 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+        // The content stack is ~650px tall at its tallest (path filled in →
+        // banner + step 2 both visible); on a window shorter than that a bare
+        // Column overflows the bottom. Scroll instead. ClipRRect keeps the
+        // scrolling content inside the rounded corners.
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             // ── Header ───────────────────────────────────────────────────────
             Container(
               width: double.infinity,
@@ -473,7 +480,9 @@ class _FirstRunSetupDialogState extends State<FirstRunSetupDialog> {
                 ],
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );
