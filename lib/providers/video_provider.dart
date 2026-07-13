@@ -580,6 +580,7 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('brightness', old.brightness, next.brightness);
     addIfChanged('contrast', old.contrast, next.contrast);
     addIfChanged('gamma', old.gamma, next.gamma);
+    addIfChanged('saturation', old.saturation, next.saturation);
 
     // Deband
     addIfChanged('deband', old.deband, next.deband);
@@ -842,6 +843,13 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(gamma: val);
     notifyListeners();
     _sendCommand('gamma', val, debounce: true);
+  }
+
+  void setSaturation(int val) {
+    _activePresetId = null;
+    _state = _state.copyWith(saturation: val);
+    notifyListeners();
+    _sendCommand('saturation', val, debounce: true);
   }
 
   void setDeband(bool val) {

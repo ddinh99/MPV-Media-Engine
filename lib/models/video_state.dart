@@ -31,6 +31,7 @@ class VideoState {
   int brightness;
   int contrast;
   int gamma;
+  int saturation;
 
   bool deband;
   int debandIterations;
@@ -71,6 +72,7 @@ class VideoState {
     this.brightness = 0,
     this.contrast = 0,
     this.gamma = 0,
+    this.saturation = 0,
     this.deband = false,
     this.debandIterations = 1,
     // mpv's own default strength. At the old default of 0 the deband filter
@@ -111,6 +113,7 @@ class VideoState {
     int? brightness,
     int? contrast,
     int? gamma,
+    int? saturation,
     bool? deband,
     int? debandIterations,
     int? debandThreshold,
@@ -143,6 +146,7 @@ class VideoState {
       brightness: brightness ?? this.brightness,
       contrast: contrast ?? this.contrast,
       gamma: gamma ?? this.gamma,
+      saturation: saturation ?? this.saturation,
       deband: deband ?? this.deband,
       debandIterations: debandIterations ?? this.debandIterations,
       debandThreshold: debandThreshold ?? this.debandThreshold,
@@ -177,6 +181,7 @@ class VideoState {
     'brightness': brightness,
     'contrast': contrast,
     'gamma': gamma,
+    'saturation': saturation,
     'deband': deband,
     'debandIterations': debandIterations,
     'debandThreshold': debandThreshold,
@@ -235,6 +240,7 @@ class VideoState {
       brightness: json['brightness'] as int? ?? 0,
       contrast: json['contrast'] as int? ?? 0,
       gamma: json['gamma'] as int? ?? 0,
+      saturation: json['saturation'] as int? ?? 0,
       deband: json['deband'] as bool? ?? false,
       debandIterations: json['debandIterations'] as int? ?? 1,
       debandThreshold: json['debandThreshold'] as int? ?? 48,

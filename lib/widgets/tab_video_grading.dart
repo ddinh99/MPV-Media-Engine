@@ -76,6 +76,14 @@ class TabVideoGrading extends StatelessWidget {
             max: 100,
             onChanged: (v) => video.setGamma(v.toInt()),
           ),
+          const SizedBox(height: 12),
+          videoSliderRow(
+            label: 'Saturation',
+            value: video.state.saturation.toDouble(),
+            min: -100,
+            max: 100,
+            onChanged: (v) => video.setSaturation(v.toInt()),
+          ),
         ],
       ),
     );

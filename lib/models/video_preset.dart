@@ -215,6 +215,54 @@ List<VideoPreset> get builtinVideoPresets => [
     ),
   ),
   VideoPreset(
+    id: 'vivid',
+    name: 'Vivid',
+    emoji: '✨',
+    description: 'Glossy, punchy look — strong sharpening, deeper contrast, richer color',
+    state: VideoState(
+      // adaptive-sharpen (instead of CAS — stronger, don't stack them) does
+      // the "glass" crispness at any resolution; low-res sources get FSRCNNX
+      // first so the sharpener has real detail to bite into.
+      shadersLowRes: ['FSRCNNX_x2_16-0-4-1.glsl', 'adaptive-sharpen.glsl'],
+      shadersHighRes: ['adaptive-sharpen.glsl'],
+      toneMappingAlgorithm: 'auto',
+      targetPeak: 203.0,
+      contrastRecovery: 0.3,
+      visualizeToneMapping: false,
+      hdrComputePeak: true,
+      hdrOutput: false,
+      targetColorspaceHint: false,
+      targetPrim: 'auto',
+      targetGamut: 'auto',
+      targetTrc: 'auto',
+      brightness: 0,
+      // The grade: deliberately restrained — sharpen + saturation is exactly
+      // the combo that tips into "TV showroom mode" if pushed. Contrast up a
+      // notch, gamma a hair down for deeper mids, a mild color boost.
+      // Tuned for plain SDR output (the default): live testing showed +15
+      // saturation only looked right with HDR Output on, whose inverse tone
+      // mapping stretches the range and absorbs the boost — on a plain SDR
+      // path the same value reads oversaturated.
+      contrast: 6,
+      gamma: -3,
+      saturation: 8,
+      // Clean gradients are half of "glossy"; banding reads as cheap.
+      deband: true,
+      debandIterations: 1,
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      tscaleWindow: 'sphinx',
+      tscaleRadius: 0.95,
+      tscaleBlur: 0.01,
+      tscaleClamp: 0.0,
+      scale: 'ewa_lanczossharp',
+      cscale: 'spline36',
+      dscale: 'mitchell',
+    ),
+  ),
+  VideoPreset(
     id: 'bypass',
     name: 'Bypass (Default)',
     emoji: '🔇',

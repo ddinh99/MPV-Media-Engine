@@ -128,6 +128,7 @@ void main() {
       brightness: 5,
       contrast: -3,
       gamma: 2,
+      saturation: 15,
       deband: true,
       debandIterations: 3,
       debandThreshold: 48,
