@@ -218,6 +218,20 @@ class VideoProvider extends ChangeNotifier {
   ResolutionTier get currentTier =>
       getResolutionTier(_cachedVideoInfo?['dheight'] as num?);
 
+  /// Whether the currently loaded video's own transfer function is HDR (PQ
+  /// or HLG), per mpv's `video-params/gamma`. Null means unknown (no video
+  /// cached yet) — callers should treat that as "don't know", not as SDR,
+  /// since `--tone-mapping` only ever affects HDR source content (downward)
+  /// or SDR content with HDR Output on (upward); on SDR source with HDR
+  /// Output off the Algorithm dropdown is a real no-op.
+  bool? get isHdrContent {
+    final params = _cachedVideoInfo?['video-params'];
+    if (params is! Map) return null;
+    final gamma = params['gamma'];
+    if (gamma is! String) return null;
+    return gamma == 'pq' || gamma == 'hlg';
+  }
+
   Future<void> setDefaultPresetForLowRes(String? presetId) async {
     _defaultPresetIdLowRes = presetId;
     await PreferencesService.setDefaultPresetIdForLowRes(presetId);

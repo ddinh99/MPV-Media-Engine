@@ -138,6 +138,13 @@ class TabVideoHdr extends StatelessWidget {
               ),
             ],
           ),
+          if (video.isHdrContent == false && !video.state.hdrOutput) ...[
+            const SizedBox(height: 8),
+            Text(
+              'No visible effect on SDR content unless HDR Output is on.',
+              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+            ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
