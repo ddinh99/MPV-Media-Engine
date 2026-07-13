@@ -609,11 +609,17 @@ class VideoProvider extends ChangeNotifier {
     // Colorspace
     addIfChanged('inverse-tone-mapping', old.inverseToneMapping ? 'yes' : 'no', next.inverseToneMapping ? 'yes' : 'no');
     addIfChanged('target-colorspace-hint', old.targetColorspaceHint ? 'yes' : 'no', next.targetColorspaceHint ? 'yes' : 'no');
-    if (next.targetColorspaceHint) {
-      addIfChanged('target-prim', old.targetPrim, next.targetPrim);
-      addIfChanged('target-gamut', old.targetGamut, next.targetGamut);
-      addIfChanged('target-trc', old.targetTrc, next.targetTrc);
-    }
+    // Unconditional regardless of the hint flag: these describe the target
+    // color for tone/gamut-mapping and matter to mpv's rendering even when
+    // target-colorspace-hint is off (the manual setTargetPrim/Gamut/Trc
+    // setters already send unconditionally for the same reason). Gating
+    // this on next.targetColorspaceHint left a stale target-trc (e.g. 'pq'
+    // from an HDR preset) applied to mpv after switching to a preset that
+    // turns the hint off, producing visibly wrong SDR color until something
+    // else (like toggling HDR Output) happened to resend target-trc.
+    addIfChanged('target-prim', old.targetPrim, next.targetPrim);
+    addIfChanged('target-gamut', old.targetGamut, next.targetGamut);
+    addIfChanged('target-trc', old.targetTrc, next.targetTrc);
 
     // Grading
     addIfChanged('brightness', old.brightness, next.brightness);
