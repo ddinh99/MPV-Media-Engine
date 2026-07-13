@@ -243,9 +243,11 @@ List<VideoPreset> get builtinVideoPresets => [
       // saturation only looked right with HDR Output on, whose inverse tone
       // mapping stretches the range and absorbs the boost — on a plain SDR
       // path the same value reads oversaturated.
+      // These values are exactly Gloss level 3 on the Grading tab's macro
+      // row (level 5 = the hot HDR-Output grade); keep the two in sync.
       contrast: 6,
       gamma: -3,
-      saturation: 8,
+      saturation: 9,
       // Clean gradients are half of "glossy"; banding reads as cheap.
       deband: true,
       debandIterations: 1,
