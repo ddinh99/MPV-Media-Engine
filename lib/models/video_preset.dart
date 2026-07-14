@@ -119,7 +119,12 @@ List<VideoPreset> get builtinVideoPresets => [
     emoji: '💠',
     description: 'Use when Windows HDR is on. Any video works',
     state: VideoState(
-      // Identical shader/scaler stack to Best Quality SDR.
+      // Identical shader/scaler stack to Best SDR — including stock CAS, a
+      // deliberate decision: CAS linearizes with sRGB math, which under-bites
+      // slightly on this preset's PQ passthrough output, so Best HDR reads a
+      // touch softer than Best SDR. Accepted: CAS-vivid belongs to the
+      // flavor presets, and users who want more bite swap the sharpener on
+      // the Shaders tab (that's what hand-tweaks + Save Preset are for).
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
         'SSimSuperRes.glsl',
