@@ -15,11 +15,13 @@ class TabDebug extends StatelessWidget {
       builder: (context, dsp, _) {
         final isConnected = dsp.connectionState == IpcConnectionState.connected;
 
-        return Padding(
+        // A ListView, not a Column: the sections below the button grid are
+        // fixed-height, so on a short window a Column overflows (yellow/black
+        // stripes) no matter how the grid flexes. Scrolling the whole tab is
+        // the only layout that survives any window height.
+        return ListView(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+          children: [
               Text(
                 'IPC Command Debugger',
                 style: GoogleFonts.inter(
@@ -37,12 +39,15 @@ class TabDebug extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-              Expanded(
-                child: GridView.count(
+              GridView.count(
                   crossAxisCount: 3,
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                   childAspectRatio: 2.5,
+                  // The outer ListView owns scrolling; the grid just lays out
+                  // its 9 fixed buttons at natural height.
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
                     _DebugButton(
                       label: 'Volume 100%',
@@ -115,7 +120,6 @@ class TabDebug extends StatelessWidget {
                       dsp: dsp,
                     ),
                   ],
-                ),
               ),
               if (dsp.commandErrors.isNotEmpty) ...[
                 const SizedBox(height: 8),
@@ -166,7 +170,6 @@ class TabDebug extends StatelessWidget {
                 ),
               ),
             ],
-          ),
         );
       },
     );
