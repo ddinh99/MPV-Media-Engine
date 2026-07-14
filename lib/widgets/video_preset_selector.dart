@@ -122,8 +122,7 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                   final preset = allPresets[index];
                   final isActive = provider.activePresetId == preset.id;
                   final isCustom = preset.id.startsWith('custom_');
-                  final isDefaultLowRes = provider.defaultPresetIdLowRes == preset.id;
-                  final isDefaultHighRes = provider.defaultPresetIdHighRes == preset.id;
+                  final isDefault = provider.defaultPresetId == preset.id;
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
@@ -131,9 +130,11 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                       // The card ellipsizes both the name and the two-line
                       // description, so hover is the only place the full text
                       // is readable.
-                      message: '${preset.emoji} ${preset.name}\n${preset.description}',
+                      message:
+                          '${preset.emoji} ${preset.name}\n${preset.description}'
+                          '\nLong-press: ${isDefault ? 'unset' : 'set'} as default',
                       // Hover-only: the default longPress trigger would fight
-                      // the long-press that opens the preset menu.
+                      // the long-press that toggles the default.
                       triggerMode: TooltipTriggerMode.manual,
                       waitDuration: const Duration(milliseconds: 400),
                       textStyle: GoogleFonts.inter(
@@ -150,7 +151,10 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                       color: Colors.transparent,
                       child: GestureDetector(
                         onTap: () => provider.applyPreset(preset),
-                        onLongPress: () => _showPresetMenu(context, provider, preset),
+                        // No menu here anymore: the default is one preset for
+                        // all resolutions, so long-press just toggles it.
+                        onLongPress: () =>
+                            provider.setDefaultPreset(isDefault ? null : preset.id),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 200),
                           width: 160,
@@ -188,53 +192,41 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                                     ),
                                 ],
                               ),
-                              Wrap(
-                                spacing: 4,
-                                children: [
-                                  if (isDefaultLowRes)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primary.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                      child: Text(
-                                        '≤1080p',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
+                              if (isDefault)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                  child: Text(
+                                    'Default',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppTheme.primary,
                                     ),
-                                  if (isDefaultHighRes)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primary.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(2),
-                                      ),
-                                      child: Text(
-                                        '1440p+',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppTheme.primary,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const Spacer(),
-                              Text(
-                                preset.description,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  height: 1.3,
-                                  color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                  ),
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                              // Expanded (not Spacer + fixed Text): the active
+                              // border is 0.5px thicker and Container insets
+                              // the child by the border, so on badge-bearing
+                              // cards a fixed-height description overflowed
+                              // the 90px slot by ~2px when clicked.
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.bottomLeft,
+                                  child: Text(
+                                    preset.description,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      height: 1.3,
+                                      color: isActive ? AppTheme.textPrimary : AppTheme.textSecondary,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -254,61 +246,4 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
     );
   }
 
-  void _showPresetMenu(BuildContext context, VideoProvider provider, VideoPreset preset) {
-    final isDefaultLowRes = provider.defaultPresetIdLowRes == preset.id;
-    final isDefaultHighRes = provider.defaultPresetIdHighRes == preset.id;
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        color: AppTheme.surface,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${preset.emoji} ${preset.name}',
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: Icon(
-                  isDefaultLowRes ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: AppTheme.primary,
-                ),
-                title: Text(
-                  'Default for ≤1080p',
-                  style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textPrimary),
-                ),
-                onTap: () async {
-                  await provider.setDefaultPresetForLowRes(isDefaultLowRes ? null : preset.id);
-                  Navigator.pop(context);
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  isDefaultHighRes ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: AppTheme.primary,
-                ),
-                title: Text(
-                  'Default for 1440p+',
-                  style: GoogleFonts.inter(fontSize: 14, color: AppTheme.textPrimary),
-                ),
-                onTap: () async {
-                  await provider.setDefaultPresetForHighRes(isDefaultHighRes ? null : preset.id);
-                  Navigator.pop(context);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }

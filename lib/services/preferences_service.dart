@@ -176,37 +176,31 @@ class PreferencesService {
     await prefs.setString(_kDismissedUpdateVersion, version);
   }
 
-  // ── Default presets per resolution tier ────────────────────────────────────
+  // ── Default video preset ────────────────────────────────────────────────────
 
+  static const String _kDefaultPreset = 'default_preset';
+  // Retired per-tier keys (defaults used to be split ≤1080p / 1440p+). Still
+  // read as a fallback so an existing pick survives the merge; cleared on the
+  // next write.
   static const String _kDefaultPresetLowRes = 'default_preset_lowres';
   static const String _kDefaultPresetHighRes = 'default_preset_highres';
 
-  static Future<String?> getDefaultPresetIdForLowRes() async {
+  static Future<String?> getDefaultPresetId() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_kDefaultPresetLowRes);
+    return prefs.getString(_kDefaultPreset) ??
+        prefs.getString(_kDefaultPresetLowRes) ??
+        prefs.getString(_kDefaultPresetHighRes);
   }
 
-  static Future<void> setDefaultPresetIdForLowRes(String? presetId) async {
+  static Future<void> setDefaultPresetId(String? presetId) async {
     final prefs = await SharedPreferences.getInstance();
     if (presetId == null) {
-      await prefs.remove(_kDefaultPresetLowRes);
+      await prefs.remove(_kDefaultPreset);
     } else {
-      await prefs.setString(_kDefaultPresetLowRes, presetId);
+      await prefs.setString(_kDefaultPreset, presetId);
     }
-  }
-
-  static Future<String?> getDefaultPresetIdForHighRes() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_kDefaultPresetHighRes);
-  }
-
-  static Future<void> setDefaultPresetIdForHighRes(String? presetId) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (presetId == null) {
-      await prefs.remove(_kDefaultPresetHighRes);
-    } else {
-      await prefs.setString(_kDefaultPresetHighRes, presetId);
-    }
+    await prefs.remove(_kDefaultPresetLowRes);
+    await prefs.remove(_kDefaultPresetHighRes);
   }
 
   // ── Current playing video info cache ────────────────────────────────────────

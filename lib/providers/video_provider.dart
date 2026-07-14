@@ -22,8 +22,7 @@ class VideoProvider extends ChangeNotifier {
   Timer? _debounceTimer;
   num? _currentVideoHeight;
   ResolutionTier? _lastAutoAppliedTier;
-  String? _defaultPresetIdLowRes;
-  String? _defaultPresetIdHighRes;
+  String? _defaultPresetId;
   Map<String, dynamic>? _cachedVideoInfo;
 
   /// Whether the next `applyPreset()` must send every property unconditionally
@@ -59,8 +58,7 @@ class VideoProvider extends ChangeNotifier {
   ///   *default* state, so we resync again once the real state is in place.
   Future<void> _restoreSession() async {
     await _loadCustomPresets();
-    _defaultPresetIdLowRes = await PreferencesService.getDefaultPresetIdForLowRes();
-    _defaultPresetIdHighRes = await PreferencesService.getDefaultPresetIdForHighRes();
+    _defaultPresetId = await PreferencesService.getDefaultPresetId();
     _cachedVideoInfo = await PreferencesService.getCurrentVideoInfo();
 
     final session = await PreferencesService.getLastVideoSession();
@@ -208,8 +206,7 @@ class VideoProvider extends ChangeNotifier {
   List<String> get availableShaders => List.unmodifiable(_availableShaders);
   List<VideoPreset> get customPresets => List.unmodifiable(_customPresets);
   num? get currentVideoHeight => _currentVideoHeight;
-  String? get defaultPresetIdLowRes => _defaultPresetIdLowRes;
-  String? get defaultPresetIdHighRes => _defaultPresetIdHighRes;
+  String? get defaultPresetId => _defaultPresetId;
   Map<String, dynamic>? get cachedVideoInfo => _cachedVideoInfo;
 
   /// The resolution tier of the video mpv is (believed to be) playing, which
@@ -232,21 +229,15 @@ class VideoProvider extends ChangeNotifier {
     return gamma == 'pq' || gamma == 'hlg';
   }
 
-  Future<void> setDefaultPresetForLowRes(String? presetId) async {
-    _defaultPresetIdLowRes = presetId;
-    await PreferencesService.setDefaultPresetIdForLowRes(presetId);
-    notifyListeners();
-  }
-
-  Future<void> setDefaultPresetForHighRes(String? presetId) async {
-    _defaultPresetIdHighRes = presetId;
-    await PreferencesService.setDefaultPresetIdForHighRes(presetId);
+  Future<void> setDefaultPreset(String? presetId) async {
+    _defaultPresetId = presetId;
+    await PreferencesService.setDefaultPresetId(presetId);
     notifyListeners();
   }
 
   /// Fetches current video info (resolution, codec, fps) and caches it.
   /// Called when a new video is loaded. Updates GUI, swaps the live shader
-  /// list if the resolution tier changed, and auto-applies the tier default.
+  /// list if the resolution tier changed, and auto-applies the default preset.
   /// Returns true once the video's resolution was actually readable — a
   /// missing dheight means the file hasn't finished loading, not that the
   /// video is low-res, and acting on it would flip the tier (and the live
@@ -276,7 +267,7 @@ class VideoProvider extends ChangeNotifier {
         }
         if (newTier != _lastAutoAppliedTier) {
           _lastAutoAppliedTier = newTier;
-          _applyDefaultPresetForTier(newTier);
+          _applyDefaultPreset();
         }
       }
 
@@ -288,11 +279,12 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
-  /// Auto-applies the default preset for the given resolution tier.
-  void _applyDefaultPresetForTier(ResolutionTier tier) {
-    final presetId = tier == ResolutionTier.lowRes
-        ? _defaultPresetIdLowRes
-        : _defaultPresetIdHighRes;
+  /// Auto-applies the user's default preset (one pick for all resolutions).
+  /// Still triggered from the tier-change gate above so it fires on the first
+  /// video and re-asserts on a tier crossing, but never on every metadata
+  /// refresh of the same file.
+  void _applyDefaultPreset() {
+    final presetId = _defaultPresetId;
 
     if (presetId == null) return;
 
