@@ -41,6 +41,10 @@ class VideoPreset {
 // Also verified there so nobody re-audits them: correct-downscaling,
 // linear-downscaling and sigmoid-upscaling already default to *yes* in mpv
 // 0.41, and dither-depth defaults to auto — presets don't need to set them.
+// gamut-mapping-mode and hdr-reference-white default to 'auto' too (the
+// latter verified against a live mpv IPC connection, not just --list-options
+// — see VideoState.hdrReferenceWhite for the same int-wire-type trap
+// target-peak has) — presets leave both alone as well.
 // The dither *algorithm* (dither/error-diffusion) is user-adjustable on the
 // Grading & Deband tab; presets deliberately leave it at mpv's fruit default.
 // Two rules every preset follows:

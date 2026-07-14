@@ -629,6 +629,10 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('target-prim', old.targetPrim, next.targetPrim);
     addIfChanged('target-gamut', old.targetGamut, next.targetGamut);
     addIfChanged('target-trc', old.targetTrc, next.targetTrc);
+    addIfChanged('gamut-mapping-mode', old.gamutMappingMode, next.gamutMappingMode);
+    // hdr-reference-white shares target-peak's wire type: mpv is 'auto' or an
+    // integer and rejects a raw double over JSON IPC (see _mpvHdrReferenceWhiteValue).
+    addIfChanged('hdr-reference-white', _mpvHdrReferenceWhiteValue(old.hdrReferenceWhite), _mpvHdrReferenceWhiteValue(next.hdrReferenceWhite));
 
     // Grading
     addIfChanged('brightness', old.brightness, next.brightness);
@@ -791,6 +795,13 @@ class VideoProvider extends ChangeNotifier {
   static dynamic _mpvTargetPeakValue(double peak) =>
       peak == 0.0 ? 'auto' : peak.round();
 
+  /// Same auto-sentinel-and-integer-wire-type shape as target-peak, verified
+  /// separately against a live mpv 0.41 IPC connection: set_property
+  /// hdr-reference-white 150.0 returns "error accessing property" while 150
+  /// succeeds. 0.0 is the auto sentinel (see VideoState.hdrReferenceWhite).
+  static dynamic _mpvHdrReferenceWhiteValue(double white) =>
+      white == 0.0 ? 'auto' : white.round();
+
   void setTargetPeak(double peak) {
     _activePresetId = null;
     _state = _state.copyWith(targetPeak: peak);
@@ -914,6 +925,20 @@ class VideoProvider extends ChangeNotifier {
     if (_state.targetColorspaceHint) {
       _sendCommand('target-colorspace-hint', 'yes');
     }
+  }
+
+  void setGamutMappingMode(String mode) {
+    _activePresetId = null;
+    _state = _state.copyWith(gamutMappingMode: mode);
+    notifyListeners();
+    _sendCommand('gamut-mapping-mode', mode);
+  }
+
+  void setHdrReferenceWhite(double white) {
+    _activePresetId = null;
+    _state = _state.copyWith(hdrReferenceWhite: white);
+    notifyListeners();
+    _sendCommand('hdr-reference-white', _mpvHdrReferenceWhiteValue(white), debounce: true);
   }
 
   // --- Module C: Hardware Grading & Deband ---

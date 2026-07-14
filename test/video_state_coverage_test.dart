@@ -126,6 +126,8 @@ void main() {
       targetPrim: 'bt.2020',
       targetGamut: 'bt.2020',
       targetTrc: 'pq',
+      gamutMappingMode: 'perceptual',
+      hdrReferenceWhite: 250.0,
       brightness: 5,
       contrast: -3,
       gamma: 2,
@@ -209,6 +211,41 @@ void main() {
         )
         .map((c) => c['command'] as List)
         .where((c) => c[1] == 'target-peak')
+        .toList();
+    expect(autoCommands, hasLength(1));
+    expect(autoCommands.single[2], 'auto');
+  });
+
+  test('hdr-reference-white is sent as an integer — mpv rejects doubles over IPC',
+      () {
+    // Same wire-type shape as target-peak, verified directly against a live
+    // mpv 0.41 IPC connection: set_property hdr-reference-white 150.0
+    // returns "error accessing property" while 150 succeeds.
+    final provider = VideoProvider(DspProvider());
+    final commands = provider.buildStateCommandsForTest(
+      VideoState(),
+      VideoState(hdrReferenceWhite: 250.0),
+      forceAll: false,
+    );
+
+    final whiteCommands = commands
+        .map((c) => c['command'] as List)
+        .where((c) => c[1] == 'hdr-reference-white')
+        .toList();
+
+    expect(whiteCommands, hasLength(1));
+    expect(whiteCommands.single[2], isA<int>(),
+        reason: 'hdr-reference-white must be sent as an int; mpv rejects doubles');
+    expect(whiteCommands.single[2], 250);
+
+    final autoCommands = provider
+        .buildStateCommandsForTest(
+          VideoState(hdrReferenceWhite: 250.0),
+          VideoState(hdrReferenceWhite: 0.0),
+          forceAll: false,
+        )
+        .map((c) => c['command'] as List)
+        .where((c) => c[1] == 'hdr-reference-white')
         .toList();
     expect(autoCommands, hasLength(1));
     expect(autoCommands.single[2], 'auto');

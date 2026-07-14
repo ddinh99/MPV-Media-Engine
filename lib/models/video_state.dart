@@ -43,6 +43,21 @@ class VideoState {
   String targetGamut;
   String targetTrc;
 
+  /// Mirrors mpv's `gamut-mapping-mode` — the gamut-reduction step that runs
+  /// *after* tone mapping (e.g. squeezing wide-gamut BT.2020 into a BT.709
+  /// display). A distinct pipeline stage from `toneMappingAlgorithm`, not a
+  /// variant of it.
+  String gamutMappingMode;
+
+  /// Mirrors mpv's `hdr-reference-white` in nits. **0.0 is the `auto`
+  /// sentinel** (wire value becomes the string 'auto'; mpv's default),
+  /// same pattern as [targetPeak]. Also shares targetPeak's wire-type trap:
+  /// mpv declares this `<auto|integer>` and its JSON IPC rejects a raw double
+  /// (`150.0` → "error accessing property"; `150` succeeds) — verified
+  /// directly against mpv 0.41 IPC, not just --list-options. The setter must
+  /// round() before sending, exactly like target-peak.
+  double hdrReferenceWhite;
+
   int brightness;
   int contrast;
   int gamma;
@@ -97,6 +112,8 @@ class VideoState {
     this.targetPrim = 'auto',
     this.targetGamut = 'auto',
     this.targetTrc = 'auto',
+    this.gamutMappingMode = 'auto',
+    this.hdrReferenceWhite = 0.0,
     this.brightness = 0,
     this.contrast = 0,
     this.gamma = 0,
@@ -142,6 +159,8 @@ class VideoState {
     String? targetPrim,
     String? targetGamut,
     String? targetTrc,
+    String? gamutMappingMode,
+    double? hdrReferenceWhite,
     int? brightness,
     int? contrast,
     int? gamma,
@@ -179,6 +198,8 @@ class VideoState {
       targetPrim: targetPrim ?? this.targetPrim,
       targetGamut: targetGamut ?? this.targetGamut,
       targetTrc: targetTrc ?? this.targetTrc,
+      gamutMappingMode: gamutMappingMode ?? this.gamutMappingMode,
+      hdrReferenceWhite: hdrReferenceWhite ?? this.hdrReferenceWhite,
       brightness: brightness ?? this.brightness,
       contrast: contrast ?? this.contrast,
       gamma: gamma ?? this.gamma,
@@ -218,6 +239,8 @@ class VideoState {
     'targetPrim': targetPrim,
     'targetGamut': targetGamut,
     'targetTrc': targetTrc,
+    'gamutMappingMode': gamutMappingMode,
+    'hdrReferenceWhite': hdrReferenceWhite,
     'brightness': brightness,
     'contrast': contrast,
     'gamma': gamma,
@@ -292,6 +315,9 @@ class VideoState {
       targetPrim: json['targetPrim'] as String? ?? 'auto',
       targetGamut: json['targetGamut'] as String? ?? 'auto',
       targetTrc: json['targetTrc'] as String? ?? 'auto',
+      gamutMappingMode: json['gamutMappingMode'] as String? ?? 'auto',
+      hdrReferenceWhite:
+          (json['hdrReferenceWhite'] as num?)?.toDouble() ?? 0.0,
       brightness: json['brightness'] as int? ?? 0,
       contrast: json['contrast'] as int? ?? 0,
       gamma: json['gamma'] as int? ?? 0,

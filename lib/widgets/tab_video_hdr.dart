@@ -145,6 +145,26 @@ class TabVideoHdr extends StatelessWidget {
               style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
             ),
           ],
+          const SizedBox(height: 16),
+          videoDropdownRow(
+            label: 'Gamut Mapping',
+            value: video.state.gamutMappingMode,
+            items: const [
+              'auto', 'clip', 'perceptual', 'relative', 'saturation',
+              'absolute', 'desaturate', 'darken', 'linear', 'warn',
+            ],
+            onChanged: (val) {
+              if (val != null) video.setGamutMappingMode(val);
+            },
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Runs after tone mapping to pull out-of-gamut colors back in '
+            'range — verified inert on ordinary BT.709 SDR video, since mpv '
+            'only engages this for wide-gamut sources (BT.2020, DCI-P3) or '
+            'HDR content.',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+          ),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -188,6 +208,8 @@ class TabVideoHdr extends StatelessWidget {
               style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
             ),
           ],
+          const SizedBox(height: 20),
+          _buildHdrReferenceWhiteRow(video),
           const SizedBox(height: 16),
           videoSliderRow(
             label: 'Contrast Recovery',
@@ -340,6 +362,85 @@ class TabVideoHdr extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  /// mpv's `hdr-reference-white`: the assumed SDR diffuse-white level (nits)
+  /// inside an HDR container — a separate concern from Target Peak (which
+  /// caps HDR highlights). 0.0 is the auto sentinel (mpv default, ≈203).
+  Widget _buildHdrReferenceWhiteRow(VideoProvider video) {
+    final isAuto = video.state.hdrReferenceWhite == 0.0;
+    const autoResolvesTo = 203.0;
+    final sliderValue = isAuto ? autoResolvesTo : video.state.hdrReferenceWhite;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 140,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Reference White (Nits)',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ),
+                  ChoiceChip(
+                    label: Text(
+                      'Auto',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    selected: isAuto,
+                    selectedColor: AppTheme.primary,
+                    backgroundColor: AppTheme.surface,
+                    side: BorderSide(color: AppTheme.border),
+                    onSelected: (sel) =>
+                        video.setHdrReferenceWhite(sel ? 0.0 : autoResolvesTo),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Slider(
+                value: sliderValue,
+                min: 50,
+                max: 1000,
+                divisions: 950,
+                activeColor: AppTheme.primary,
+                inactiveColor: AppTheme.primaryLight,
+                onChanged: video.setHdrReferenceWhite,
+              ),
+            ),
+            SizedBox(
+              width: 48,
+              child: Text(
+                isAuto ? 'auto' : video.state.hdrReferenceWhite.toStringAsFixed(0),
+                textAlign: TextAlign.right,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'How bright SDR-graded content (or on-screen text/UI) reads inside '
+          'an HDR container — independent of Target Peak, which only caps '
+          'HDR highlights.',
+          style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+        ),
       ],
     );
   }
