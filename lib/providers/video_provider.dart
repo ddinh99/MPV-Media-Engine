@@ -592,7 +592,9 @@ class VideoProvider extends ChangeNotifier {
 
     // Tone mapping
     addIfChanged('tone-mapping', _mpvToneMappingValue(old.toneMappingAlgorithm), _mpvToneMappingValue(next.toneMappingAlgorithm));
-    addIfChanged('target-peak', old.targetPeak, next.targetPeak);
+    // Rounded: target-peak is an integer option; mpv rejects doubles over
+    // JSON IPC (see setTargetPeak).
+    addIfChanged('target-peak', old.targetPeak.round(), next.targetPeak.round());
     addIfChanged('hdr-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
     addIfChanged('tone-mapping-visualize', old.visualizeToneMapping, next.visualizeToneMapping);
     addIfChanged('hdr-compute-peak', old.hdrComputePeak ? 'yes' : 'no', next.hdrComputePeak ? 'yes' : 'no');
@@ -772,7 +774,11 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(targetPeak: peak);
     notifyListeners();
-    _sendCommand('target-peak', peak, debounce: true);
+    // target-peak is an *integer* option and mpv's JSON IPC refuses to coerce
+    // a double — 203.0 comes back "error accessing property" while 203
+    // succeeds (verified against mpv 0.41). Sending the raw double made this
+    // slider a dead control.
+    _sendCommand('target-peak', peak.round(), debounce: true);
   }
 
   void setContrastRecovery(double val) {
@@ -813,7 +819,15 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(
       hdrOutput: val,
       inverseToneMapping: val,
-      targetColorspaceHint: val ? true : _state.targetColorspaceHint,
+      // Symmetric with target-trc: on forces the hint, off releases it. This
+      // used to leave the hint at "whatever it currently is" — which was the
+      // true that enabling just wrote — so one on/off cycle stranded mpv in
+      // PQ output with inverse-tone-mapping off, where target-peak is dead
+      // for every value above the content's own peak (verified via
+      // video-target-params: gamma stayed pq under the stale hint). On any
+      // machine with Windows HDR on, startup auto-enables HDR Output, so
+      // merely toggling it off landed every such user in that state.
+      targetColorspaceHint: val,
       targetTrc: val ? 'pq' : 'auto',
       visualizeToneMapping: val ? _state.visualizeToneMapping : false,
     );
@@ -828,6 +842,7 @@ class VideoProvider extends ChangeNotifier {
       _sendCommand('inverse-tone-mapping', 'yes');
       _checkHdrOutputSupported();
     } else {
+      _sendCommand('target-colorspace-hint', 'no');
       _sendCommand('target-trc', 'auto');
       _sendCommand('inverse-tone-mapping', 'no');
       if (wasVisualizing) {

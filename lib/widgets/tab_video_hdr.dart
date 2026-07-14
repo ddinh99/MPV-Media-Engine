@@ -180,6 +180,14 @@ class TabVideoHdr extends StatelessWidget {
             divisions: 4000 - 100,
             onChanged: video.setTargetPeak,
           ),
+          if (video.state.targetColorspaceHint && !video.state.hdrOutput) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Limited effect while Target Hinting is on: output is absolute '
+              'PQ, so values above the content\'s own peak change nothing.',
+              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+            ),
+          ],
           const SizedBox(height: 16),
           videoSliderRow(
             label: 'Contrast Recovery',

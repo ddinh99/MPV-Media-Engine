@@ -175,6 +175,49 @@ void main() {
     expect(restored.targetTrc, 'pq');
   });
 
+  test('target-peak is sent as an integer — mpv rejects doubles over IPC', () {
+    // mpv declares target-peak as "auto (or an integer)" and its JSON IPC
+    // refuses to coerce: set_property target-peak 203.0 returns "error
+    // accessing property" while 203 succeeds (verified against mpv 0.41).
+    // The state field stays a double for the slider; the *wire value* must
+    // be an int, or the control is silently dead — which it was.
+    final provider = VideoProvider(DspProvider());
+    final commands = provider.buildStateCommandsForTest(
+      VideoState(),
+      VideoState(targetPeak: 400.0),
+      forceAll: false,
+    );
+
+    final peakCommands = commands
+        .map((c) => c['command'] as List)
+        .where((c) => c[1] == 'target-peak')
+        .toList();
+
+    expect(peakCommands, hasLength(1));
+    expect(peakCommands.single[2], isA<int>(),
+        reason: 'target-peak must be sent as an int; mpv rejects doubles');
+    expect(peakCommands.single[2], 400);
+  });
+
+  test('an HDR Output on/off cycle releases target-colorspace-hint', () {
+    // Turning HDR Output ON forces the hint true; turning it OFF used to
+    // leave the hint at "current value" — i.e. the true that enabling just
+    // wrote. That stranded mpv in absolute-PQ output with inverse-tone-mapping
+    // off, where the Target Peak slider is dead for every value above the
+    // content's own peak. Machines with Windows HDR enabled auto-enable HDR
+    // Output at startup, so a single manual toggle-off hit this reliably.
+    final provider = VideoProvider(DspProvider());
+
+    provider.setHdrOutput(true);
+    expect(provider.state.targetColorspaceHint, isTrue);
+
+    provider.setHdrOutput(false);
+    expect(provider.state.targetColorspaceHint, isFalse,
+        reason: 'HDR Output off must release the hint it forced on');
+    expect(provider.state.targetTrc, 'auto');
+    expect(provider.state.inverseToneMapping, isFalse);
+  });
+
   test('a resync forces every property, even with no diff', () {
     // _resyncAll() leans on forceAll to re-push state to a fresh mpv instance
     // that may have its own mpv.conf settings. If forceAll ever stopped
