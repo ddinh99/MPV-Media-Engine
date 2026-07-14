@@ -19,4 +19,21 @@ class PlatformService {
       return false;
     }
   }
+
+  /// The display's reported peak luminance in nits (from EDID via DXGI),
+  /// preferring an output currently in HDR mode. Returns null when unknown
+  /// (non-Windows, check failed, or the driver reported 0).
+  static Future<double?> getDisplayMaxLuminance() async {
+    if (kIsWeb) return null;
+    try {
+      final result =
+          await _channel.invokeMethod<double>('getDisplayMaxLuminance');
+      return (result == null || result <= 0) ? null : result;
+    } on MissingPluginException {
+      return null;
+    } catch (e) {
+      debugPrint('Display luminance query failed: $e');
+      return null;
+    }
+  }
 }

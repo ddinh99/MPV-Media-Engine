@@ -169,17 +169,7 @@ class TabVideoHdr extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          videoSliderRow(
-            label: 'Target Peak (Nits)',
-            value: video.state.targetPeak,
-            min: 100,
-            max: 4000,
-            // 1-nit steps: the neutral default is 203 (SDR reference white),
-            // which the old 50-nit steps couldn't land on — one drag and the
-            // user could never get back to it.
-            divisions: 4000 - 100,
-            onChanged: video.setTargetPeak,
-          ),
+          _buildTargetPeakRow(video),
           if (video.state.targetColorspaceHint && !video.state.hdrOutput) ...[
             const SizedBox(height: 8),
             Text(
@@ -199,6 +189,112 @@ class TabVideoHdr extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// The Target Peak slider with a marker at the display's own reported peak
+  /// (EDID via DXGI), so users can see when they're pushing past what the
+  /// panel can physically do. Marker and caption only appear when the driver
+  /// reports a usable value.
+  static const double _kPeakMin = 100;
+  static const double _kPeakMax = 4000;
+
+  Widget _buildTargetPeakRow(VideoProvider video) {
+    final maxNits = video.displayMaxNits;
+    final hasMarker =
+        maxNits != null && maxNits > _kPeakMin && maxNits < _kPeakMax;
+    final overSpec = maxNits != null && video.state.targetPeak > maxNits;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            SizedBox(
+              width: 140,
+              child: Text(
+                'Target Peak (Nits)',
+                style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  // Material's default track runs from ~24px to width-24px
+                  // (thumb/overlay inset); the marker uses the same geometry.
+                  const trackInset = 24.0;
+                  final trackWidth = constraints.maxWidth - 2 * trackInset;
+                  final markerX = hasMarker
+                      ? trackInset +
+                          trackWidth *
+                              ((maxNits - _kPeakMin) / (_kPeakMax - _kPeakMin))
+                      : 0.0;
+                  return SizedBox(
+                    height: 48,
+                    child: Stack(
+                      children: [
+                        Slider(
+                          value: video.state.targetPeak,
+                          min: _kPeakMin,
+                          max: _kPeakMax,
+                          // 1-nit steps: the neutral default is 203 (SDR
+                          // reference white), which the old 50-nit steps
+                          // couldn't land on — one drag and the user could
+                          // never get back to it.
+                          divisions: (_kPeakMax - _kPeakMin).toInt(),
+                          activeColor: AppTheme.primary,
+                          inactiveColor: AppTheme.primaryLight,
+                          onChanged: video.setTargetPeak,
+                        ),
+                        if (hasMarker)
+                          Positioned(
+                            left: markerX - 1,
+                            top: 15,
+                            child: IgnorePointer(
+                              child: Container(
+                                width: 2,
+                                height: 18,
+                                decoration: BoxDecoration(
+                                  color: AppTheme.warning,
+                                  borderRadius: BorderRadius.circular(1),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            SizedBox(
+              width: 48,
+              child: Text(
+                video.state.targetPeak.toStringAsFixed(0),
+                textAlign: TextAlign.right,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: overSpec ? AppTheme.warning : AppTheme.textPrimary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        if (maxNits != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            overSpec
+                ? 'Above your display\'s reported peak (${maxNits.toStringAsFixed(0)} nits) — the extra range gets clipped or tone-mapped by the display.'
+                : 'Your display reports a peak of ~${maxNits.toStringAsFixed(0)} nits (marked on the slider).',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: overSpec ? AppTheme.warning : AppTheme.textMuted,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ],
     );
   }
 

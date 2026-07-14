@@ -73,6 +73,38 @@ bool FlutterWindow::OnCreate() {
             }
           }
           result->Success(flutter::EncodableValue(hdrEnabled));
+        } else if (call.method_name() == "getDisplayMaxLuminance") {
+          // MaxLuminance from DXGI_OUTPUT_DESC1 (nits, from the display's
+          // EDID/DisplayID). Prefer an output currently in HDR mode; fall
+          // back to the brightest output otherwise. 0.0 = unknown.
+          double maxLuminance = 0.0;
+          double hdrOutputLuminance = 0.0;
+          Microsoft::WRL::ComPtr<IDXGIFactory1> factory;
+          if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) {
+            Microsoft::WRL::ComPtr<IDXGIAdapter1> adapter;
+            for (UINT i = 0; factory->EnumAdapters1(i, &adapter) != DXGI_ERROR_NOT_FOUND; ++i) {
+              Microsoft::WRL::ComPtr<IDXGIOutput> output;
+              for (UINT j = 0; adapter->EnumOutputs(j, &output) != DXGI_ERROR_NOT_FOUND; ++j) {
+                Microsoft::WRL::ComPtr<IDXGIOutput6> output6;
+                if (SUCCEEDED(output.As(&output6))) {
+                  DXGI_OUTPUT_DESC1 desc1;
+                  if (SUCCEEDED(output6->GetDesc1(&desc1))) {
+                    if (desc1.MaxLuminance > maxLuminance) {
+                      maxLuminance = desc1.MaxLuminance;
+                    }
+                    if (desc1.ColorSpace == DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 &&
+                        desc1.MaxLuminance > hdrOutputLuminance) {
+                      hdrOutputLuminance = desc1.MaxLuminance;
+                    }
+                  }
+                }
+                output.Reset();
+              }
+              adapter.Reset();
+            }
+          }
+          result->Success(flutter::EncodableValue(
+              hdrOutputLuminance > 0.0 ? hdrOutputLuminance : maxLuminance));
         } else {
           result->NotImplemented();
         }

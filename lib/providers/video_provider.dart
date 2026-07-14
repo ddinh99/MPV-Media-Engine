@@ -40,10 +40,22 @@ class VideoProvider extends ChangeNotifier {
   Timer? _persistDebounce;
   String? _lastPersistedJson;
 
+  /// The display's reported peak luminance in nits (EDID via DXGI), shown as
+  /// an annotation on the Target Peak slider. Informational only — null when
+  /// unknown, and deliberately not persisted (monitors change).
+  double? _displayMaxNits;
+  double? get displayMaxNits => _displayMaxNits;
+
   VideoProvider(this.dspProvider) {
     _loadAvailableShaders();
     _restoreSession();
+    _loadDisplayMaxNits();
     dspProvider.addListener(_onDspProviderChanged);
+  }
+
+  Future<void> _loadDisplayMaxNits() async {
+    _displayMaxNits = await PlatformService.getDisplayMaxLuminance();
+    if (_displayMaxNits != null) notifyListeners();
   }
 
   /// Restores the last-used video settings, then makes sure MPV hears about
