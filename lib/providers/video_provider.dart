@@ -21,7 +21,6 @@ class VideoProvider extends ChangeNotifier {
   List<VideoPreset> _customPresets = [];
   Timer? _debounceTimer;
   num? _currentVideoHeight;
-  ResolutionTier? _lastAutoAppliedTier;
   String? _defaultPresetId;
   Map<String, dynamic>? _cachedVideoInfo;
 
@@ -63,10 +62,18 @@ class VideoProvider extends ChangeNotifier {
 
     final session = await PreferencesService.getLastVideoSession();
     if (session != null) {
+      // The remembered session always wins — the default preset must never
+      // override settings the user actually left the app with.
       _state = session.state;
       _activePresetId = session.activePresetId;
     } else {
-      await _checkWindowsHdr();
+      final defaultPreset = _presetById(_defaultPresetId);
+      if (defaultPreset != null) {
+        _state = defaultPreset.state;
+        _activePresetId = defaultPreset.id;
+      } else {
+        await _checkWindowsHdr();
+      }
     }
     _sessionRestored = true;
     notifyListeners();
@@ -236,8 +243,8 @@ class VideoProvider extends ChangeNotifier {
   }
 
   /// Fetches current video info (resolution, codec, fps) and caches it.
-  /// Called when a new video is loaded. Updates GUI, swaps the live shader
-  /// list if the resolution tier changed, and auto-applies the default preset.
+  /// Called when a new video is loaded. Updates GUI and swaps the live shader
+  /// list if the resolution tier changed.
   /// Returns true once the video's resolution was actually readable — a
   /// missing dheight means the file hasn't finished loading, not that the
   /// video is low-res, and acting on it would flip the tier (and the live
@@ -265,10 +272,11 @@ class VideoProvider extends ChangeNotifier {
             !listEquals(_state.shadersFor(oldTier), _state.shadersFor(newTier))) {
           _sendGlslShaders(_state.shadersFor(newTier));
         }
-        if (newTier != _lastAutoAppliedTier) {
-          _lastAutoAppliedTier = newTier;
-          _applyDefaultPreset();
-        }
+        // Deliberately NO preset auto-apply here. The default preset used to
+        // be re-applied on tier changes, but that stomped the remembered
+        // session on the first video of every app launch — the user's last
+        // settings always win; the default only seeds a session that has
+        // nothing to restore (see _restoreSession).
       }
 
       notifyListeners();
@@ -279,37 +287,16 @@ class VideoProvider extends ChangeNotifier {
     }
   }
 
-  /// Auto-applies the user's default preset (one pick for all resolutions).
-  /// Still triggered from the tier-change gate above so it fires on the first
-  /// video and re-asserts on a tier crossing, but never on every metadata
-  /// refresh of the same file.
-  void _applyDefaultPreset() {
-    final presetId = _defaultPresetId;
-
-    if (presetId == null) return;
-
-    // Find the preset (built-in or custom)
-    VideoPreset? preset;
+  /// Looks up a preset (built-in or custom) by id; null when absent.
+  VideoPreset? _presetById(String? presetId) {
+    if (presetId == null) return null;
     for (final p in builtinVideoPresets) {
-      if (p.id == presetId) {
-        preset = p;
-        break;
-      }
+      if (p.id == presetId) return p;
     }
-    preset ??= _customPresets.firstWhere(
-      (p) => p.id == presetId,
-      orElse: () => VideoPreset(
-        id: '',
-        name: '',
-        emoji: '',
-        description: '',
-        state: VideoState(),
-      ),
-    );
-
-    if (preset.id.isEmpty) return; // Preset not found
-
-    applyPreset(preset);
+    for (final p in _customPresets) {
+      if (p.id == presetId) return p;
+    }
+    return null;
   }
 
   Future<void> _loadCustomPresets() async {

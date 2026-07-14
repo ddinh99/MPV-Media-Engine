@@ -132,7 +132,7 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                       // is readable.
                       message:
                           '${preset.emoji} ${preset.name}\n${preset.description}'
-                          '\nLong-press: ${isDefault ? 'unset' : 'set'} as default',
+                          '\nLong-press: ${isDefault ? 'unset' : 'set'} as fresh-start default',
                       // Hover-only: the default longPress trigger would fight
                       // the long-press that toggles the default.
                       triggerMode: TooltipTriggerMode.manual,
