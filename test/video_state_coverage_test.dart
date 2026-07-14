@@ -119,6 +119,7 @@ void main() {
       contrastRecovery: 0.5,
       visualizeToneMapping: true,
       hdrComputePeak: false,
+      hdrPeakPercentile: 99.995,
       hdrOutput: true,
       inverseToneMapping: true,
       targetColorspaceHint: true,

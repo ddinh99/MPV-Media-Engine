@@ -14,6 +14,14 @@ class VideoState {
   double contrastRecovery;
   bool visualizeToneMapping;
   bool hdrComputePeak;
+
+  /// Mirrors mpv's `hdr-peak-percentile` (0–100). 0 keeps mpv's stock default
+  /// (use the true measured peak); mpv's own high-quality profile sets 99.995
+  /// so a handful of stray super-bright pixels can't dim the whole tone map.
+  /// Only consulted while `hdr-compute-peak` is measuring, i.e. when
+  /// tone-mapping HDR content down. Preset-driven; no GUI control.
+  double hdrPeakPercentile;
+
   bool hdrOutput;
 
   /// Mirrors mpv's `inverse-tone-mapping`. Held in state (rather than only
@@ -63,6 +71,7 @@ class VideoState {
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
     this.hdrComputePeak = true,
+    this.hdrPeakPercentile = 0.0,
     this.hdrOutput = false,
     this.inverseToneMapping = false,
     this.targetColorspaceHint = false,
@@ -104,6 +113,7 @@ class VideoState {
     double? contrastRecovery,
     bool? visualizeToneMapping,
     bool? hdrComputePeak,
+    double? hdrPeakPercentile,
     bool? hdrOutput,
     bool? inverseToneMapping,
     bool? targetColorspaceHint,
@@ -137,6 +147,7 @@ class VideoState {
       contrastRecovery: contrastRecovery ?? this.contrastRecovery,
       visualizeToneMapping: visualizeToneMapping ?? this.visualizeToneMapping,
       hdrComputePeak: hdrComputePeak ?? this.hdrComputePeak,
+      hdrPeakPercentile: hdrPeakPercentile ?? this.hdrPeakPercentile,
       hdrOutput: hdrOutput ?? this.hdrOutput,
       inverseToneMapping: inverseToneMapping ?? this.inverseToneMapping,
       targetColorspaceHint: targetColorspaceHint ?? this.targetColorspaceHint,
@@ -172,6 +183,7 @@ class VideoState {
     'contrastRecovery': contrastRecovery,
     'visualizeToneMapping': visualizeToneMapping,
     'hdrComputePeak': hdrComputePeak,
+    'hdrPeakPercentile': hdrPeakPercentile,
     'hdrOutput': hdrOutput,
     'inverseToneMapping': inverseToneMapping,
     'targetColorspaceHint': targetColorspaceHint,
@@ -231,6 +243,8 @@ class VideoState {
       contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
       visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
       hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
+      hdrPeakPercentile:
+          (json['hdrPeakPercentile'] as num?)?.toDouble() ?? 0.0,
       hdrOutput: json['hdrOutput'] as bool? ?? false,
       inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
       targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,

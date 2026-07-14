@@ -617,6 +617,7 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('hdr-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
     addIfChanged('tone-mapping-visualize', old.visualizeToneMapping, next.visualizeToneMapping);
     addIfChanged('hdr-compute-peak', old.hdrComputePeak ? 'yes' : 'no', next.hdrComputePeak ? 'yes' : 'no');
+    addIfChanged('hdr-peak-percentile', old.hdrPeakPercentile, next.hdrPeakPercentile);
     // Note: hdrOutput has no direct mpv property of its own — it's expressed
     // via target-trc/target-colorspace-hint below, which presets set directly.
 

@@ -36,7 +36,11 @@ class VideoPreset {
 // Preset value choices are cross-checked against a real mpv 0.41 binary's
 // --list-options defaults (see CLAUDE.md's "Verified mpv property gotchas"):
 //   scale=lanczos, dscale=hermite, target-peak=auto (≈203 for SDR),
-//   deband-threshold=48, hdr-contrast-recovery=0, video-sync=audio.
+//   deband-threshold=48, hdr-contrast-recovery=0, video-sync=audio,
+//   hdr-peak-percentile=0 (mpv's high-quality profile uses 99.995).
+// Also verified there so nobody re-audits them: correct-downscaling,
+// linear-downscaling and sigmoid-upscaling already default to *yes* in mpv
+// 0.41, and dither-depth defaults to auto — presets don't need to set them.
 // Two rules every preset follows:
 //   - target-peak 203 = SDR reference white, the neutral value. Anything
 //     below dims/compresses even SDR content; HDR-to-SDR deliberately goes
@@ -46,11 +50,24 @@ class VideoPreset {
 //     (see the display-resample gotcha); users opt in via the toggle, which
 //     runs the display-sync verifier.
 List<VideoPreset> get builtinVideoPresets => [
+  // "Best Quality" is split by *display*, not by content: the SDR preset
+  // already handles HDR videos (they get tone-mapped down, and tone mapping
+  // only engages when content exceeds target-peak), but on an HDR display
+  // "best" means passthrough — target-trc=pq + target-colorspace-hint — which
+  // directly conflicts with the SDR preset's target-trc=auto. One preset
+  // cannot express both, hence the pair. Same shader/scaler stack in each;
+  // only the output path differs.
   VideoPreset(
     id: 'best_quality',
-    name: 'Best Quality',
+    // "Best SDR", not "Best Quality SDR": the 160px preset card ellipsizes
+    // longer names, which left the SDR/HDR pair reading identically as
+    // "Best Quality…" — the one part that mattered was the part cut off.
+    name: 'Best SDR',
     emoji: '💎',
-    description: 'Full shader chain and high-quality scalers — needs a capable GPU',
+    // Descriptions on this pair say *when to pick it*, not what's inside —
+    // the card fits ~2 lines of ~22 chars, and "full shader chain…" told a
+    // confused user nothing about which of the two to click.
+    description: 'Use when Windows HDR is off. Any video works',
     state: VideoState(
       // The recommended chain per tier, in metadata order: upscale → refine →
       // chroma → sharpen for low-res sources; chroma reconstruction + sharpen
@@ -68,6 +85,9 @@ List<VideoPreset> get builtinVideoPresets => [
       contrastRecovery: 0.3,
       visualizeToneMapping: false,
       hdrComputePeak: true,
+      // Matches mpv's high-quality profile: ignore the brightest 0.005% of
+      // pixels when measuring peak, so stray speculars can't dim the tone map.
+      hdrPeakPercentile: 99.995,
       hdrOutput: false,
       targetColorspaceHint: false,
       targetPrim: 'auto',
@@ -89,6 +109,54 @@ List<VideoPreset> get builtinVideoPresets => [
       scale: 'ewa_lanczossharp',
       // Krig/CfL take over chroma upscaling anyway; spline36 covers the rest
       // without ewa_lanczossharp's cost for no visible gain on chroma.
+      cscale: 'spline36',
+      dscale: 'mitchell',
+    ),
+  ),
+  VideoPreset(
+    id: 'best_quality_hdr',
+    name: 'Best HDR',
+    emoji: '💠',
+    description: 'Use when Windows HDR is on. Any video works',
+    state: VideoState(
+      // Identical shader/scaler stack to Best Quality SDR.
+      shadersLowRes: [
+        'FSRCNNX_x2_16-0-4-1.glsl',
+        'SSimSuperRes.glsl',
+        'KrigBilateral.glsl',
+        'CAS.glsl',
+      ],
+      shadersHighRes: ['CfL_Prediction.glsl', 'CAS.glsl'],
+      // Passthrough block: must exactly match setHdrOutput(true) /
+      // _checkWindowsHdr's auto-detect state, or applying this preset would
+      // differ from toggling HDR Output on (same invariant as HDR Punch).
+      toneMappingAlgorithm: 'none',
+      hdrComputePeak: false,
+      hdrOutput: true,
+      inverseToneMapping: true,
+      targetColorspaceHint: true,
+      targetTrc: 'pq',
+      targetPeak: 203.0,
+      contrastRecovery: 0.3,
+      visualizeToneMapping: false,
+      targetPrim: 'auto',
+      targetGamut: 'auto',
+      // Neutral grade — unlike HDR Punch this is fidelity, not punch; the
+      // display's real dynamic range is the whole point.
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      deband: true,
+      debandIterations: 1,
+      debandThreshold: 48,
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      tscaleWindow: 'sphinx',
+      tscaleRadius: 0.95,
+      tscaleBlur: 0.01,
+      tscaleClamp: 0.0,
+      scale: 'ewa_lanczossharp',
       cscale: 'spline36',
       dscale: 'mitchell',
     ),
