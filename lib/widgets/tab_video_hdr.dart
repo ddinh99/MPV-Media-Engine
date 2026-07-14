@@ -170,7 +170,17 @@ class TabVideoHdr extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           _buildTargetPeakRow(video),
-          if (video.state.targetColorspaceHint && !video.state.hdrOutput) ...[
+          if (video.state.toneMappingAlgorithm == 'none') ...[
+          const SizedBox(height: 8),
+          Text(
+            'Algorithm is None (clip): the picture passes through untouched, '
+            'so Target Peak only trims highlights above it — verified inert '
+            'on SDR content. Pick an algorithm for this slider to reshape '
+            'brightness.',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+          ),
+        ],
+        if (video.state.targetColorspaceHint && !video.state.hdrOutput) ...[
             const SizedBox(height: 8),
             Text(
               'Limited effect while Target Hinting is on: output is absolute '
@@ -203,7 +213,16 @@ class TabVideoHdr extends StatelessWidget {
     final maxNits = video.displayMaxNits;
     final hasMarker =
         maxNits != null && maxNits > _kPeakMin && maxNits < _kPeakMax;
-    final overSpec = maxNits != null && video.state.targetPeak > maxNits;
+    // 0.0 = auto (mpv derives the peak itself). The slider thumb parks where
+    // auto actually resolves: the display's reported peak under HDR Output,
+    // SDR reference white otherwise.
+    final isAuto = video.state.targetPeak == 0.0;
+    final autoResolvesTo = video.state.hdrOutput && maxNits != null
+        ? maxNits.clamp(_kPeakMin, _kPeakMax).toDouble()
+        : 203.0;
+    final sliderValue = isAuto ? autoResolvesTo : video.state.targetPeak;
+    final overSpec =
+        !isAuto && maxNits != null && video.state.targetPeak > maxNits;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,9 +231,34 @@ class TabVideoHdr extends StatelessWidget {
           children: [
             SizedBox(
               width: 140,
-              child: Text(
-                'Target Peak (Nits)',
-                style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Target Peak (Nits)',
+                      style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+                    ),
+                  ),
+                  ChoiceChip(
+                    label: Text(
+                      'Auto',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    visualDensity: VisualDensity.compact,
+                    selected: isAuto,
+                    selectedColor: AppTheme.primary,
+                    backgroundColor: AppTheme.surface,
+                    side: BorderSide(color: AppTheme.border),
+                    // Selecting Auto stores the 0.0 sentinel (mpv gets
+                    // 'auto'); deselecting pins the current effective value.
+                    onSelected: (sel) =>
+                        video.setTargetPeak(sel ? 0.0 : autoResolvesTo),
+                  ),
+                ],
               ),
             ),
             Expanded(
@@ -234,7 +278,7 @@ class TabVideoHdr extends StatelessWidget {
                     child: Stack(
                       children: [
                         Slider(
-                          value: video.state.targetPeak,
+                          value: sliderValue,
                           min: _kPeakMin,
                           max: _kPeakMax,
                           // 1-nit steps: the neutral default is 203 (SDR
@@ -270,7 +314,7 @@ class TabVideoHdr extends StatelessWidget {
             SizedBox(
               width: 48,
               child: Text(
-                video.state.targetPeak.toStringAsFixed(0),
+                isAuto ? 'auto' : video.state.targetPeak.toStringAsFixed(0),
                 textAlign: TextAlign.right,
                 style: GoogleFonts.jetBrainsMono(
                   fontSize: 12,
@@ -286,7 +330,9 @@ class TabVideoHdr extends StatelessWidget {
           Text(
             overSpec
                 ? 'Above your display\'s reported peak (${maxNits.toStringAsFixed(0)} nits) — the extra range gets clipped or tone-mapped by the display.'
-                : 'Your display reports a peak of ~${maxNits.toStringAsFixed(0)} nits (marked on the slider).',
+                : isAuto
+                    ? 'Auto: mpv derives the peak itself — your display\'s ~${maxNits.toStringAsFixed(0)} nits under HDR Output, SDR reference (203) otherwise.'
+                    : 'Your display reports a peak of ~${maxNits.toStringAsFixed(0)} nits (marked on the slider).',
             style: GoogleFonts.inter(
               fontSize: 11,
               color: overSpec ? AppTheme.warning : AppTheme.textMuted,

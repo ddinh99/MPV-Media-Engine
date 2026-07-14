@@ -197,6 +197,39 @@ void main() {
     expect(peakCommands.single[2], isA<int>(),
         reason: 'target-peak must be sent as an int; mpv rejects doubles');
     expect(peakCommands.single[2], 400);
+
+    // The 0.0 sentinel goes out as the string 'auto' — under HDR passthrough
+    // any explicit number is an absolute PQ ceiling, so passthrough presets
+    // depend on this mapping (a leftover 203 crushed HDR to SDR brightness).
+    final autoCommands = provider
+        .buildStateCommandsForTest(
+          VideoState(targetPeak: 400.0),
+          VideoState(targetPeak: 0.0),
+          forceAll: false,
+        )
+        .map((c) => c['command'] as List)
+        .where((c) => c[1] == 'target-peak')
+        .toList();
+    expect(autoCommands, hasLength(1));
+    expect(autoCommands.single[2], 'auto');
+  });
+
+  test('the poisoned saved combo (hdrOutput + dead-slider 203) migrates to auto',
+      () {
+    // Sessions saved while the Target Peak slider was dead all carry the old
+    // 203 default. Nobody paired 203 with HDR passthrough on purpose — the
+    // value never reached mpv when it was saved — and once the slider fix
+    // shipped, that pairing became a live 203-nit ceiling on HDR displays.
+    final poisoned = VideoState(hdrOutput: true, targetPeak: 203.0);
+    expect(VideoState.fromJson(poisoned.toJson()).targetPeak, 0.0);
+
+    // 203 without passthrough is the deliberate SDR-neutral value — kept.
+    final sdr = VideoState(hdrOutput: false, targetPeak: 203.0);
+    expect(VideoState.fromJson(sdr.toJson()).targetPeak, 203.0);
+
+    // A non-203 value with passthrough was set after the fix, on purpose.
+    final deliberate = VideoState(hdrOutput: true, targetPeak: 1000.0);
+    expect(VideoState.fromJson(deliberate.toJson()).targetPeak, 1000.0);
   });
 
   test('an HDR Output on/off cycle releases target-colorspace-hint', () {
@@ -210,12 +243,17 @@ void main() {
 
     provider.setHdrOutput(true);
     expect(provider.state.targetColorspaceHint, isTrue);
+    expect(provider.state.targetPeak, 0.0,
+        reason: 'HDR Output on must force target-peak to auto — an explicit '
+            'number under passthrough is an absolute PQ ceiling');
 
     provider.setHdrOutput(false);
     expect(provider.state.targetColorspaceHint, isFalse,
         reason: 'HDR Output off must release the hint it forced on');
     expect(provider.state.targetTrc, 'auto');
     expect(provider.state.inverseToneMapping, isFalse);
+    expect(provider.state.targetPeak, 203.0,
+        reason: 'HDR Output off returns to the SDR-neutral reference');
   });
 
   test('a resync forces every property, even with no diff', () {

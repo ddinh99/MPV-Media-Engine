@@ -44,9 +44,14 @@ class VideoPreset {
 // The dither *algorithm* (dither/error-diffusion) is user-adjustable on the
 // Grading & Deband tab; presets deliberately leave it at mpv's fruit default.
 // Two rules every preset follows:
-//   - target-peak 203 = SDR reference white, the neutral value. Anything
-//     below dims/compresses even SDR content; HDR-to-SDR deliberately goes
-//     *lower* (not higher!) to brighten — raising target-peak darkens.
+//   - targetPeak: SDR-output presets use 203 (SDR reference white, ≈ what
+//     auto resolves to on the SDR path). Below 203 brightens/compresses;
+//     HDR-to-SDR deliberately goes *lower* (not higher!) to brighten —
+//     raising target-peak darkens. Passthrough presets (hdrOutput: true)
+//     MUST use 0.0 (= auto): an explicit number there is an absolute PQ
+//     output ceiling, and 203 crushed HDR to SDR brightness on a 1450-nit
+//     panel (verified via video-target-params once the dead slider was
+//     fixed — the 203 these presets shipped with had never reached mpv).
 //   - No preset enables interpolation. It drags in video-sync=display-resample,
 //     which misbehaves on any machine whose driver isn't actually vsyncing
 //     (see the display-resample gotcha); users opt in via the toggle, which
@@ -143,7 +148,8 @@ List<VideoPreset> get builtinVideoPresets => [
       inverseToneMapping: true,
       targetColorspaceHint: true,
       targetTrc: 'pq',
-      targetPeak: 203.0,
+      // auto — never a number here, see the header comment.
+      targetPeak: 0.0,
       contrastRecovery: 0.3,
       visualizeToneMapping: false,
       targetPrim: 'auto',
@@ -362,7 +368,8 @@ List<VideoPreset> get builtinVideoPresets => [
       inverseToneMapping: true,
       targetColorspaceHint: true,
       targetTrc: 'pq',
-      targetPeak: 203.0,
+      // auto — never a number here, see the header comment.
+      targetPeak: 0.0,
       contrastRecovery: 0.3,
       visualizeToneMapping: false,
       targetPrim: 'auto',
@@ -398,7 +405,8 @@ List<VideoPreset> get builtinVideoPresets => [
       shadersLowRes: [],
       shadersHighRes: [],
       toneMappingAlgorithm: 'auto',
-      targetPeak: 203.0,
+      // Stock mpv is target-peak=auto, and Bypass means stock.
+      targetPeak: 0.0,
       contrastRecovery: 0.0,
       visualizeToneMapping: false,
       hdrComputePeak: true,

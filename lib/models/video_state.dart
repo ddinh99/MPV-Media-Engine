@@ -10,6 +10,13 @@ class VideoState {
   List<String> shadersHighRes;
 
   String toneMappingAlgorithm;
+
+  /// mpv's `target-peak` in nits. **0.0 is the `auto` sentinel** — the wire
+  /// value becomes the string 'auto' and mpv derives the peak itself (≈203
+  /// for SDR output, the display's reported peak under HDR passthrough).
+  /// Auto is the only safe value for passthrough presets: an explicit number
+  /// becomes an absolute PQ output ceiling, and 203 crushed HDR to SDR
+  /// brightness on a 1450-nit panel (verified via video-target-params).
   double targetPeak;
   double contrastRecovery;
   bool visualizeToneMapping;
@@ -75,12 +82,11 @@ class VideoState {
     this.shadersLowRes = const [],
     this.shadersHighRes = const [],
     this.toneMappingAlgorithm = 'auto',
-    // 203 nits = SDR reference white, what mpv's target-peak=auto assumes for
-    // an SDR display. The old default of 100 sat *below* reference, which
-    // engages tone mapping even on plain SDR content — dimming everything
-    // relative to a stock mpv. (The state can't express "auto"; 203 is the
-    // neutral equivalent.)
-    this.targetPeak = 203.0,
+    // 0.0 = auto (stock mpv). Historic values: 100 (below SDR reference,
+    // dimmed everything), then 203 as the "neutral equivalent of auto" back
+    // when the state couldn't express auto — but 203 is only neutral for SDR
+    // output; under HDR passthrough it's a hard 203-nit ceiling.
+    this.targetPeak = 0.0,
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
     this.hdrComputePeak = true,
@@ -260,17 +266,27 @@ class VideoState {
       }
     }
 
+    final hdrOutput = json['hdrOutput'] as bool? ?? false;
+    var targetPeak = (json['targetPeak'] as num?)?.toDouble() ?? 0.0;
+    // Migration: sessions saved while the Target Peak slider was dead all
+    // carry the old 203 default. Under SDR output that's harmless (≈auto),
+    // but under HDR passthrough it's now a real 203-nit ceiling that crushes
+    // HDR — and nobody chose that pairing on purpose, because the value never
+    // reached mpv when it was saved. Explicit non-203 values are kept: those
+    // were set after the fix, deliberately.
+    if (hdrOutput && targetPeak == 203.0) targetPeak = 0.0;
+
     return VideoState(
       shadersLowRes: low ?? [],
       shadersHighRes: high ?? [],
       toneMappingAlgorithm: json['toneMappingAlgorithm'] as String? ?? 'auto',
-      targetPeak: (json['targetPeak'] as num?)?.toDouble() ?? 203.0,
+      targetPeak: targetPeak,
       contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
       visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
       hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,
       hdrPeakPercentile:
           (json['hdrPeakPercentile'] as num?)?.toDouble() ?? 0.0,
-      hdrOutput: json['hdrOutput'] as bool? ?? false,
+      hdrOutput: hdrOutput,
       inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
       targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
       targetPrim: json['targetPrim'] as String? ?? 'auto',

@@ -329,6 +329,7 @@ class VideoProvider extends ChangeNotifier {
         inverseToneMapping: true,
         targetColorspaceHint: true,
         targetTrc: 'pq',
+        targetPeak: 0.0,
       );
       notifyListeners();
     }
@@ -604,9 +605,9 @@ class VideoProvider extends ChangeNotifier {
 
     // Tone mapping
     addIfChanged('tone-mapping', _mpvToneMappingValue(old.toneMappingAlgorithm), _mpvToneMappingValue(next.toneMappingAlgorithm));
-    // Rounded: target-peak is an integer option; mpv rejects doubles over
-    // JSON IPC (see setTargetPeak).
-    addIfChanged('target-peak', old.targetPeak.round(), next.targetPeak.round());
+    // Mapped: 0.0 = 'auto', otherwise rounded — target-peak is an integer
+    // option and mpv rejects doubles over JSON IPC (see _mpvTargetPeakValue).
+    addIfChanged('target-peak', _mpvTargetPeakValue(old.targetPeak), _mpvTargetPeakValue(next.targetPeak));
     addIfChanged('hdr-contrast-recovery', old.contrastRecovery, next.contrastRecovery);
     addIfChanged('tone-mapping-visualize', old.visualizeToneMapping, next.visualizeToneMapping);
     addIfChanged('hdr-compute-peak', old.hdrComputePeak ? 'yes' : 'no', next.hdrComputePeak ? 'yes' : 'no');
@@ -782,15 +783,19 @@ class VideoProvider extends ChangeNotifier {
     _sendCommand('tone-mapping', _mpvToneMappingValue(algo));
   }
 
+  /// The wire value for a stored targetPeak: 0.0 is the auto sentinel (see
+  /// VideoState.targetPeak). For everything else, target-peak is an *integer*
+  /// option and mpv's JSON IPC refuses to coerce a double — 203.0 comes back
+  /// "error accessing property" while 203 succeeds (verified against mpv
+  /// 0.41). Sending the raw double made the slider a dead control.
+  static dynamic _mpvTargetPeakValue(double peak) =>
+      peak == 0.0 ? 'auto' : peak.round();
+
   void setTargetPeak(double peak) {
     _activePresetId = null;
     _state = _state.copyWith(targetPeak: peak);
     notifyListeners();
-    // target-peak is an *integer* option and mpv's JSON IPC refuses to coerce
-    // a double — 203.0 comes back "error accessing property" while 203
-    // succeeds (verified against mpv 0.41). Sending the raw double made this
-    // slider a dead control.
-    _sendCommand('target-peak', peak.round(), debounce: true);
+    _sendCommand('target-peak', _mpvTargetPeakValue(peak), debounce: true);
   }
 
   void setContrastRecovery(double val) {
@@ -841,12 +846,19 @@ class VideoProvider extends ChangeNotifier {
       // merely toggling it off landed every such user in that state.
       targetColorspaceHint: val,
       targetTrc: val ? 'pq' : 'auto',
+      // HDR Output owns target-peak too: under passthrough an explicit peak
+      // is an absolute PQ ceiling (a leftover 203 crushes HDR to SDR
+      // brightness), so on = auto lets mpv use the display's real peak. Off
+      // = 203, the SDR-neutral reference the SDR path has always used. The
+      // slider stays live afterwards for deliberate tweaking in either mode.
+      targetPeak: val ? 0.0 : 203.0,
       visualizeToneMapping: val ? _state.visualizeToneMapping : false,
     );
     notifyListeners();
     if (val) {
       _sendCommand('target-colorspace-hint', 'yes');
       _sendCommand('target-trc', 'pq');
+      _sendCommand('target-peak', 'auto');
       // Without this, mpv never expands dynamic range at all (per its own
       // manual: "allows inverse tone mapping ... for upscaling SDR content
       // to HDR"), so the Algorithm dropdown would silently do nothing
@@ -856,6 +868,7 @@ class VideoProvider extends ChangeNotifier {
     } else {
       _sendCommand('target-colorspace-hint', 'no');
       _sendCommand('target-trc', 'auto');
+      _sendCommand('target-peak', 203);
       _sendCommand('inverse-tone-mapping', 'no');
       if (wasVisualizing) {
         _sendCommand('tone-mapping-visualize', false);
