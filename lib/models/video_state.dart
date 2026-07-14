@@ -52,6 +52,12 @@ class VideoState {
   String dither;
   String errorDiffusion;
 
+  /// mpv's `hwdec`: false = 'no' (stock mpv default, software decoding),
+  /// true = 'auto-safe' (GPU fixed-function decoder). A performance option,
+  /// not a quality one — modern hw decoders are bit-exact; mpv defaults to
+  /// software for filter/stability reasons.
+  bool hardwareDecoding;
+
   bool interpolation;
   String videoSync;
   String tscale;
@@ -97,6 +103,7 @@ class VideoState {
     this.debandThreshold = 48,
     this.dither = 'fruit',
     this.errorDiffusion = 'sierra-lite',
+    this.hardwareDecoding = false,
     this.interpolation = false,
     this.videoSync = 'audio',
     this.tscale = 'oversample',
@@ -138,6 +145,7 @@ class VideoState {
     int? debandThreshold,
     String? dither,
     String? errorDiffusion,
+    bool? hardwareDecoding,
     bool? interpolation,
     String? videoSync,
     String? tscale,
@@ -174,6 +182,7 @@ class VideoState {
       debandThreshold: debandThreshold ?? this.debandThreshold,
       dither: dither ?? this.dither,
       errorDiffusion: errorDiffusion ?? this.errorDiffusion,
+      hardwareDecoding: hardwareDecoding ?? this.hardwareDecoding,
       interpolation: interpolation ?? this.interpolation,
       videoSync: videoSync ?? this.videoSync,
       tscale: tscale ?? this.tscale,
@@ -212,6 +221,7 @@ class VideoState {
     'debandThreshold': debandThreshold,
     'dither': dither,
     'errorDiffusion': errorDiffusion,
+    'hardwareDecoding': hardwareDecoding,
     'interpolation': interpolation,
     'videoSync': videoSync,
     'tscale': tscale,
@@ -275,6 +285,7 @@ class VideoState {
       debandThreshold: json['debandThreshold'] as int? ?? 48,
       dither: json['dither'] as String? ?? 'fruit',
       errorDiffusion: json['errorDiffusion'] as String? ?? 'sierra-lite',
+      hardwareDecoding: json['hardwareDecoding'] as bool? ?? false,
       interpolation: json['interpolation'] as bool? ?? false,
       videoSync: json['videoSync'] as String? ?? 'audio',
       tscale: json['tscale'] as String? ?? 'oversample',

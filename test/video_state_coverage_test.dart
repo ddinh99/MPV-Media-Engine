@@ -135,6 +135,7 @@ void main() {
       debandThreshold: 48,
       dither: 'error-diffusion',
       errorDiffusion: 'sierra-3',
+      hardwareDecoding: true,
       interpolation: true,
       videoSync: 'display-resample',
       tscale: 'mitchell',

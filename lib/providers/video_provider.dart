@@ -632,6 +632,11 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('dither', old.dither, next.dither);
     addIfChanged('error-diffusion', old.errorDiffusion, next.errorDiffusion);
 
+    // Decoding. 'auto-safe' over 'auto': it only picks hw decoders known to
+    // be reliable, which is mpv's own recommendation for config use.
+    addIfChanged('hwdec', old.hardwareDecoding ? 'auto-safe' : 'no',
+        next.hardwareDecoding ? 'auto-safe' : 'no');
+
     // Interpolation
     addIfChanged('interpolation', old.interpolation ? 'yes' : 'no', next.interpolation ? 'yes' : 'no');
     addIfChanged('video-sync', old.videoSync, next.videoSync);
@@ -934,6 +939,13 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(errorDiffusion: val);
     notifyListeners();
     _sendCommand('error-diffusion', val);
+  }
+
+  void setHardwareDecoding(bool val) {
+    _activePresetId = null;
+    _state = _state.copyWith(hardwareDecoding: val);
+    notifyListeners();
+    _sendCommand('hwdec', val ? 'auto-safe' : 'no');
   }
 
   // --- Module D: Scaling & Interpolation ---

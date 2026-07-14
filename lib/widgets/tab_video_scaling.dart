@@ -81,6 +81,10 @@ class TabVideoScaling extends StatelessWidget {
                       const SizedBox(height: 12),
                     ],
                     _buildVectorMotionInterpolation(context, video),
+                    const SizedBox(height: 24),
+                    videoSectionTitle('Decoding', Icons.memory),
+                    const SizedBox(height: 12),
+                    _buildDecoding(context, video),
                   ],
                 ),
               ),
@@ -99,6 +103,50 @@ class TabVideoScaling extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildDecoding(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: videoCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Hardware Decoding',
+                      style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'hwdec=auto-safe',
+                      style: GoogleFonts.jetBrainsMono(fontSize: 11, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: video.state.hardwareDecoding,
+                onChanged: video.setHardwareDecoding,
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Decodes on the GPU\'s fixed-function decoder instead of the CPU. '
+            'A performance option, not a quality one — output is identical, '
+            'but CPU load drops sharply on 4K HEVC/AV1. Off matches stock mpv.',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
+          ),
+        ],
+      ),
     );
   }
 
