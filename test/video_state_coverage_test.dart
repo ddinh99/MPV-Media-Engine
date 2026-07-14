@@ -133,6 +133,8 @@ void main() {
       deband: true,
       debandIterations: 3,
       debandThreshold: 48,
+      dither: 'error-diffusion',
+      errorDiffusion: 'sierra-3',
       interpolation: true,
       videoSync: 'display-resample',
       tscale: 'mitchell',

@@ -72,6 +72,7 @@ Widget videoDropdownRow({
   required String value,
   required List<String> items,
   required ValueChanged<String?> onChanged,
+  bool enabled = true,
 }) {
   return Row(
     children: [
@@ -79,7 +80,10 @@ Widget videoDropdownRow({
         width: 170,
         child: Text(
           label,
-          style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: enabled ? AppTheme.textSecondary : AppTheme.textSecondary.withOpacity(0.4),
+          ),
         ),
       ),
       Expanded(
@@ -87,9 +91,12 @@ Widget videoDropdownRow({
           isExpanded: true,
           value: value,
           dropdownColor: AppTheme.surface,
-          style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textPrimary),
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            color: enabled ? AppTheme.textPrimary : AppTheme.textPrimary.withOpacity(0.4),
+          ),
           underline: Container(height: 1, color: AppTheme.border),
-          onChanged: onChanged,
+          onChanged: enabled ? onChanged : null,
           items: items.map<DropdownMenuItem<String>>((String val) {
             return DropdownMenuItem<String>(
               value: val,

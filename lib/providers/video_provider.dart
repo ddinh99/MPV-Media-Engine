@@ -626,6 +626,12 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('deband-iterations', old.debandIterations, next.debandIterations);
     addIfChanged('deband-threshold', old.debandThreshold, next.debandThreshold);
 
+    // Dithering. error-diffusion is sent even while dither != error-diffusion:
+    // mpv accepts it any time (it's just dormant), and keeping it unconditional
+    // means a later switch to error-diffusion finds the kernel already set.
+    addIfChanged('dither', old.dither, next.dither);
+    addIfChanged('error-diffusion', old.errorDiffusion, next.errorDiffusion);
+
     // Interpolation
     addIfChanged('interpolation', old.interpolation ? 'yes' : 'no', next.interpolation ? 'yes' : 'no');
     addIfChanged('video-sync', old.videoSync, next.videoSync);
@@ -914,6 +920,20 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(debandThreshold: val);
     notifyListeners();
     _sendCommand('deband-threshold', val, debounce: true);
+  }
+
+  void setDither(String val) {
+    _activePresetId = null;
+    _state = _state.copyWith(dither: val);
+    notifyListeners();
+    _sendCommand('dither', val);
+  }
+
+  void setErrorDiffusion(String val) {
+    _activePresetId = null;
+    _state = _state.copyWith(errorDiffusion: val);
+    notifyListeners();
+    _sendCommand('error-diffusion', val);
   }
 
   // --- Module D: Scaling & Interpolation ---

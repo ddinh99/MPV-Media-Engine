@@ -51,6 +51,10 @@ class TabVideoGrading extends StatelessWidget {
                     videoSectionTitle('Deband', Icons.blur_on),
                     const SizedBox(height: 12),
                     _buildDeband(context, video),
+                    const SizedBox(height: 24),
+                    videoSectionTitle('Dithering', Icons.grain),
+                    const SizedBox(height: 12),
+                    _buildDither(context, video),
                   ],
                 ),
               ),
@@ -145,6 +149,60 @@ class TabVideoGrading extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// Values verified against mpv 0.41 --list-options / --error-diffusion=help.
+  /// `fruit` (blue noise) is mpv's default — dithering is always on unless the
+  /// user picks `no`; this only swaps the algorithm.
+  static const _ditherModes = ['fruit', 'ordered', 'error-diffusion', 'no'];
+  static const _errorDiffusionKernels = [
+    'simple',
+    'false-fs',
+    'sierra-lite',
+    'floyd-steinberg',
+    'atkinson',
+    'jarvis-judice-ninke',
+    'stucki',
+    'burkes',
+    'sierra-3',
+    'sierra-2',
+  ];
+
+  Widget _buildDither(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: videoCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          videoDropdownRow(
+            label: 'Dither',
+            value: video.state.dither,
+            items: _ditherModes,
+            onChanged: (v) {
+              if (v != null) video.setDither(v);
+            },
+          ),
+          const SizedBox(height: 12),
+          videoDropdownRow(
+            label: 'Error Diffusion Kernel',
+            value: video.state.errorDiffusion,
+            items: _errorDiffusionKernels,
+            enabled: video.state.dither == 'error-diffusion',
+            onChanged: (v) {
+              if (v != null) video.setErrorDiffusion(v);
+            },
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'fruit (blue noise) is mpv\'s default and already dithers to your '
+            'display\'s real bit depth. Error diffusion (e.g. sierra-3) can '
+            'render gradients slightly cleaner but costs GPU time at 4K.',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textSecondary),
+          ),
+        ],
+      ),
     );
   }
 

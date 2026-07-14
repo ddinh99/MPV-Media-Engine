@@ -45,6 +45,13 @@ class VideoState {
   int debandIterations;
   int debandThreshold;
 
+  /// mpv's `dither` (fruit/ordered/error-diffusion/no) and `error-diffusion`
+  /// (the kernel, only consulted when dither=error-diffusion). Defaults match
+  /// a stock mpv 0.41: dithering is already on via `fruit`, so these knobs
+  /// swap the algorithm rather than enable anything.
+  String dither;
+  String errorDiffusion;
+
   bool interpolation;
   String videoSync;
   String tscale;
@@ -88,6 +95,8 @@ class VideoState {
     // is a visual no-op, so flipping the Deband switch did nothing until the
     // user also discovered the threshold slider — a dead control by default.
     this.debandThreshold = 48,
+    this.dither = 'fruit',
+    this.errorDiffusion = 'sierra-lite',
     this.interpolation = false,
     this.videoSync = 'audio',
     this.tscale = 'oversample',
@@ -127,6 +136,8 @@ class VideoState {
     bool? deband,
     int? debandIterations,
     int? debandThreshold,
+    String? dither,
+    String? errorDiffusion,
     bool? interpolation,
     String? videoSync,
     String? tscale,
@@ -161,6 +172,8 @@ class VideoState {
       deband: deband ?? this.deband,
       debandIterations: debandIterations ?? this.debandIterations,
       debandThreshold: debandThreshold ?? this.debandThreshold,
+      dither: dither ?? this.dither,
+      errorDiffusion: errorDiffusion ?? this.errorDiffusion,
       interpolation: interpolation ?? this.interpolation,
       videoSync: videoSync ?? this.videoSync,
       tscale: tscale ?? this.tscale,
@@ -197,6 +210,8 @@ class VideoState {
     'deband': deband,
     'debandIterations': debandIterations,
     'debandThreshold': debandThreshold,
+    'dither': dither,
+    'errorDiffusion': errorDiffusion,
     'interpolation': interpolation,
     'videoSync': videoSync,
     'tscale': tscale,
@@ -258,6 +273,8 @@ class VideoState {
       deband: json['deband'] as bool? ?? false,
       debandIterations: json['debandIterations'] as int? ?? 1,
       debandThreshold: json['debandThreshold'] as int? ?? 48,
+      dither: json['dither'] as String? ?? 'fruit',
+      errorDiffusion: json['errorDiffusion'] as String? ?? 'sierra-lite',
       interpolation: json['interpolation'] as bool? ?? false,
       videoSync: json['videoSync'] as String? ?? 'audio',
       tscale: json['tscale'] as String? ?? 'oversample',

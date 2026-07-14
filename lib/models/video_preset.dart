@@ -41,6 +41,8 @@ class VideoPreset {
 // Also verified there so nobody re-audits them: correct-downscaling,
 // linear-downscaling and sigmoid-upscaling already default to *yes* in mpv
 // 0.41, and dither-depth defaults to auto — presets don't need to set them.
+// The dither *algorithm* (dither/error-diffusion) is user-adjustable on the
+// Grading & Deband tab; presets deliberately leave it at mpv's fruit default.
 // Two rules every preset follows:
 //   - target-peak 203 = SDR reference white, the neutral value. Anything
 //     below dims/compresses even SDR content; HDR-to-SDR deliberately goes
