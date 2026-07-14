@@ -746,7 +746,7 @@ class VideoProvider extends ChangeNotifier {
       // Mutually exclusive groups of shaders
       const exclusionGroups = [
         ['CfL_Prediction.glsl', 'CfL_Prediction_Lite.glsl', 'KrigBilateral.glsl'],
-        ['CAS.glsl', 'adaptive-sharpen.glsl'],
+        ['CAS.glsl', 'CAS-vivid.glsl', 'adaptive-sharpen.glsl'],
         ['FSRCNNX_x2_16-0-4-1.glsl', 'ArtCNN_C4F16.glsl'],
       ];
 
