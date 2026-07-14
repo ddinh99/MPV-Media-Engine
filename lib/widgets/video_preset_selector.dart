@@ -127,7 +127,26 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
-                    child: Material(
+                    child: Tooltip(
+                      // The card ellipsizes both the name and the two-line
+                      // description, so hover is the only place the full text
+                      // is readable.
+                      message: '${preset.emoji} ${preset.name}\n${preset.description}',
+                      // Hover-only: the default longPress trigger would fight
+                      // the long-press that opens the preset menu.
+                      triggerMode: TooltipTriggerMode.manual,
+                      waitDuration: const Duration(milliseconds: 400),
+                      textStyle: GoogleFonts.inter(
+                        fontSize: 12,
+                        height: 1.4,
+                        color: AppTheme.textPrimary,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppTheme.border),
+                      ),
+                      child: Material(
                       color: Colors.transparent,
                       child: GestureDetector(
                         onTap: () => provider.applyPreset(preset),
@@ -220,6 +239,7 @@ class _VideoPresetSelectorState extends State<VideoPresetSelector> {
                             ],
                           ),
                         ),
+                      ),
                       ),
                     ),
                   );
