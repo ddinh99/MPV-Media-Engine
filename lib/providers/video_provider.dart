@@ -644,6 +644,8 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('deband', old.deband, next.deband);
     addIfChanged('deband-iterations', old.debandIterations, next.debandIterations);
     addIfChanged('deband-threshold', old.debandThreshold, next.debandThreshold);
+    addIfChanged('deband-range', old.debandRange, next.debandRange);
+    addIfChanged('deband-grain', old.debandGrain, next.debandGrain);
 
     // Dithering. error-diffusion is sent even while dither != error-diffusion:
     // mpv accepts it any time (it's just dormant), and keeping it unconditional
@@ -990,6 +992,20 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(debandThreshold: val);
     notifyListeners();
     _sendCommand('deband-threshold', val, debounce: true);
+  }
+
+  void setDebandRange(int val) {
+    _activePresetId = null;
+    _state = _state.copyWith(debandRange: val);
+    notifyListeners();
+    _sendCommand('deband-range', val, debounce: true);
+  }
+
+  void setDebandGrain(int val) {
+    _activePresetId = null;
+    _state = _state.copyWith(debandGrain: val);
+    notifyListeners();
+    _sendCommand('deband-grain', val, debounce: true);
   }
 
   void setDither(String val) {

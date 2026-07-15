@@ -245,6 +245,24 @@ class TabVideoGrading extends StatelessWidget {
             divisions: 256, // 4096 / 16 = 256
             onChanged: (v) => video.setDebandThreshold(v.toInt()),
           ),
+          const SizedBox(height: 12),
+          videoSliderRow(
+            label: 'Deband Range',
+            value: video.state.debandRange.toDouble(),
+            min: 1,
+            max: 64,
+            divisions: 63,
+            onChanged: (v) => video.setDebandRange(v.toInt()),
+          ),
+          const SizedBox(height: 12),
+          videoSliderRow(
+            label: 'Deband Grain',
+            value: video.state.debandGrain.toDouble(),
+            min: 0,
+            max: 4096,
+            divisions: 256, // 4096 / 16 = 256
+            onChanged: (v) => video.setDebandGrain(v.toInt()),
+          ),
         ],
       ),
     );

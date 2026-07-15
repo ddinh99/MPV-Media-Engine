@@ -66,6 +66,8 @@ class VideoState {
   bool deband;
   int debandIterations;
   int debandThreshold;
+  int debandRange;
+  int debandGrain;
 
   /// mpv's `dither` (fruit/ordered/error-diffusion/no) and `error-diffusion`
   /// (the kernel, only consulted when dither=error-diffusion). Defaults match
@@ -124,6 +126,9 @@ class VideoState {
     // is a visual no-op, so flipping the Deband switch did nothing until the
     // user also discovered the threshold slider — a dead control by default.
     this.debandThreshold = 48,
+    // mpv's own defaults for both.
+    this.debandRange = 16,
+    this.debandGrain = 32,
     this.dither = 'fruit',
     this.errorDiffusion = 'sierra-lite',
     this.hardwareDecoding = false,
@@ -168,6 +173,8 @@ class VideoState {
     bool? deband,
     int? debandIterations,
     int? debandThreshold,
+    int? debandRange,
+    int? debandGrain,
     String? dither,
     String? errorDiffusion,
     bool? hardwareDecoding,
@@ -207,6 +214,8 @@ class VideoState {
       deband: deband ?? this.deband,
       debandIterations: debandIterations ?? this.debandIterations,
       debandThreshold: debandThreshold ?? this.debandThreshold,
+      debandRange: debandRange ?? this.debandRange,
+      debandGrain: debandGrain ?? this.debandGrain,
       dither: dither ?? this.dither,
       errorDiffusion: errorDiffusion ?? this.errorDiffusion,
       hardwareDecoding: hardwareDecoding ?? this.hardwareDecoding,
@@ -248,6 +257,8 @@ class VideoState {
     'deband': deband,
     'debandIterations': debandIterations,
     'debandThreshold': debandThreshold,
+    'debandRange': debandRange,
+    'debandGrain': debandGrain,
     'dither': dither,
     'errorDiffusion': errorDiffusion,
     'hardwareDecoding': hardwareDecoding,
@@ -325,6 +336,8 @@ class VideoState {
       deband: json['deband'] as bool? ?? false,
       debandIterations: json['debandIterations'] as int? ?? 1,
       debandThreshold: json['debandThreshold'] as int? ?? 48,
+      debandRange: json['debandRange'] as int? ?? 16,
+      debandGrain: json['debandGrain'] as int? ?? 32,
       dither: json['dither'] as String? ?? 'fruit',
       errorDiffusion: json['errorDiffusion'] as String? ?? 'sierra-lite',
       hardwareDecoding: json['hardwareDecoding'] as bool? ?? false,
