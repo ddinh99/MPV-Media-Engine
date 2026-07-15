@@ -160,14 +160,14 @@ class TabVideoScaling extends StatelessWidget {
           videoDropdownRow(
             label: 'Luma Upscaler (scale)',
             value: video.state.scale,
-            items: const ['bilinear', 'bicubic', 'lanczos', 'spline36', 'spline64', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
+            items: const ['bilinear', 'bicubic', 'hermite', 'lanczos', 'spline36', 'spline64', 'oversample', 'mitchell', 'catmull_rom', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
             onChanged: (val) => video.setScale(val!),
           ),
           const SizedBox(height: 12),
           videoDropdownRow(
             label: 'Chroma Upscaler (cscale)',
             value: video.state.cscale,
-            items: const ['bilinear', 'bicubic', 'lanczos', 'spline36', 'spline64', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
+            items: const ['bilinear', 'bicubic', 'hermite', 'lanczos', 'spline36', 'spline64', 'oversample', 'mitchell', 'catmull_rom', 'ewa_lanczos', 'ewa_lanczossharp', 'ewa_lanczos4sharpest'],
             onChanged: (val) => video.setCScale(val!),
           ),
           const SizedBox(height: 12),
@@ -258,7 +258,7 @@ class TabVideoScaling extends StatelessWidget {
             videoDropdownRow(
               label: 'Temporal Scaler (tscale)',
               value: video.state.tscale,
-              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'box', 'spline36', 'spline64'],
+              items: const ['oversample', 'linear', 'catmull_rom', 'mitchell', 'gaussian', 'bicubic', 'box', 'spline36', 'spline64'],
               onChanged: (val) => video.setTScale(val!),
             ),
             const SizedBox(height: 12),
