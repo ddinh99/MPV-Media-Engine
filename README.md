@@ -33,9 +33,12 @@ If you are looking for an **MPV GUI controller**, **MPV shader manager**, or **M
 *   **Resolution-Aware Shader Recommendations:** The application automatically reads your active video's height/width, groups compatible shaders into Low-Res vs. High-Res recommendations, and presents them in the optimal execution order (upscale → refine → chroma → sharpen).
 *   **High Performance Temporal Interpolation:** Fine-tune motion interpolation for high-refresh-rate displays. Customize your `tscale` kernel (Spline64, Mitchell, Box) and windowing functions (Sphinx, Hann) for smooth, ghost-free panning.
 *   **HDR to SDR Tone Mapping:** Instantly cycle tone mapping algorithms (bt.2446a, mobius, spline) and push target peak brightness parameters to watch dark HDR movies in bright rooms.
-*   **SDR to HDR Color Expansion:** Force target colorspace hints, primaries, gamuts, and TRCs (like `bt.2020` or `pq`) to map SDR content perfectly to high-end HDR monitors.
-*   **Hardware Color Grading & Deband:** Adjust brightness, contrast, saturation, and fixing color banding on low-bitrate video dynamically.
-*   **One-Click Video Presets:** Pre-configured settings for Anime, Live Action, HDR, and a dynamic "Bypass (Default)" button to instantly reset video configurations.
+*   **SDR to HDR Color Expansion:** Force target colorspace hints, primaries, gamuts, gamut-mapping modes, TRCs (like `bt.2020` or `pq`), and reference white level to map SDR content perfectly to high-end HDR monitors.
+*   **Display-Aware Target Peak:** Reads your panel's real peak brightness (EDID via DXGI) and marks it directly on the Target Peak slider, warning when you push past it.
+*   **Hardware Color Grading & Deband:** Adjust brightness, contrast, saturation, and dial in deband strength/range/grain to fix color banding on low-bitrate video dynamically.
+*   **GPU Hardware Decoding:** One-click toggle offloads decoding to the GPU for much lower CPU usage on 4K HEVC/AV1 sources.
+*   **Dither Controls:** Choose the dither algorithm (fruit/ordered/error-diffusion/off) and error-diffusion kernel used before output.
+*   **One-Click Video Presets:** Pre-configured Best SDR / Best HDR pair (pick by whether Windows HDR is on), Anime/Cartoon, Live Action, HDR to SDR, Vivid, HDR Punch (full HDR passthrough + hottest grade), plus Gloss macro chips for quick saturation/contrast punch, and a dynamic "Bypass (Default)" button to instantly reset video configurations.
 
 ### 🎧 Live Sound Engine & Parametric Audio Equalizer
 *   **7-Band Parametric EQ GUI:** A full graphic equalizer that updates instantly as you drag the sliders, displaying the exact frequency curve response.
