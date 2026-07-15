@@ -1,7 +1,7 @@
 name: mvp_sound_engine
 description: "MVP Sound Engine - Real-time MPV DSP Control Surface"
 publish_to: 'none'
-version: 1.3.5+8
+version: 1.3.6+9
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
