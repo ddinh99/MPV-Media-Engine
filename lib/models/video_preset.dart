@@ -413,10 +413,12 @@ List<VideoPreset> get builtinVideoPresets => [
       //   1. Stacks CAS-vivid *and* adaptive-sharpen, which every other
       //      preset (and toggleShader's own exclusion groups) treat as
       //      mutually exclusive.
-      //   2. targetPeak is an explicit 3001 instead of the auto sentinel
+      //   2. targetPeak is an explicit 3000 instead of the auto sentinel
       //      every other passthrough preset uses. Technically an absolute PQ
-      //      ceiling per the header comment above, but 3001 nits is above
+      //      ceiling per the header comment above, but 3000 nits is above
       //      any real panel, so in practice it behaves like auto.
+      // Recalibrated 2026-07-17 to match his latest DaiFav save (was 3001,
+      // hdrComputePeak: true, debandThreshold/Range/Grain 32/12/0).
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
         'SSimSuperRes.glsl',
@@ -426,10 +428,13 @@ List<VideoPreset> get builtinVideoPresets => [
       ],
       shadersHighRes: ['CfL_Prediction.glsl', 'CAS-vivid.glsl', 'adaptive-sharpen.glsl'],
       toneMappingAlgorithm: 'bt.2446a',
-      targetPeak: 3001.0,
+      targetPeak: 3000.0,
       contrastRecovery: 0.0,
       visualizeToneMapping: false,
-      hdrComputePeak: true,
+      // false, like Best HDR/HDR Punch: use the container's static mastering
+      // metadata instead of measuring per-frame — matches the rest of this
+      // file's passthrough presets rather than the true this shipped with.
+      hdrComputePeak: false,
       hdrOutput: true,
       inverseToneMapping: true,
       targetColorspaceHint: true,
@@ -443,11 +448,11 @@ List<VideoPreset> get builtinVideoPresets => [
       saturation: 0,
       deband: true,
       debandIterations: 2,
-      debandThreshold: 32,
-      debandRange: 12,
-      debandGrain: 0,
+      debandThreshold: 35,
+      debandRange: 16,
+      debandGrain: 5,
       dither: 'error-diffusion',
-      errorDiffusion: 'sierra-3',
+      errorDiffusion: 'floyd-steinberg',
       interpolation: false,
       videoSync: 'audio',
       tscale: 'oversample',
