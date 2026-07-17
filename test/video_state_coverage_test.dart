@@ -32,6 +32,11 @@ const _guiOnlyFields = <String, String>{
   // drives target-colorspace-hint + target-trc + inverse-tone-mapping instead,
   // each of which is its own VideoState field and is covered by this test.
   'hdrOutput': 'no mpv property; drives the passthrough trio instead',
+  // Pure GUI memory of the last targetPeak used per mode (SDR/HDR passthrough),
+  // read only by VideoProvider.setHdrOutput to restore it on a mode switch.
+  // targetPeak itself is the live value actually sent to mpv and is covered.
+  'targetPeakSdr': 'GUI memory only; setHdrOutput reads it into targetPeak',
+  'targetPeakHdr': 'GUI memory only; setHdrOutput reads it into targetPeak',
 };
 
 /// Produces a value that differs from [v], preserving its type so the mutated
@@ -291,6 +296,38 @@ void main() {
     expect(provider.state.inverseToneMapping, isFalse);
     expect(provider.state.targetPeak, 203.0,
         reason: 'HDR Output off returns to the SDR-neutral reference');
+  });
+
+  test('target-peak is remembered per mode across an HDR Output toggle', () {
+    // The whole point of targetPeakSdr/targetPeakHdr: a manually-tuned value
+    // in one mode must survive a round trip through the other mode, instead
+    // of being discarded for the canonical default every time.
+    final provider = VideoProvider(DspProvider());
+
+    // Tune SDR to something other than the 203 default.
+    provider.setTargetPeak(180.0);
+    expect(provider.state.targetPeak, 180.0);
+
+    // Switch to HDR passthrough — first time in this mode, so it gets the
+    // canonical auto default, not the SDR value.
+    provider.setHdrOutput(true);
+    expect(provider.state.targetPeak, 0.0);
+
+    // Tune HDR to something other than auto.
+    provider.setTargetPeak(1200.0);
+    expect(provider.state.targetPeak, 1200.0);
+
+    // Back to SDR: the 180 tuned earlier must come back, not reset to 203.
+    provider.setHdrOutput(false);
+    expect(provider.state.targetPeak, 180.0,
+        reason: 'SDR target-peak must be remembered across an HDR Output '
+            'round trip, not reset to the canonical 203 default');
+
+    // Back to HDR: the 1200 tuned earlier must come back, not reset to auto.
+    provider.setHdrOutput(true);
+    expect(provider.state.targetPeak, 1200.0,
+        reason: 'HDR target-peak must be remembered across an HDR Output '
+            'round trip, not reset to auto');
   });
 
   test('a resync forces every property, even with no diff', () {

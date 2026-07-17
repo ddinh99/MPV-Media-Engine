@@ -18,6 +18,17 @@ class VideoState {
   /// becomes an absolute PQ output ceiling, and 203 crushed HDR to SDR
   /// brightness on a 1450-nit panel (verified via video-target-params).
   double targetPeak;
+
+  /// Remembers the last [targetPeak] used on the SDR path (hdrOutput=false)
+  /// and the HDR passthrough path (hdrOutput=true) independently, so
+  /// VideoProvider.setHdrOutput can restore a manually-tuned value instead
+  /// of always resetting to the canonical default (203 / auto) when you
+  /// switch modes and switch back. [targetPeak] itself stays the single
+  /// *live* value actually sent to mpv — these two are pure GUI memory, kept
+  /// in sync by VideoProvider whenever targetPeak or hdrOutput changes.
+  double targetPeakSdr;
+  double targetPeakHdr;
+
   double contrastRecovery;
   bool visualizeToneMapping;
   bool hdrComputePeak;
@@ -114,6 +125,11 @@ class VideoState {
     // when the state couldn't express auto — but 203 is only neutral for SDR
     // output; under HDR passthrough it's a hard 203-nit ceiling.
     this.targetPeak = 0.0,
+    // Match setHdrOutput's canonical defaults: 203 (SDR reference white) and
+    // auto (0.0) are what a mode gets the *first* time it's ever switched to,
+    // before the user has manually tuned targetPeak in that mode.
+    this.targetPeakSdr = 203.0,
+    this.targetPeakHdr = 0.0,
     this.contrastRecovery = 0.0,
     this.visualizeToneMapping = false,
     this.hdrComputePeak = true,
@@ -167,6 +183,8 @@ class VideoState {
     List<String>? shadersHighRes,
     String? toneMappingAlgorithm,
     double? targetPeak,
+    double? targetPeakSdr,
+    double? targetPeakHdr,
     double? contrastRecovery,
     bool? visualizeToneMapping,
     bool? hdrComputePeak,
@@ -211,6 +229,8 @@ class VideoState {
       shadersHighRes: shadersHighRes ?? this.shadersHighRes,
       toneMappingAlgorithm: toneMappingAlgorithm ?? this.toneMappingAlgorithm,
       targetPeak: targetPeak ?? this.targetPeak,
+      targetPeakSdr: targetPeakSdr ?? this.targetPeakSdr,
+      targetPeakHdr: targetPeakHdr ?? this.targetPeakHdr,
       contrastRecovery: contrastRecovery ?? this.contrastRecovery,
       visualizeToneMapping: visualizeToneMapping ?? this.visualizeToneMapping,
       hdrComputePeak: hdrComputePeak ?? this.hdrComputePeak,
@@ -257,6 +277,8 @@ class VideoState {
     'shadersHighRes': shadersHighRes,
     'toneMappingAlgorithm': toneMappingAlgorithm,
     'targetPeak': targetPeak,
+    'targetPeakSdr': targetPeakSdr,
+    'targetPeakHdr': targetPeakHdr,
     'contrastRecovery': contrastRecovery,
     'visualizeToneMapping': visualizeToneMapping,
     'hdrComputePeak': hdrComputePeak,
@@ -337,6 +359,8 @@ class VideoState {
       shadersHighRes: high ?? [],
       toneMappingAlgorithm: json['toneMappingAlgorithm'] as String? ?? 'auto',
       targetPeak: targetPeak,
+      targetPeakSdr: (json['targetPeakSdr'] as num?)?.toDouble() ?? 203.0,
+      targetPeakHdr: (json['targetPeakHdr'] as num?)?.toDouble() ?? 0.0,
       contrastRecovery: (json['contrastRecovery'] as num?)?.toDouble() ?? 0.0,
       visualizeToneMapping: json['visualizeToneMapping'] as bool? ?? false,
       hdrComputePeak: json['hdrComputePeak'] as bool? ?? true,

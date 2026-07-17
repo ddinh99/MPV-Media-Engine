@@ -331,6 +331,7 @@ class VideoProvider extends ChangeNotifier {
         targetTrc: 'pq',
         targetPeak: 0.0,
       );
+      _state = _syncTargetPeakMemory(_state);
       notifyListeners();
     }
   }
@@ -530,6 +531,16 @@ class VideoProvider extends ChangeNotifier {
     _sendCommand('video-sync', 'audio');
   }
 
+  /// Keeps [VideoState.targetPeakSdr]/[VideoState.targetPeakHdr] mirroring
+  /// whatever [VideoState.targetPeak] is currently live for the currently
+  /// live mode ([VideoState.hdrOutput]), so a later HDR Output toggle
+  /// restores it instead of resetting to the canonical default. Call after
+  /// any change that sets targetPeak and/or hdrOutput together.
+  VideoState _syncTargetPeakMemory(VideoState state) => state.copyWith(
+        targetPeakSdr: state.hdrOutput ? state.targetPeakSdr : state.targetPeak,
+        targetPeakHdr: state.hdrOutput ? state.targetPeak : state.targetPeakHdr,
+      );
+
   void applyPreset(VideoPreset preset) {
     // Snapshot the outgoing state so we only send properties that actually
     // changed — resending unchanged scale/shader/interpolation properties
@@ -545,7 +556,7 @@ class VideoProvider extends ChangeNotifier {
 
     // 1. Update ALL local state at once so the UI refreshes instantly
     _activePresetId = preset.id;
-    _state = next.copyWith();
+    _state = _syncTargetPeakMemory(next.copyWith());
     notifyListeners();
 
     // 2. Enqueue only what changed; the outbox queue paces delivery to MPV.
@@ -809,7 +820,7 @@ class VideoProvider extends ChangeNotifier {
 
   void setTargetPeak(double peak) {
     _activePresetId = null;
-    _state = _state.copyWith(targetPeak: peak);
+    _state = _syncTargetPeakMemory(_state.copyWith(targetPeak: peak));
     notifyListeners();
     _sendCommand('target-peak', _mpvTargetPeakValue(peak), debounce: true);
   }
@@ -849,6 +860,12 @@ class VideoProvider extends ChangeNotifier {
     // turned off — otherwise it'd show a stuck-on, greyed-out toggle.
     final wasVisualizing = _state.visualizeToneMapping;
     _activePresetId = null;
+    // Restore whatever targetPeak was last live in the mode we're switching
+    // TO, instead of always resetting to the canonical default — see
+    // VideoState.targetPeakSdr/targetPeakHdr's doc comment. Defaults to 203
+    // (SDR)/auto (HDR) the first time a mode is ever entered, matching the
+    // old hardcoded behaviour.
+    final restoredPeak = val ? _state.targetPeakHdr : _state.targetPeakSdr;
     _state = _state.copyWith(
       hdrOutput: val,
       inverseToneMapping: val,
@@ -864,17 +881,16 @@ class VideoProvider extends ChangeNotifier {
       targetTrc: val ? 'pq' : 'auto',
       // HDR Output owns target-peak too: under passthrough an explicit peak
       // is an absolute PQ ceiling (a leftover 203 crushes HDR to SDR
-      // brightness), so on = auto lets mpv use the display's real peak. Off
-      // = 203, the SDR-neutral reference the SDR path has always used. The
-      // slider stays live afterwards for deliberate tweaking in either mode.
-      targetPeak: val ? 0.0 : 203.0,
+      // brightness). The slider stays live afterwards for deliberate
+      // tweaking in either mode.
+      targetPeak: restoredPeak,
       visualizeToneMapping: val ? _state.visualizeToneMapping : false,
     );
     notifyListeners();
     if (val) {
       _sendCommand('target-colorspace-hint', 'yes');
       _sendCommand('target-trc', 'pq');
-      _sendCommand('target-peak', 'auto');
+      _sendCommand('target-peak', _mpvTargetPeakValue(restoredPeak));
       // Without this, mpv never expands dynamic range at all (per its own
       // manual: "allows inverse tone mapping ... for upscaling SDR content
       // to HDR"), so the Algorithm dropdown would silently do nothing
@@ -884,7 +900,7 @@ class VideoProvider extends ChangeNotifier {
     } else {
       _sendCommand('target-colorspace-hint', 'no');
       _sendCommand('target-trc', 'auto');
-      _sendCommand('target-peak', 203);
+      _sendCommand('target-peak', _mpvTargetPeakValue(restoredPeak));
       _sendCommand('inverse-tone-mapping', 'no');
       if (wasVisualizing) {
         _sendCommand('tone-mapping-visualize', false);
