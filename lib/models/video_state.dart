@@ -93,6 +93,16 @@ class VideoState {
   String cscale;
   String dscale;
 
+  /// mpv's `--sharpen` (Float, default 0). An unsharp-masking pass independent
+  /// of the scale/cscale/dscale kernels — not a scale-param tunable, so it
+  /// isn't gated on which scaler is selected.
+  double sharpen;
+
+  /// mpv's `--scale-antiring` / `--cscale-antiring` (Float 0–1, default 0).
+  /// Ringing suppression for the luma/chroma upscale kernel.
+  double scaleAntiring;
+  double cscaleAntiring;
+
   bool hidpiWindowScale;
 
   VideoState({
@@ -142,6 +152,9 @@ class VideoState {
     this.scale = 'bilinear',
     this.cscale = 'bilinear',
     this.dscale = 'bilinear',
+    this.sharpen = 0.0,
+    this.scaleAntiring = 0.0,
+    this.cscaleAntiring = 0.0,
     this.hidpiWindowScale = false,
   });
 
@@ -188,6 +201,9 @@ class VideoState {
     String? scale,
     String? cscale,
     String? dscale,
+    double? sharpen,
+    double? scaleAntiring,
+    double? cscaleAntiring,
     bool? hidpiWindowScale,
   }) {
     return VideoState(
@@ -229,6 +245,9 @@ class VideoState {
       scale: scale ?? this.scale,
       cscale: cscale ?? this.cscale,
       dscale: dscale ?? this.dscale,
+      sharpen: sharpen ?? this.sharpen,
+      scaleAntiring: scaleAntiring ?? this.scaleAntiring,
+      cscaleAntiring: cscaleAntiring ?? this.cscaleAntiring,
       hidpiWindowScale: hidpiWindowScale ?? this.hidpiWindowScale,
     );
   }
@@ -272,6 +291,9 @@ class VideoState {
     'scale': scale,
     'cscale': cscale,
     'dscale': dscale,
+    'sharpen': sharpen,
+    'scaleAntiring': scaleAntiring,
+    'cscaleAntiring': cscaleAntiring,
     'hidpiWindowScale': hidpiWindowScale,
   };
 
@@ -351,6 +373,9 @@ class VideoState {
       scale: json['scale'] as String? ?? 'bilinear',
       cscale: json['cscale'] as String? ?? 'bilinear',
       dscale: json['dscale'] as String? ?? 'bilinear',
+      sharpen: (json['sharpen'] as num?)?.toDouble() ?? 0.0,
+      scaleAntiring: (json['scaleAntiring'] as num?)?.toDouble() ?? 0.0,
+      cscaleAntiring: (json['cscaleAntiring'] as num?)?.toDouble() ?? 0.0,
       hidpiWindowScale: json['hidpiWindowScale'] as bool? ?? false,
     );
   }

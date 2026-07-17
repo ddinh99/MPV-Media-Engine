@@ -673,6 +673,9 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('scale', old.scale, next.scale);
     addIfChanged('cscale', old.cscale, next.cscale);
     addIfChanged('dscale', old.dscale, next.dscale);
+    addIfChanged('sharpen', old.sharpen, next.sharpen);
+    addIfChanged('scale-antiring', old.scaleAntiring, next.scaleAntiring);
+    addIfChanged('cscale-antiring', old.cscaleAntiring, next.cscaleAntiring);
     addIfChanged('hidpi-window-scale', old.hidpiWindowScale ? 'yes' : 'no', next.hidpiWindowScale ? 'yes' : 'no');
 
     if (!kIsWeb) {
@@ -1101,6 +1104,27 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(dscale: algo);
     notifyListeners();
     _sendCommand('dscale', algo);
+  }
+
+  void setSharpen(double val) {
+    _activePresetId = null;
+    _state = _state.copyWith(sharpen: val);
+    notifyListeners();
+    _sendCommand('sharpen', val, debounce: true);
+  }
+
+  void setScaleAntiring(double val) {
+    _activePresetId = null;
+    _state = _state.copyWith(scaleAntiring: val);
+    notifyListeners();
+    _sendCommand('scale-antiring', val, debounce: true);
+  }
+
+  void setCScaleAntiring(double val) {
+    _activePresetId = null;
+    _state = _state.copyWith(cscaleAntiring: val);
+    notifyListeners();
+    _sendCommand('cscale-antiring', val, debounce: true);
   }
 
   void setHidpiWindowScale(bool val) {

@@ -178,6 +178,33 @@ class TabVideoScaling extends StatelessWidget {
             onChanged: (val) => video.setDScale(val!),
           ),
           const SizedBox(height: 16),
+          videoSliderRow(
+            label: 'Sharpen (sharpen)',
+            value: video.state.sharpen,
+            min: 0.0,
+            max: 1.0,
+            divisions: 100,
+            onChanged: video.setSharpen,
+          ),
+          const SizedBox(height: 12),
+          videoSliderRow(
+            label: 'Luma Antiring (scale-antiring)',
+            value: video.state.scaleAntiring,
+            min: 0.0,
+            max: 1.0,
+            divisions: 100,
+            onChanged: video.setScaleAntiring,
+          ),
+          const SizedBox(height: 12),
+          videoSliderRow(
+            label: 'Chroma Antiring (cscale-antiring)',
+            value: video.state.cscaleAntiring,
+            min: 0.0,
+            max: 1.0,
+            divisions: 100,
+            onChanged: video.setCScaleAntiring,
+          ),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
