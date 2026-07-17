@@ -303,11 +303,18 @@ class TabVideoHdr extends StatelessWidget {
                           value: sliderValue,
                           min: _kPeakMin,
                           max: _kPeakMax,
-                          // 1-nit steps: the neutral default is 203 (SDR
-                          // reference white), which the old 50-nit steps
-                          // couldn't land on — one drag and the user could
-                          // never get back to it.
-                          divisions: (_kPeakMax - _kPeakMin).toInt(),
+                          // 50-nit steps under HDR passthrough: target-peak is
+                          // an expansion ceiling there, so a round number is
+                          // more useful than precision and 1-nit steps over a
+                          // 100-4000 range made it nearly impossible to drag
+                          // onto one. On the SDR path the neutral default
+                          // (203, SDR reference white) is the one value that
+                          // actually matters, and it doesn't sit on a 50-nit
+                          // tick — so SDR stays stepless (null) for exact
+                          // dragging instead of snapping past it.
+                          divisions: video.state.hdrOutput
+                              ? ((_kPeakMax - _kPeakMin) / 50).round()
+                              : null,
                           activeColor: AppTheme.primary,
                           inactiveColor: AppTheme.primaryLight,
                           onChanged: video.setTargetPeak,
