@@ -32,6 +32,7 @@ If you are looking for an **MPV GUI controller**, **MPV shader manager**, or **M
 *   **Dynamic Shader Injection:** Easily inject, toggle, and reorder GLSL shaders (such as `Anime4K`, `FSRCNNX`, `CAS`, and `KrigBilateral`) on the fly.
 *   **Resolution-Aware Shader Recommendations:** The application automatically reads your active video's height/width, groups compatible shaders into Low-Res vs. High-Res recommendations, and presents them in the optimal execution order (upscale → refine → chroma → sharpen).
 *   **High Performance Temporal Interpolation:** Fine-tune motion interpolation for high-refresh-rate displays. Customize your `tscale` kernel (Spline64, Mitchell, Box) and windowing functions (Sphinx, Hann) for smooth, ghost-free panning.
+*   **Fine-Grained Scaler Tuning:** Pick independent luma/chroma/downscale kernels (`scale`/`cscale`/`dscale`) and dial in `sharpen` and per-kernel antiringing strength to squeeze out ringing artifacts on your upscaled sources.
 *   **HDR to SDR Tone Mapping:** Instantly cycle tone mapping algorithms (bt.2446a, mobius, spline) and push target peak brightness parameters to watch dark HDR movies in bright rooms.
 *   **SDR to HDR Color Expansion:** Force target colorspace hints, primaries, gamuts, gamut-mapping modes, TRCs (like `bt.2020` or `pq`), and reference white level to map SDR content perfectly to high-end HDR monitors.
 *   **Display-Aware Target Peak:** Reads your panel's real peak brightness (EDID via DXGI) and marks it directly on the Target Peak slider, warning when you push past it.
