@@ -42,7 +42,11 @@ Widget videoSliderRow({
       ),
       Expanded(
         child: Slider(
-          value: value,
+          // Slider asserts min <= value <= max; a value persisted from before
+          // a range was tightened (or from mpv's own wider limit) would
+          // otherwise crash the tab in debug builds. See dsp_slider.dart for
+          // the same pattern.
+          value: value.clamp(min, max),
           min: min,
           max: max,
           divisions: divisions,

@@ -240,9 +240,12 @@ class TabVideoGrading extends StatelessWidget {
           videoSliderRow(
             label: 'Deband Threshold',
             value: video.state.debandThreshold.toDouble(),
+            // mpv's hard limit is 4096, but that's not a usable range — banding
+            // strength in practice lives in 0-100 (default 48); the rest of the
+            // slider was dead space a mouse drag couldn't hit.
             min: 0,
-            max: 4096,
-            divisions: 256, // 4096 / 16 = 256
+            max: 100,
+            divisions: 100,
             onChanged: (v) => video.setDebandThreshold(v.toInt()),
           ),
           const SizedBox(height: 12),
@@ -258,9 +261,11 @@ class TabVideoGrading extends StatelessWidget {
           videoSliderRow(
             label: 'Deband Grain',
             value: video.state.debandGrain.toDouble(),
+            // Same story as Threshold: mpv allows up to 4096, but grain noise
+            // is already heavy by 100 (default 32).
             min: 0,
-            max: 4096,
-            divisions: 256, // 4096 / 16 = 256
+            max: 100,
+            divisions: 100,
             onChanged: (v) => video.setDebandGrain(v.toInt()),
           ),
         ],
