@@ -401,6 +401,69 @@ List<VideoPreset> get builtinVideoPresets => [
     ),
   ),
   VideoPreset(
+    id: 'overkill',
+    name: 'Overkill',
+    emoji: '🔥',
+    description: 'Every shader and scaler maxed, HDR pushed past any real '
+        'ceiling — for HDR displays (Windows HDR must be on)',
+    state: VideoState(
+      // Dai's personal config, promoted to a built-in on his request (was
+      // "DaiFav") — deliberately breaks two rules the rest of this file
+      // follows, kept as-is because that's the config he actually uses:
+      //   1. Stacks CAS-vivid *and* adaptive-sharpen, which every other
+      //      preset (and toggleShader's own exclusion groups) treat as
+      //      mutually exclusive.
+      //   2. targetPeak is an explicit 3001 instead of the auto sentinel
+      //      every other passthrough preset uses. Technically an absolute PQ
+      //      ceiling per the header comment above, but 3001 nits is above
+      //      any real panel, so in practice it behaves like auto.
+      shadersLowRes: [
+        'FSRCNNX_x2_16-0-4-1.glsl',
+        'SSimSuperRes.glsl',
+        'CfL_Prediction.glsl',
+        'CAS-vivid.glsl',
+        'adaptive-sharpen.glsl',
+      ],
+      shadersHighRes: ['CfL_Prediction.glsl', 'CAS-vivid.glsl', 'adaptive-sharpen.glsl'],
+      toneMappingAlgorithm: 'bt.2446a',
+      targetPeak: 3001.0,
+      contrastRecovery: 0.0,
+      visualizeToneMapping: false,
+      hdrComputePeak: true,
+      hdrOutput: true,
+      inverseToneMapping: true,
+      targetColorspaceHint: true,
+      targetPrim: 'auto',
+      targetGamut: 'auto',
+      targetTrc: 'pq',
+      gamutMappingMode: 'clip',
+      brightness: 0,
+      contrast: 0,
+      gamma: 0,
+      saturation: 0,
+      deband: true,
+      debandIterations: 2,
+      debandThreshold: 32,
+      debandRange: 12,
+      debandGrain: 0,
+      dither: 'error-diffusion',
+      errorDiffusion: 'sierra-3',
+      interpolation: false,
+      videoSync: 'audio',
+      tscale: 'oversample',
+      tscaleWindow: 'sphinx',
+      tscaleRadius: 0.95,
+      tscaleBlur: 0.01,
+      tscaleClamp: 0.0,
+      scale: 'ewa_lanczossharp',
+      cscale: 'spline36',
+      dscale: 'catmull_rom',
+      sharpen: 0.02,
+      scaleAntiring: 0.5,
+      cscaleAntiring: 0.5,
+    ),
+  ),
+  VideoPreset(
     id: 'bypass',
     name: 'Bypass (Default)',
     emoji: '🔇',
