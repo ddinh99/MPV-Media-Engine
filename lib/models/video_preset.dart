@@ -404,8 +404,9 @@ List<VideoPreset> get builtinVideoPresets => [
     id: 'overkill',
     name: 'Overkill',
     emoji: '🔥',
-    description: 'Every shader and scaler maxed, HDR pushed past any real '
-        'ceiling — for HDR displays (Windows HDR must be on)',
+    description: 'Every shader and scaler maxed, colorspace hint set to '
+        'forward the source\'s own dynamic HDR metadata rather than forcing '
+        'a fixed PQ ceiling',
     state: VideoState(
       // Dai's personal config, promoted to a built-in on his request (was
       // "DaiFav") — deliberately breaks two rules the rest of this file
@@ -413,12 +414,24 @@ List<VideoPreset> get builtinVideoPresets => [
       //   1. Stacks CAS-vivid *and* adaptive-sharpen, which every other
       //      preset (and toggleShader's own exclusion groups) treat as
       //      mutually exclusive.
-      //   2. targetPeak is an explicit 3000 instead of the auto sentinel
-      //      every other passthrough preset uses. Technically an absolute PQ
-      //      ceiling per the header comment above, but 3000 nits is above
-      //      any real panel, so in practice it behaves like auto.
-      // Recalibrated 2026-07-17 to match his latest DaiFav save (was 3001,
-      // hdrComputePeak: true, debandThreshold/Range/Grain 32/12/0).
+      //   2. targetPeakHdr is an explicit 3000 instead of the auto sentinel
+      //      every other passthrough preset uses. Only takes effect if HDR
+      //      Output is manually turned on while this preset is active —
+      //      3000 nits is above any real panel, so in practice it behaves
+      //      like auto anyway.
+      // Recalibrated 2026-07-18 to match his latest DaiFav save. This round
+      // is a bigger shift than the last: he switched off HDR Output in favor
+      // of manual Target Hinting + the new source-dynamic colorspace hint
+      // mode (see VideoState.targetColorspaceHintMode) — mpv forwards the
+      // source's own per-scene HDR metadata instead of a forced PQ/itm
+      // ceiling. He reported this reads with "more atmosphere" on real HDR
+      // content and may ease up on his TV's local-dimming (unverified, but
+      // consistent with sending the display truthful rather than inflated
+      // metadata). Also changed: contrastRecovery 0→0.5, hdrComputePeak
+      // false→true, debandThreshold 35→32, debandGrain 5→0, scale
+      // ewa_lanczossharp→spline36, scale/cscale-antiring 0.5→0.08.
+      // errorDiffusion stays floyd-steinberg — the live DaiFav save had
+      // sierra-3 from unrelated testing, not his actual preference.
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
         'SSimSuperRes.glsl',
@@ -428,19 +441,18 @@ List<VideoPreset> get builtinVideoPresets => [
       ],
       shadersHighRes: ['CfL_Prediction.glsl', 'CAS-vivid.glsl', 'adaptive-sharpen.glsl'],
       toneMappingAlgorithm: 'bt.2446a',
-      targetPeak: 3000.0,
-      contrastRecovery: 0.0,
+      targetPeak: 203.0,
+      targetPeakHdr: 3000.0,
+      contrastRecovery: 0.5,
       visualizeToneMapping: false,
-      // false, like Best HDR/HDR Punch: use the container's static mastering
-      // metadata instead of measuring per-frame — matches the rest of this
-      // file's passthrough presets rather than the true this shipped with.
-      hdrComputePeak: false,
-      hdrOutput: true,
-      inverseToneMapping: true,
+      hdrComputePeak: true,
+      hdrOutput: false,
+      inverseToneMapping: false,
       targetColorspaceHint: true,
+      targetColorspaceHintMode: 'source-dynamic',
       targetPrim: 'auto',
       targetGamut: 'auto',
-      targetTrc: 'pq',
+      targetTrc: 'auto',
       gamutMappingMode: 'clip',
       brightness: 0,
       contrast: 0,
@@ -448,9 +460,9 @@ List<VideoPreset> get builtinVideoPresets => [
       saturation: 0,
       deband: true,
       debandIterations: 2,
-      debandThreshold: 35,
+      debandThreshold: 32,
       debandRange: 16,
-      debandGrain: 5,
+      debandGrain: 0,
       dither: 'error-diffusion',
       errorDiffusion: 'floyd-steinberg',
       interpolation: false,
@@ -460,12 +472,12 @@ List<VideoPreset> get builtinVideoPresets => [
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
-      scale: 'ewa_lanczossharp',
+      scale: 'spline36',
       cscale: 'spline36',
       dscale: 'catmull_rom',
       sharpen: 0.02,
-      scaleAntiring: 0.5,
-      cscaleAntiring: 0.5,
+      scaleAntiring: 0.08,
+      cscaleAntiring: 0.08,
     ),
   ),
   VideoPreset(
