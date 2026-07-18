@@ -424,6 +424,10 @@ List<VideoPreset> get builtinVideoPresets => [
       // Grain 32/16/0→35/12/5, scale spline36→ewa_lanczossharp, scale/
       // cscale-antiring 0.08→0.5. Shader chain swapped CAS-vivid for CAS
       // and added KrigBilateral, Anime4K_Restore_CNN_M, ArtCNN_C4F16.
+      // Recalibrated again same day after the scale/cscale/dscale dropdowns
+      // gained more mpv kernel choices: scale ewa_lanczossharp→
+      // ewa_lanczos4sharpest, cscale spline36→ewa_lanczos, dscale
+      // catmull_rom→mitchell, scale/cscale-antiring 0.5→0.8.
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
         'SSimSuperRes.glsl',
@@ -467,12 +471,12 @@ List<VideoPreset> get builtinVideoPresets => [
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
-      scale: 'ewa_lanczossharp',
-      cscale: 'spline36',
-      dscale: 'catmull_rom',
+      scale: 'ewa_lanczos4sharpest',
+      cscale: 'ewa_lanczos',
+      dscale: 'mitchell',
       sharpen: 0.02,
-      scaleAntiring: 0.5,
-      cscaleAntiring: 0.5,
+      scaleAntiring: 0.8,
+      cscaleAntiring: 0.8,
     ),
   ),
   VideoPreset(
