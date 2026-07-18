@@ -288,7 +288,19 @@ class DspProvider extends ChangeNotifier {
       _addLog('▶ Launching MPV…');
       final mpvProcess = await io.Process.start(
         _mpvExePath!,
-        ['--input-ipc-server=$mpvPipePath', videoPath],
+        // Force gpu-next: nearly every HDR-tab property this app drives
+        // (inverse-tone-mapping, hdr-reference-white, gamut-mapping-mode,
+        // target-colorspace-hint-mode, the bt.2446a/st2094-40 tone curves...)
+        // is gpu-next-only per mpv's manual. mpv would otherwise silently
+        // pick whatever --vo its own mpv.conf/build defaults to, and every
+        // one of those properties would be a no-op with no rejection to
+        // surface it — the same invisible-failure class as the dead
+        // hdr-output toggle.
+        // Trailing comma keeps mpv's own fallback behavior (falls back to
+        // other compiled-in VOs if gpu-next isn't available on this build),
+        // matching what --vo already does unset — this only makes the
+        // otherwise-implicit default explicit, it doesn't remove fallback.
+        ['--input-ipc-server=$mpvPipePath', '--vo=gpu-next,', videoPath],
         mode: io.ProcessStartMode.detached,
       );
       _addLog('  MPV pid ${mpvProcess.pid}');

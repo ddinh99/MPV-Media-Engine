@@ -629,6 +629,7 @@ class VideoProvider extends ChangeNotifier {
     // Colorspace
     addIfChanged('inverse-tone-mapping', old.inverseToneMapping ? 'yes' : 'no', next.inverseToneMapping ? 'yes' : 'no');
     addIfChanged('target-colorspace-hint', old.targetColorspaceHint ? 'yes' : 'no', next.targetColorspaceHint ? 'yes' : 'no');
+    addIfChanged('target-colorspace-hint-mode', old.targetColorspaceHintMode, next.targetColorspaceHintMode);
     // Unconditional regardless of the hint flag: these describe the target
     // color for tone/gamut-mapping and matter to mpv's rendering even when
     // target-colorspace-hint is off (the manual setTargetPrim/Gamut/Trc
@@ -916,6 +917,14 @@ class VideoProvider extends ChangeNotifier {
     _state = _state.copyWith(targetColorspaceHint: val);
     notifyListeners();
     _sendCommand('target-colorspace-hint', val ? 'yes' : 'no');
+  }
+
+  void setTargetColorspaceHintMode(bool sourceDynamic) {
+    _activePresetId = null;
+    final mode = sourceDynamic ? 'source-dynamic' : 'target';
+    _state = _state.copyWith(targetColorspaceHintMode: mode);
+    notifyListeners();
+    _sendCommand('target-colorspace-hint-mode', mode);
   }
 
   void setTargetPrim(String prim) {

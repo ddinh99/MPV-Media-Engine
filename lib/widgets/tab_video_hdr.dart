@@ -84,10 +84,59 @@ class TabVideoHdr extends StatelessWidget {
                   Expanded(child: _buildTargetHinting(context, video)),
                 ],
               ),
+              if (video.state.targetColorspaceHint) ...[
+                const SizedBox(height: 16),
+                _buildColorspaceHintMode(context, video),
+              ],
             ],
           ),
         );
       },
+    );
+  }
+
+  // Its own card, outside both the Tone Mapping and SDR to HDR Remap
+  // (Target Hinting) cards on purpose: target-colorspace-hint-mode applies
+  // whenever target-colorspace-hint is on, whether that came from the
+  // manual Target Hinting switch (SDR path) or from HDR Output (HDR
+  // passthrough path) — nesting it inside the "SDR to HDR Remap" card
+  // made it read as SDR-only, when it isn't.
+  Widget _buildColorspaceHintMode(BuildContext context, VideoProvider video) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: videoCardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Dynamic Metadata Hint (experimental)',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppTheme.primary),
+                ),
+              ),
+              Switch(
+                value: video.state.targetColorspaceHintMode == 'source-dynamic',
+                onChanged: (v) => video.setTargetColorspaceHintMode(v),
+                activeColor: AppTheme.primary,
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Applies whenever the colorspace hint is on above — during HDR '
+            'passthrough (HDR Output) or the SDR-to-HDR remap panel below. '
+            'Off sends your configured Target Primaries/Gamut/TRC as the '
+            'hint (mpv default). On forwards the source\'s own per-scene '
+            'HDR metadata instead — closer to true passthrough for content '
+            'with dynamic metadata, but mpv flags it experimental and it '
+            'depends on the display reacting to changing metadata '
+            '(--vo=gpu-next only).',
+            style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
     );
   }
 

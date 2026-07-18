@@ -50,6 +50,18 @@ class VideoState {
   bool inverseToneMapping;
 
   bool targetColorspaceHint;
+
+  /// Mirrors mpv's `target-colorspace-hint-mode` (Choices: target source
+  /// source-dynamic; default target; --vo=gpu-next only). Only meaningful
+  /// while [targetColorspaceHint] is enabled. The GUI only exposes a toggle
+  /// between the two ends that matter here — 'target' (mpv sends the
+  /// configured target-* values as the hint, the default) and
+  /// 'source-dynamic' (mpv instead forwards the source's own per-scene HDR
+  /// metadata, which mpv's manual flags as experimental and dependent on the
+  /// display reacting to changing metadata). Plain 'source' (static) isn't
+  /// surfaced — it's a strict subset of source-dynamic with no scene
+  /// adaptation, so it wouldn't add anything a user here would reach for.
+  String targetColorspaceHintMode;
   String targetPrim;
   String targetGamut;
   String targetTrc;
@@ -137,6 +149,7 @@ class VideoState {
     this.hdrOutput = false,
     this.inverseToneMapping = false,
     this.targetColorspaceHint = false,
+    this.targetColorspaceHintMode = 'target',
     this.targetPrim = 'auto',
     this.targetGamut = 'auto',
     this.targetTrc = 'auto',
@@ -192,6 +205,7 @@ class VideoState {
     bool? hdrOutput,
     bool? inverseToneMapping,
     bool? targetColorspaceHint,
+    String? targetColorspaceHintMode,
     String? targetPrim,
     String? targetGamut,
     String? targetTrc,
@@ -238,6 +252,7 @@ class VideoState {
       hdrOutput: hdrOutput ?? this.hdrOutput,
       inverseToneMapping: inverseToneMapping ?? this.inverseToneMapping,
       targetColorspaceHint: targetColorspaceHint ?? this.targetColorspaceHint,
+      targetColorspaceHintMode: targetColorspaceHintMode ?? this.targetColorspaceHintMode,
       targetPrim: targetPrim ?? this.targetPrim,
       targetGamut: targetGamut ?? this.targetGamut,
       targetTrc: targetTrc ?? this.targetTrc,
@@ -286,6 +301,7 @@ class VideoState {
     'hdrOutput': hdrOutput,
     'inverseToneMapping': inverseToneMapping,
     'targetColorspaceHint': targetColorspaceHint,
+    'targetColorspaceHintMode': targetColorspaceHintMode,
     'targetPrim': targetPrim,
     'targetGamut': targetGamut,
     'targetTrc': targetTrc,
@@ -369,6 +385,7 @@ class VideoState {
       hdrOutput: hdrOutput,
       inverseToneMapping: json['inverseToneMapping'] as bool? ?? false,
       targetColorspaceHint: json['targetColorspaceHint'] as bool? ?? false,
+      targetColorspaceHintMode: json['targetColorspaceHintMode'] as String? ?? 'target',
       targetPrim: json['targetPrim'] as String? ?? 'auto',
       targetGamut: json['targetGamut'] as String? ?? 'auto',
       targetTrc: json['targetTrc'] as String? ?? 'auto',
