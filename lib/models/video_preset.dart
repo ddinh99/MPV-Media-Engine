@@ -412,8 +412,9 @@ List<VideoPreset> get builtinVideoPresets => [
       // "DaiFav") — deliberately breaks two rules the rest of this file
       // follows, kept as-is because that's the config he actually uses:
       //   1. Stacks CAS-vivid *and* adaptive-sharpen, which every other
-      //      preset (and toggleShader's own exclusion groups) treat as
-      //      mutually exclusive.
+      //      preset treats as alternatives rather than stacking together
+      //      (toggleShader no longer enforces this as mutual exclusion —
+      //      users can enable as many shaders as they want).
       //   2. targetPeakHdr is an explicit 3000 instead of the auto sentinel
       //      every other passthrough preset uses. Only takes effect if HDR
       //      Output is manually turned on while this preset is active —

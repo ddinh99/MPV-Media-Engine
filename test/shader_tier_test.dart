@@ -96,51 +96,36 @@ void main() {
     });
   });
 
-  group('shader mutual exclusion in toggleShader', () {
-    test('enabling CfL_Prediction_Lite disables CfL_Prediction', () {
+  // toggleShader used to silently disable "alternative" shaders (e.g.
+  // enabling CAS would drop adaptive-sharpen) via hardcoded exclusion
+  // groups. Removed on request: users can stack as many shaders as they
+  // want, and the GUI no longer enforces on/off relationships between them.
+  group('toggleShader no longer enforces exclusion groups', () {
+    test('enabling CfL_Prediction_Lite does not disable CfL_Prediction', () {
       final provider = VideoProvider(DspProvider());
       provider.toggleShader(ResolutionTier.highRes, 'CfL_Prediction.glsl', true);
-      expect(provider.state.shadersHighRes, contains('CfL_Prediction.glsl'));
-
       provider.toggleShader(ResolutionTier.highRes, 'CfL_Prediction_Lite.glsl', true);
+      expect(provider.state.shadersHighRes, contains('CfL_Prediction.glsl'));
       expect(provider.state.shadersHighRes, contains('CfL_Prediction_Lite.glsl'));
-      expect(provider.state.shadersHighRes, isNot(contains('CfL_Prediction.glsl')));
     });
 
-    test('enabling CAS disables adaptive-sharpen', () {
+    test('enabling CAS-vivid does not disable CAS or adaptive-sharpen', () {
       final provider = VideoProvider(DspProvider());
+      provider.toggleShader(ResolutionTier.lowRes, 'CAS.glsl', true);
       provider.toggleShader(ResolutionTier.lowRes, 'adaptive-sharpen.glsl', true);
-      expect(provider.state.shadersLowRes, contains('adaptive-sharpen.glsl'));
-
-      provider.toggleShader(ResolutionTier.lowRes, 'CAS.glsl', true);
+      provider.toggleShader(ResolutionTier.lowRes, 'CAS-vivid.glsl', true);
       expect(provider.state.shadersLowRes, contains('CAS.glsl'));
-      expect(provider.state.shadersLowRes, isNot(contains('adaptive-sharpen.glsl')));
+      expect(provider.state.shadersLowRes, contains('adaptive-sharpen.glsl'));
+      expect(provider.state.shadersLowRes, contains('CAS-vivid.glsl'));
     });
 
-    // CAS-vivid is the HDR Punch preset's sharpener — a third variant of the
-    // same OUTPUT-hook sharpener as CAS/adaptive-sharpen. It was missing from
-    // the exclusion group despite shader_metadata.dart and the HDR Punch
-    // preset comment both documenting "use instead of CAS/adaptive-sharpen,
-    // not with them" — so loading HDR Punch then manually checking CAS or
-    // adaptive-sharpen on the Shaders tab silently stacked two sharpeners.
-    test('enabling CAS-vivid disables CAS and adaptive-sharpen', () {
+    test('disabling a shader only removes that shader', () {
       final provider = VideoProvider(DspProvider());
       provider.toggleShader(ResolutionTier.lowRes, 'CAS.glsl', true);
-      expect(provider.state.shadersLowRes, contains('CAS.glsl'));
-
-      provider.toggleShader(ResolutionTier.lowRes, 'CAS-vivid.glsl', true);
-      expect(provider.state.shadersLowRes, contains('CAS-vivid.glsl'));
+      provider.toggleShader(ResolutionTier.lowRes, 'adaptive-sharpen.glsl', true);
+      provider.toggleShader(ResolutionTier.lowRes, 'CAS.glsl', false);
       expect(provider.state.shadersLowRes, isNot(contains('CAS.glsl')));
-    });
-
-    test('enabling adaptive-sharpen after CAS-vivid disables CAS-vivid', () {
-      final provider = VideoProvider(DspProvider());
-      provider.toggleShader(ResolutionTier.lowRes, 'CAS-vivid.glsl', true);
-      expect(provider.state.shadersLowRes, contains('CAS-vivid.glsl'));
-
-      provider.toggleShader(ResolutionTier.lowRes, 'adaptive-sharpen.glsl', true);
       expect(provider.state.shadersLowRes, contains('adaptive-sharpen.glsl'));
-      expect(provider.state.shadersLowRes, isNot(contains('CAS-vivid.glsl')));
     });
   });
 }
