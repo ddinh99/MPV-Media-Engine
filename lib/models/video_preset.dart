@@ -409,61 +409,55 @@ List<VideoPreset> get builtinVideoPresets => [
         'a fixed PQ ceiling',
     state: VideoState(
       // Dai's personal config, promoted to a built-in on his request (was
-      // "DaiFav") — deliberately breaks two rules the rest of this file
-      // follows, kept as-is because that's the config he actually uses:
-      //   1. Stacks CAS-vivid *and* adaptive-sharpen, which every other
-      //      preset treats as alternatives rather than stacking together
-      //      (toggleShader no longer enforces this as mutual exclusion —
-      //      users can enable as many shaders as they want).
-      //   2. targetPeakHdr is an explicit 3000 instead of the auto sentinel
-      //      every other passthrough preset uses. Only takes effect if HDR
-      //      Output is manually turned on while this preset is active —
-      //      3000 nits is above any real panel, so in practice it behaves
-      //      like auto anyway.
-      // Recalibrated 2026-07-18 to match his latest DaiFav save. This round
-      // is a bigger shift than the last: he switched off HDR Output in favor
-      // of manual Target Hinting + the new source-dynamic colorspace hint
-      // mode (see VideoState.targetColorspaceHintMode) — mpv forwards the
-      // source's own per-scene HDR metadata instead of a forced PQ/itm
-      // ceiling. He reported this reads with "more atmosphere" on real HDR
-      // content and may ease up on his TV's local-dimming (unverified, but
-      // consistent with sending the display truthful rather than inflated
-      // metadata). Also changed: contrastRecovery 0→0.5, hdrComputePeak
-      // false→true, debandThreshold 35→32, debandGrain 5→0, scale
-      // ewa_lanczossharp→spline36, scale/cscale-antiring 0.5→0.08.
-      // errorDiffusion stays floyd-steinberg — the live DaiFav save had
-      // sierra-3 from unrelated testing, not his actual preference.
+      // "DaiFav") — deliberately stacks same-purpose shaders (CAS *and*
+      // adaptive-sharpen together) that every other preset treats as
+      // alternatives; toggleShader no longer enforces exclusion between
+      // them, so this is just his real setup, not a bug.
+      // Recalibrated again 2026-07-18 to match his latest DaiFav save. HDR
+      // Output is back on (target-trc=pq, inverse-tone-mapping=yes)
+      // alongside source-dynamic colorspace hint mode, so mpv still forwards
+      // the source's own per-scene HDR metadata rather than a fixed target.
+      // targetPeakHdr moved off its old explicit 3000 override to auto
+      // (0.0), matching every other passthrough preset now that HDR Output
+      // owns target-peak. Also changed: toneMappingAlgorithm bt.2446a→
+      // spline, gamutMappingMode clip→perceptual, debandThreshold/Range/
+      // Grain 32/16/0→35/12/5, scale spline36→ewa_lanczossharp, scale/
+      // cscale-antiring 0.08→0.5. Shader chain swapped CAS-vivid for CAS
+      // and added KrigBilateral, Anime4K_Restore_CNN_M, ArtCNN_C4F16.
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
         'SSimSuperRes.glsl',
         'CfL_Prediction.glsl',
-        'CAS-vivid.glsl',
         'adaptive-sharpen.glsl',
+        'KrigBilateral.glsl',
+        'CAS.glsl',
+        'Anime4K_Restore_CNN_M.glsl',
+        'ArtCNN_C4F16.glsl',
       ],
-      shadersHighRes: ['CfL_Prediction.glsl', 'CAS-vivid.glsl', 'adaptive-sharpen.glsl'],
-      toneMappingAlgorithm: 'bt.2446a',
-      targetPeak: 203.0,
-      targetPeakHdr: 3000.0,
+      shadersHighRes: ['CAS.glsl', 'CfL_Prediction.glsl', 'adaptive-sharpen.glsl'],
+      toneMappingAlgorithm: 'spline',
+      targetPeak: 0.0,
+      targetPeakHdr: 0.0,
       contrastRecovery: 0.5,
       visualizeToneMapping: false,
       hdrComputePeak: true,
-      hdrOutput: false,
-      inverseToneMapping: false,
+      hdrOutput: true,
+      inverseToneMapping: true,
       targetColorspaceHint: true,
       targetColorspaceHintMode: 'source-dynamic',
       targetPrim: 'auto',
       targetGamut: 'auto',
-      targetTrc: 'auto',
-      gamutMappingMode: 'clip',
+      targetTrc: 'pq',
+      gamutMappingMode: 'perceptual',
       brightness: 0,
       contrast: 0,
       gamma: 0,
       saturation: 0,
       deband: true,
       debandIterations: 2,
-      debandThreshold: 32,
-      debandRange: 16,
-      debandGrain: 0,
+      debandThreshold: 35,
+      debandRange: 12,
+      debandGrain: 5,
       dither: 'error-diffusion',
       errorDiffusion: 'floyd-steinberg',
       interpolation: false,
@@ -473,12 +467,12 @@ List<VideoPreset> get builtinVideoPresets => [
       tscaleRadius: 0.95,
       tscaleBlur: 0.01,
       tscaleClamp: 0.0,
-      scale: 'spline36',
+      scale: 'ewa_lanczossharp',
       cscale: 'spline36',
       dscale: 'catmull_rom',
       sharpen: 0.02,
-      scaleAntiring: 0.08,
-      cscaleAntiring: 0.08,
+      scaleAntiring: 0.5,
+      cscaleAntiring: 0.5,
     ),
   ),
   VideoPreset(
