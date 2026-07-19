@@ -516,8 +516,10 @@ class VideoProvider extends ChangeNotifier {
       }
       // Now that the measurement is confirmed credible, it's safe to feed
       // auto mode's calculation — before this it could have been the same
-      // runaway number that would have wrecked the computed value.
-      _recomputeVideoSyncMaxVideoChangeAuto();
+      // runaway number that would have wrecked the computed value. This call
+      // already waited out _kDisplaySyncSettle to get here, so there's no
+      // reason to wait a second time.
+      _recomputeVideoSyncMaxVideoChangeAuto(immediate: true);
       return;
     }
 
@@ -1083,7 +1085,11 @@ class VideoProvider extends ChangeNotifier {
     _activePresetId = null;
     _state = _state.copyWith(videoSyncMaxVideoChangeAuto: auto);
     notifyListeners();
-    if (auto) _recomputeVideoSyncMaxVideoChangeAuto();
+    // Unlike the new-file/shader-tier trigger, this follows a deliberate
+    // click — playback is presumably already stable, so there's no
+    // pipeline-rebuild risk to wait out. Compute now rather than leave the
+    // switch looking like it did nothing for 3 seconds.
+    if (auto) _recomputeVideoSyncMaxVideoChangeAuto(immediate: true);
   }
 
   /// Replicates mpv's own `calc_best_speed()` (player/video.c): for factors
@@ -1114,14 +1120,39 @@ class VideoProvider extends ChangeNotifier {
   /// tuned to any one machine.
   static const double _kAutoMaxChangeMargin = 1.0;
 
+  /// Guards [_recomputeVideoSyncMaxVideoChangeAuto]'s settle delay the same
+  /// way [_displaySyncCheckToken] guards [_verifyDisplaySync] — a newer call
+  /// (new file, re-toggle) bumps this, so a delayed call left over from a
+  /// superseded trigger notices on wake and bails instead of overwriting a
+  /// fresher result with stale-file data.
+  int _autoMaxChangeToken = 0;
+
   /// Recomputes and pushes [VideoState.videoSyncMaxVideoChange] from the
   /// current file's fps and mpv's live measured display refresh. A no-op
   /// unless auto is on and interpolation is actually active — the value is
   /// meaningless otherwise. Called after a new file's info is cached and
   /// after a display-sync measurement is confirmed credible, since both
   /// change the inputs to this calculation.
-  Future<void> _recomputeVideoSyncMaxVideoChangeAuto() async {
+  ///
+  /// [immediate] skips the settle wait — only safe when the caller already
+  /// waited for one itself (`_verifyDisplaySync`'s 3s settle). The default
+  /// path (a new file loading) has *not* waited: `cacheCurrentVideoInfo` can
+  /// fire mid-pipeline-rebuild (a shader-tier crossing resends glsl-shaders
+  /// in the same call), right when frame drops/stutter make mpv's just-then
+  /// `estimated-display-fps` an unrepresentative, transient reading rather
+  /// than the converged measurement `_verifyDisplaySync` waits for. Reusing
+  /// that same settle window here rather than trusting an instant read is
+  /// the whole point — a wrong "optimal" value that looks authoritative is
+  /// worse than no auto value at all.
+  Future<void> _recomputeVideoSyncMaxVideoChangeAuto({bool immediate = false}) async {
     if (!_state.videoSyncMaxVideoChangeAuto || !_state.interpolation) return;
+
+    final token = ++_autoMaxChangeToken;
+    if (!immediate) {
+      await Future.delayed(_kDisplaySyncSettle);
+      if (token != _autoMaxChangeToken) return; // superseded meanwhile
+      if (!_state.videoSyncMaxVideoChangeAuto || !_state.interpolation) return;
+    }
 
     final contentFps = (_cachedVideoInfo?['container-fps'] as num?)?.toDouble() ??
         (_cachedVideoInfo?['estimated-vf-fps'] as num?)?.toDouble();
@@ -1141,8 +1172,10 @@ class VideoProvider extends ChangeNotifier {
     final mismatch = _bestCadenceMismatchPercent(contentFps, displayFps);
     if (mismatch == null) return;
 
-    // Re-check after the awaits above — auto or interpolation may have been
-    // turned off while this was in flight.
+    // Re-check after the awaits above — auto/interpolation may have been
+    // turned off, or a newer trigger (another file, another toggle) may have
+    // superseded this one, while the two getProperty round-trips were in flight.
+    if (token != _autoMaxChangeToken) return;
     if (!_state.videoSyncMaxVideoChangeAuto || !_state.interpolation) return;
 
     final autoValue = double.parse(

@@ -339,6 +339,24 @@ class TabVideoScaling extends StatelessWidget {
                     ),
                   ),
                 ),
+                // Deliberately outside the IgnorePointer block below and
+                // always enabled, in or out of Auto: neither the computed
+                // value nor a value tested good on one machine is guaranteed
+                // to work on another, so there always has to be a one-click
+                // way back to mpv's own stock number regardless of mode.
+                TextButton(
+                  onPressed: () => video.setVideoSyncMaxVideoChange(1.0),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    'Reset to Default',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textSecondary),
+                  ),
+                ),
+                const SizedBox(width: 4),
                 Switch(
                   value: video.state.videoSyncMaxVideoChangeAuto,
                   onChanged: video.setVideoSyncMaxVideoChangeAuto,
@@ -374,9 +392,12 @@ class TabVideoScaling extends StatelessWidget {
                   ? 'Recomputed from this file\'s fps vs mpv\'s live measured display '
                       'Hz, replicating mpv\'s own factor search (calc_best_speed in '
                       'player/video.c) plus a fixed +1% margin for hardware clock '
-                      'drift, which has no formula. Recalculates on every new file and '
-                      'whenever display sync is (re)confirmed. Editing any control '
-                      'below switches back to manual.'
+                      'drift, which has no formula. Waits ~3s after a new file or a '
+                      'shader-chain change before reading the measurement, so a '
+                      'transient stutter during pipeline rebuilds can\'t feed a bad '
+                      'number in — the value below may sit unchanged for a moment '
+                      'before updating. Editing any control below switches back to '
+                      'manual.'
                   : 'How much mpv may nudge video speed (in %) to keep it locked to '
                       'audio under display-resample. mpv\'s 1% default already covers '
                       'most fixed-cadence content (23.976fps on a 60Hz display is only '
@@ -410,6 +431,13 @@ class _MaxVideoChangeControlState extends State<_MaxVideoChangeControl> {
   late final TextEditingController _controller;
   final FocusNode _focusNode = FocusNode();
 
+  // True only while the box holds a real, uncommitted keystroke from the
+  // user. Losing focus for an unrelated reason (tapping Reset to Default, a
+  // quick-pick chip, the Auto switch — anything that changes the value out
+  // from under this field) must NOT re-push whatever stale text happened to
+  // still be sitting in the box; only an actual edit should ever commit.
+  bool _dirty = false;
+
   static String _format(double v) =>
       v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
 
@@ -427,15 +455,22 @@ class _MaxVideoChangeControlState extends State<_MaxVideoChangeControl> {
   @override
   void didUpdateWidget(covariant _MaxVideoChangeControl oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Keep the field mirroring external changes (slider drags, preset loads)
-    // without clobbering a value the user is mid-typing.
+    // Keep the field mirroring external changes (slider drags, preset loads,
+    // Reset to Default, Auto recompute) without clobbering a value the user
+    // is mid-typing. Any external change also means the field is no longer
+    // showing an uncommitted edit of the *old* value, so clear dirty too.
     if (!_focusNode.hasFocus) {
       final live = _format(widget.video.state.videoSyncMaxVideoChange);
-      if (_controller.text != live) _controller.text = live;
+      if (_controller.text != live) {
+        _controller.text = live;
+        _dirty = false;
+      }
     }
   }
 
   void _commit() {
+    if (!_dirty) return;
+    _dirty = false;
     final parsed = double.tryParse(_controller.text.trim());
     if (parsed == null || parsed < 0) {
       _controller.text = _format(widget.video.state.videoSyncMaxVideoChange);
@@ -445,6 +480,7 @@ class _MaxVideoChangeControlState extends State<_MaxVideoChangeControl> {
   }
 
   void _setPreset(double value) {
+    _dirty = false;
     _controller.text = _format(value);
     widget.video.setVideoSyncMaxVideoChange(value);
   }
@@ -514,6 +550,7 @@ class _MaxVideoChangeControlState extends State<_MaxVideoChangeControl> {
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
             ],
+            onChanged: (_) => _dirty = true,
             onSubmitted: (_) => _commit(),
             style: GoogleFonts.jetBrainsMono(
               fontSize: 12,
