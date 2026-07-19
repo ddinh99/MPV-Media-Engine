@@ -1,5 +1,6 @@
 // lib/widgets/tab_video_scaling.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../constants/theme.dart';
@@ -322,9 +323,212 @@ class TabVideoScaling extends StatelessWidget {
               divisions: 100,
               onChanged: video.setTScaleClamp,
             ),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Divider(height: 1),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Auto-compute from measured fps',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ),
+                Switch(
+                  value: video.state.videoSyncMaxVideoChangeAuto,
+                  onChanged: video.setVideoSyncMaxVideoChangeAuto,
+                  activeColor: AppTheme.primary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            IgnorePointer(
+              ignoring: video.state.videoSyncMaxVideoChangeAuto,
+              child: Opacity(
+                opacity: video.state.videoSyncMaxVideoChangeAuto ? 0.45 : 1.0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    videoSliderRow(
+                      label: 'Max Speed Change % (video-sync-max-video-change)',
+                      value: video.state.videoSyncMaxVideoChange,
+                      min: 0.0,
+                      max: 10.0,
+                      divisions: 100,
+                      onChanged: video.setVideoSyncMaxVideoChange,
+                    ),
+                    const SizedBox(height: 10),
+                    _MaxVideoChangeControl(video: video),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              video.state.videoSyncMaxVideoChangeAuto
+                  ? 'Recomputed from this file\'s fps vs mpv\'s live measured display '
+                      'Hz, replicating mpv\'s own factor search (calc_best_speed in '
+                      'player/video.c) plus a fixed +1% margin for hardware clock '
+                      'drift, which has no formula. Recalculates on every new file and '
+                      'whenever display sync is (re)confirmed. Editing any control '
+                      'below switches back to manual.'
+                  : 'How much mpv may nudge video speed (in %) to keep it locked to '
+                      'audio under display-resample. mpv\'s 1% default already covers '
+                      'most fixed-cadence content (23.976fps on a 60Hz display is only '
+                      'a ~0.1% mismatch) — headroom above that compensates for real '
+                      'clock drift between your GPU and audio device, which is '
+                      'hardware-specific. Tap a tested value or type an exact one; '
+                      'watch for stutter to find the smallest value that works.',
+              style: GoogleFonts.inter(fontSize: 11, color: AppTheme.textMuted),
+            ),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Quick-pick chips + an exact-entry text field for `video-sync-max-video-change`.
+/// The slider above it can't land precisely on values like `1.001` — mpv's own
+/// community fpsadjust.lua script uses exactly that number to fix the
+/// 23.976/24.000 cadence remainder, so a control that can only reach whole
+/// percent increments would be unable to reproduce a real, documented fix.
+class _MaxVideoChangeControl extends StatefulWidget {
+  const _MaxVideoChangeControl({required this.video});
+  final VideoProvider video;
+
+  @override
+  State<_MaxVideoChangeControl> createState() => _MaxVideoChangeControlState();
+}
+
+class _MaxVideoChangeControlState extends State<_MaxVideoChangeControl> {
+  late final TextEditingController _controller;
+  final FocusNode _focusNode = FocusNode();
+
+  static String _format(double v) =>
+      v == v.truncateToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(
+      text: _format(widget.video.state.videoSyncMaxVideoChange),
+    );
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _commit();
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MaxVideoChangeControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Keep the field mirroring external changes (slider drags, preset loads)
+    // without clobbering a value the user is mid-typing.
+    if (!_focusNode.hasFocus) {
+      final live = _format(widget.video.state.videoSyncMaxVideoChange);
+      if (_controller.text != live) _controller.text = live;
+    }
+  }
+
+  void _commit() {
+    final parsed = double.tryParse(_controller.text.trim());
+    if (parsed == null || parsed < 0) {
+      _controller.text = _format(widget.video.state.videoSyncMaxVideoChange);
+      return;
+    }
+    widget.video.setVideoSyncMaxVideoChange(parsed);
+  }
+
+  void _setPreset(double value) {
+    _controller.text = _format(value);
+    widget.video.setVideoSyncMaxVideoChange(value);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  Widget _chip(String label, double value, String tooltip) {
+    final current = widget.video.state.videoSyncMaxVideoChange;
+    final active = (current - value).abs() < 0.0005;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(6),
+        onTap: () => _setPreset(value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: active ? AppTheme.primary.withOpacity(0.15) : AppTheme.surfaceVariant,
+            border: Border.all(color: active ? AppTheme.primary : AppTheme.border),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: active ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 140,
+          child: Text(
+            'Quick set',
+            style: GoogleFonts.inter(fontSize: 13, color: AppTheme.textSecondary),
+          ),
+        ),
+        _chip('1%', 1.0, 'mpv default'),
+        const SizedBox(width: 8),
+        _chip('2%', 2.0, 'Tested good on a 60Hz TV'),
+        const SizedBox(width: 16),
+        Text(
+          'Value:',
+          style: GoogleFonts.inter(fontSize: 12, color: AppTheme.textMuted),
+        ),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 76,
+          child: TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            textAlign: TextAlign.right,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$')),
+            ],
+            onSubmitted: (_) => _commit(),
+            style: GoogleFonts.jetBrainsMono(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+            decoration: InputDecoration(
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              suffixText: '%',
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

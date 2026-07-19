@@ -292,6 +292,9 @@ class VideoProvider extends ChangeNotifier {
       }
 
       notifyListeners();
+      // A new file means a new content fps — recompute rather than keep
+      // running with the previous file's cadence correction.
+      _recomputeVideoSyncMaxVideoChangeAuto();
       return true;
     } catch (e) {
       debugPrint('Error caching video info: $e');
@@ -511,6 +514,10 @@ class VideoProvider extends ChangeNotifier {
         _displaySyncWarning = null;
         notifyListeners();
       }
+      // Now that the measurement is confirmed credible, it's safe to feed
+      // auto mode's calculation — before this it could have been the same
+      // runaway number that would have wrecked the computed value.
+      _recomputeVideoSyncMaxVideoChangeAuto();
       return;
     }
 
@@ -674,6 +681,7 @@ class VideoProvider extends ChangeNotifier {
     addIfChanged('interpolation', old.interpolation ? 'yes' : 'no', next.interpolation ? 'yes' : 'no');
     addIfChanged('video-sync', old.videoSync, next.videoSync);
     if (next.interpolation) {
+      addIfChanged('video-sync-max-video-change', old.videoSyncMaxVideoChange, next.videoSyncMaxVideoChange);
       addIfChanged('tscale', old.tscale, next.tscale);
       addIfChanged('tscale-window', old.tscaleWindow, next.tscaleWindow);
       addIfChanged('tscale-radius', old.tscaleRadius, next.tscaleRadius);
@@ -1057,6 +1065,94 @@ class VideoProvider extends ChangeNotifier {
     // Turning this on silently switches mpv to display sync. Confirm mpv can
     // actually measure the display before leaving it that way.
     if (val) _verifyDisplaySync();
+  }
+
+  void setVideoSyncMaxVideoChange(double percent) {
+    _activePresetId = null;
+    // A manual edit is an explicit override — leaving auto on would just
+    // have the next recompute (new file, redisplay-sync check) overwrite it.
+    _state = _state.copyWith(
+      videoSyncMaxVideoChange: percent,
+      videoSyncMaxVideoChangeAuto: false,
+    );
+    notifyListeners();
+    _sendCommand('video-sync-max-video-change', percent, debounce: true);
+  }
+
+  void setVideoSyncMaxVideoChangeAuto(bool auto) {
+    _activePresetId = null;
+    _state = _state.copyWith(videoSyncMaxVideoChangeAuto: auto);
+    notifyListeners();
+    if (auto) _recomputeVideoSyncMaxVideoChangeAuto();
+  }
+
+  /// Replicates mpv's own `calc_best_speed()` (player/video.c): for factors
+  /// 1..5 (mpv's own default `video-sync-max-factor`), finds how close
+  /// `displayFps * factor` lands to an integer multiple of `contentFps`, and
+  /// returns the smallest mismatch found — the true minimum cadence
+  /// correction mpv's display-resample would ever need for this pair, if
+  /// given enough ceiling to reach it. Returns null if either fps is
+  /// unusable (VFR reporting 0, or not yet known).
+  static double? _bestCadenceMismatchPercent(double contentFps, double displayFps) {
+    if (contentFps <= 0 || displayFps <= 0) return null;
+    final ratio = displayFps / contentFps;
+    double? best;
+    for (var factor = 1; factor <= 5; factor++) {
+      final scaled = ratio * factor;
+      final nearest = scaled.roundToDouble();
+      if (nearest == 0) continue;
+      final mismatch = ((scaled / nearest) - 1).abs() * 100;
+      if (best == null || mismatch < best) best = mismatch;
+    }
+    return best;
+  }
+
+  /// Safety margin added on top of the computed cadence mismatch, covering
+  /// the audio/GPU clock-drift term that has no formula (see
+  /// [VideoState.videoSyncMaxVideoChangeAuto]) — a fixed value, not derived
+  /// from anything measurable, so it's deliberately conservative rather than
+  /// tuned to any one machine.
+  static const double _kAutoMaxChangeMargin = 1.0;
+
+  /// Recomputes and pushes [VideoState.videoSyncMaxVideoChange] from the
+  /// current file's fps and mpv's live measured display refresh. A no-op
+  /// unless auto is on and interpolation is actually active — the value is
+  /// meaningless otherwise. Called after a new file's info is cached and
+  /// after a display-sync measurement is confirmed credible, since both
+  /// change the inputs to this calculation.
+  Future<void> _recomputeVideoSyncMaxVideoChangeAuto() async {
+    if (!_state.videoSyncMaxVideoChangeAuto || !_state.interpolation) return;
+
+    final contentFps = (_cachedVideoInfo?['container-fps'] as num?)?.toDouble() ??
+        (_cachedVideoInfo?['estimated-vf-fps'] as num?)?.toDouble();
+    if (contentFps == null || contentFps <= 0) return;
+
+    final nominal = (await dspProvider.getProperty('display-fps') as num?)?.toDouble();
+    var displayFps = (await dspProvider.getProperty('estimated-display-fps') as num?)?.toDouble();
+    // Same credibility check as _verifyDisplaySync: an uncredible measurement
+    // (the runaway this app already guards against) must not feed this
+    // calculation, or auto mode would compute nonsense off a 300+Hz "display".
+    final ceiling = (nominal != null && nominal > 0) ? nominal * 1.5 : 200.0;
+    if (displayFps == null || displayFps <= 0 || displayFps > ceiling) {
+      displayFps = (nominal != null && nominal > 0) ? nominal : null;
+    }
+    if (displayFps == null) return;
+
+    final mismatch = _bestCadenceMismatchPercent(contentFps, displayFps);
+    if (mismatch == null) return;
+
+    // Re-check after the awaits above — auto or interpolation may have been
+    // turned off while this was in flight.
+    if (!_state.videoSyncMaxVideoChangeAuto || !_state.interpolation) return;
+
+    final autoValue = double.parse(
+      (mismatch + _kAutoMaxChangeMargin).clamp(1.0, 10.0).toStringAsFixed(2),
+    );
+    if ((_state.videoSyncMaxVideoChange - autoValue).abs() < 0.005) return;
+
+    _state = _state.copyWith(videoSyncMaxVideoChange: autoValue);
+    notifyListeners();
+    _sendCommand('video-sync-max-video-change', autoValue);
   }
 
   void setTScale(String algo) {

@@ -107,6 +107,33 @@ class VideoState {
 
   bool interpolation;
   String videoSync;
+
+  /// Mirrors mpv's `video-sync-max-video-change` — **in percent** (verified
+  /// against a live mpv 0.41 binary via `--list-options`; manpage wording is
+  /// "Maximum speed difference in percent"). It is a *ceiling*, not a target:
+  /// mpv's own `calc_best_speed()` (player/video.c) tries integer factors
+  /// 1..`video-sync-max-factor` (default 5) of the content/display fps ratio
+  /// and returns the first factor whose implied speed change is within this
+  /// ceiling — so setting it too generously can make mpv settle for an
+  /// earlier, worse-fitting factor instead of searching further. mpv's 1%
+  /// default already covers most real fixed-cadence content (23.976fps on a
+  /// 60Hz display needs only ~0.1%, confirmed against that exact formula);
+  /// headroom above 1% is for hardware-specific audio/GPU clock drift, which
+  /// has no formula and is genuinely per-machine. Does **not** address the
+  /// unrelated display-sync runaway this app guards against separately
+  /// (`_verifyDisplaySync`): that failure is a measured refresh rate off by
+  /// whole multiples (347Hz/2817Hz vs a real 60Hz panel), not a few percent
+  /// of drift, so no value of this knob compensates for it.
+  double videoSyncMaxVideoChange;
+
+  /// When true, [videoSyncMaxVideoChange] is recomputed by VideoProvider from
+  /// the live `container-fps`/`estimated-vf-fps` of the currently playing
+  /// file against mpv's measured `estimated-display-fps`, replicating mpv's
+  /// own `calc_best_speed()` search to find the true minimum cadence
+  /// mismatch, plus a fixed safety margin for the undocumented clock-drift
+  /// term. GUI-only — no direct mpv property; manually editing the slider,
+  /// a quick-pick chip, or the text field turns this back off.
+  bool videoSyncMaxVideoChangeAuto;
   String tscale;
   String tscaleWindow;
   double tscaleRadius;
@@ -173,6 +200,8 @@ class VideoState {
     this.hardwareDecoding = false,
     this.interpolation = false,
     this.videoSync = 'audio',
+    this.videoSyncMaxVideoChange = 1.0,
+    this.videoSyncMaxVideoChangeAuto = false,
     this.tscale = 'oversample',
     this.tscaleWindow = 'sphinx',
     this.tscaleRadius = 0.95,
@@ -225,6 +254,8 @@ class VideoState {
     bool? hardwareDecoding,
     bool? interpolation,
     String? videoSync,
+    double? videoSyncMaxVideoChange,
+    bool? videoSyncMaxVideoChangeAuto,
     String? tscale,
     String? tscaleWindow,
     double? tscaleRadius,
@@ -272,6 +303,8 @@ class VideoState {
       hardwareDecoding: hardwareDecoding ?? this.hardwareDecoding,
       interpolation: interpolation ?? this.interpolation,
       videoSync: videoSync ?? this.videoSync,
+      videoSyncMaxVideoChange: videoSyncMaxVideoChange ?? this.videoSyncMaxVideoChange,
+      videoSyncMaxVideoChangeAuto: videoSyncMaxVideoChangeAuto ?? this.videoSyncMaxVideoChangeAuto,
       tscale: tscale ?? this.tscale,
       tscaleWindow: tscaleWindow ?? this.tscaleWindow,
       tscaleRadius: tscaleRadius ?? this.tscaleRadius,
@@ -321,6 +354,8 @@ class VideoState {
     'hardwareDecoding': hardwareDecoding,
     'interpolation': interpolation,
     'videoSync': videoSync,
+    'videoSyncMaxVideoChange': videoSyncMaxVideoChange,
+    'videoSyncMaxVideoChangeAuto': videoSyncMaxVideoChangeAuto,
     'tscale': tscale,
     'tscaleWindow': tscaleWindow,
     'tscaleRadius': tscaleRadius,
@@ -406,6 +441,10 @@ class VideoState {
       hardwareDecoding: json['hardwareDecoding'] as bool? ?? false,
       interpolation: json['interpolation'] as bool? ?? false,
       videoSync: json['videoSync'] as String? ?? 'audio',
+      videoSyncMaxVideoChange:
+          (json['videoSyncMaxVideoChange'] as num?)?.toDouble() ?? 1.0,
+      videoSyncMaxVideoChangeAuto:
+          json['videoSyncMaxVideoChangeAuto'] as bool? ?? false,
       tscale: json['tscale'] as String? ?? 'oversample',
       tscaleWindow: json['tscaleWindow'] as String? ?? 'sphinx',
       tscaleRadius: (json['tscaleRadius'] as num?)?.toDouble() ?? 0.95,

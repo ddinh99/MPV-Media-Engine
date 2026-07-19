@@ -37,6 +37,10 @@ const _guiOnlyFields = <String, String>{
   // targetPeak itself is the live value actually sent to mpv and is covered.
   'targetPeakSdr': 'GUI memory only; setHdrOutput reads it into targetPeak',
   'targetPeakHdr': 'GUI memory only; setHdrOutput reads it into targetPeak',
+  // No mpv property — drives videoSyncMaxVideoChange asynchronously via
+  // _recomputeVideoSyncMaxVideoChangeAuto (reads container-fps/estimated-vf-fps
+  // and estimated-display-fps over IPC), which is itself covered above.
+  'videoSyncMaxVideoChangeAuto': 'GUI-only flag; recomputes videoSyncMaxVideoChange instead of its own mpv property',
 };
 
 /// Produces a value that differs from [v], preserving its type so the mutated
