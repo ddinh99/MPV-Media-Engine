@@ -428,15 +428,18 @@ List<VideoPreset> get builtinVideoPresets => [
       // gained more mpv kernel choices: scale ewa_lanczossharp→
       // ewa_lanczos4sharpest, cscale spline36→ewa_lanczos, dscale
       // catmull_rom→mitchell, scale/cscale-antiring 0.5→0.8.
+      // Recalibrated again 2026-07-20 to match his latest DaiFav save.
+      // Shader chain dropped KrigBilateral/Anime4K_Restore_CNN_M/ArtCNN_C4F16
+      // (back to a 5-shader low-res chain). Deband turned off entirely
+      // (was on: iterations 2, threshold 35, grain 5). Sharpen 0.02→0.8.
+      // Interpolation is now on with videoSync display-resample (was off/
+      // audio) plus an explicit videoSyncMaxVideoChange=1.1 (auto-computed).
       shadersLowRes: [
         'FSRCNNX_x2_16-0-4-1.glsl',
-        'SSimSuperRes.glsl',
         'CfL_Prediction.glsl',
-        'adaptive-sharpen.glsl',
-        'KrigBilateral.glsl',
         'CAS.glsl',
-        'Anime4K_Restore_CNN_M.glsl',
-        'ArtCNN_C4F16.glsl',
+        'adaptive-sharpen.glsl',
+        'SSimSuperRes.glsl',
       ],
       shadersHighRes: ['CAS.glsl', 'CfL_Prediction.glsl', 'adaptive-sharpen.glsl'],
       toneMappingAlgorithm: 'spline',
@@ -457,15 +460,17 @@ List<VideoPreset> get builtinVideoPresets => [
       contrast: 0,
       gamma: 0,
       saturation: 0,
-      deband: true,
-      debandIterations: 2,
-      debandThreshold: 35,
+      deband: false,
+      debandIterations: 1,
+      debandThreshold: 24,
       debandRange: 12,
-      debandGrain: 5,
+      debandGrain: 0,
       dither: 'error-diffusion',
       errorDiffusion: 'floyd-steinberg',
-      interpolation: false,
-      videoSync: 'audio',
+      interpolation: true,
+      videoSync: 'display-resample',
+      videoSyncMaxVideoChange: 1.1,
+      videoSyncMaxVideoChangeAuto: true,
       tscale: 'oversample',
       tscaleWindow: 'sphinx',
       tscaleRadius: 0.95,
@@ -474,7 +479,7 @@ List<VideoPreset> get builtinVideoPresets => [
       scale: 'ewa_lanczos4sharpest',
       cscale: 'ewa_lanczos',
       dscale: 'mitchell',
-      sharpen: 0.02,
+      sharpen: 0.8,
       scaleAntiring: 0.8,
       cscaleAntiring: 0.8,
     ),
