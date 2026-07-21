@@ -37,9 +37,9 @@ final List<List<FavoriteProfile>> builtinFavoriteGroups = [
       filter: '#af-add=lavfi=[dynaudnorm=f=400:g=31:p=0.9,pan=stereo|FL=0.85*FL+0.5*FC+0.5*BL+0.5*LFE|FR=0.85*FR+0.5*FC+0.5*BR+0.5*LFE,anequalizer=c0 f=60 w=50 g=+4.5 t=1|c1 f=60 w=50 g=+4.5 t=1|c0 f=8000 w=2000 g=+2.5 t=1|c1 f=8000 w=2000 g=+2.5 t=1,acompressor=threshold=-18dB:ratio=3:makeup=2dB]',
     ),
     const FavoriteProfile(
-      id: 'Klipsch ProMedia 2.1 (Vocal / Speech)',
-      label: '🗣️ Klipsch ProMedia 2.1 (Vocal / Speech)',
-      filter: '#af-add=lavfi=[dynaudnorm=f=300:g=31:p=0.85,pan=stereo|FL=0.55*FL+0.85*FC+0.15*BL+0.15*LFE|FR=0.55*FR+0.85*FC+0.15*BR+0.15*LFE,anequalizer=c0 f=80 w=60 g=-3.0 t=1|c1 f=80 w=60 g=-3.0 t=1|c0 f=300 w=150 g=-2.0 t=1|c1 f=300 w=150 g=-2.0 t=1|c0 f=1500 w=400 g=+2.0 t=1|c1 f=1500 w=400 g=+2.0 t=1|c0 f=2800 w=600 g=+4.0 t=1|c1 f=2800 w=600 g=+4.0 t=1|c0 f=4500 w=800 g=+2.5 t=1|c1 f=4500 w=800 g=+2.5 t=1|c0 f=8000 w=2000 g=-1.5 t=1|c1 f=8000 w=2000 g=-1.5 t=1,acompressor=threshold=-22dB:ratio=4.0:attack=3:release=90:makeup=4dB,alimiter=limit=-1dB]',
+      id: 'Klipsch ProMedia 2.1 THX (Optimized)',
+      label: '🔊 Klipsch ProMedia 2.1 THX (Optimized)',
+      filter: '#af-add=lavfi=[dynaudnorm=f=400:g=31:p=0.9:c=1,pan=stereo|FL=0.85*FL+0.5*FC+0.5*BL+0.5*LFE|FR=0.85*FR+0.5*FC+0.5*BR+0.5*LFE,anequalizer=c0 f=45 w=40 g=+2.0 t=1|c1 f=45 w=40 g=+2.0 t=1|c0 f=130 w=60 g=-2.5 t=1|c1 f=130 w=60 g=-2.5 t=1|c0 f=3000 w=700 g=+2.0 t=1|c1 f=3000 w=700 g=+2.0 t=1|c0 f=5500 w=800 g=-1.0 t=1|c1 f=5500 w=800 g=-1.0 t=1|c0 f=9000 w=2500 g=+2.0 t=1|c1 f=9000 w=2500 g=+2.0 t=1,acompressor=threshold=-20dB:ratio=2.5:attack=10:release=180:makeup=2dB,alimiter=limit=-0.5dB]',
     ),
     const FavoriteProfile(
       id: 'Logitech Z906 5.1 Surround',
