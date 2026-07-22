@@ -24,6 +24,15 @@ import '../widgets/tab_video_shaders.dart';
 // (desktop only). Guarded by kIsWeb everywhere it's used.
 import 'dart:io' if (dart.library.html) '../stubs/io_stub.dart' as io;
 
+void _openUrl(String url) {
+  if (kIsWeb) return;
+  try {
+    io.Process.start('explorer.exe', [url]);
+  } catch (_) {
+    // Best-effort — if this fails, the user can still read/copy the URL.
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -114,15 +123,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     await PreferencesService.setDismissedUpdateVersion(info.version);
   }
 
-  void _openReleasePage(String url) {
-    if (kIsWeb) return;
-    try {
-      io.Process.start('explorer.exe', [url]);
-    } catch (_) {
-      // Best-effort — if this fails, the user can still read the URL from
-      // the banner text or the Releases page directly.
-    }
-  }
+  void _openReleasePage(String url) => _openUrl(url);
 
   void _onTabChanged() {
     // Rebuild so the Video Preset chrome can hide itself while on a tab
@@ -355,6 +356,19 @@ class _AppHeader extends StatelessWidget {
           'For bug reports and feedback, contact:\n'
           'ddinh99@gmail.com',
           style: GoogleFonts.inter(fontSize: 12, height: 1.5),
+        ),
+        const SizedBox(height: 16),
+        InkWell(
+          onTap: () => _openUrl(
+              'https://github.com/ddinh99/MPV-Media-Engine/releases'),
+          child: Text(
+            'Download binaries on GitHub',
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppTheme.primary,
+              decoration: TextDecoration.underline,
+            ),
+          ),
         ),
       ],
     );
